@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "paths": {
+      "@oh-pen-testing/shared": ["./packages/shared/src/index.ts"],
+      "@oh-pen-testing/core": ["./packages/core/src/index.ts"],
+      "@oh-pen-testing/cli": ["./packages/cli/src/index.ts"],
+      "@oh-pen-testing/git-github": ["./packages/git-adapters/github/src/index.ts"],
+      "@oh-pen-testing/providers-anthropic": ["./packages/providers/anthropic/src/index.ts"]
+    }
+  },
+  "include": ["tests/**/*"]
+}
