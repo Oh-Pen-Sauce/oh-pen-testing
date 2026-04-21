@@ -1,0 +1,23 @@
+id: owasp/a08-integrity/missing-sri
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A08:2021
+cwe: [CWE-353, CWE-494]
+severity_default: medium
+languages: [generic, javascript, typescript]
+authors: [oh-pen-testing-core]
+description: "Detects external `<script>` / `<link rel=stylesheet>` tags loading third-party code without Subresource Integrity (SRI)."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: external-script-no-sri
+    description: "<script src=cross-origin> with no integrity= attribute."
+    pattern: '<script\b(?:(?!integrity=)[^>])*src\s*=\s*["''`]https?://(?:[^"''`]{0,300})["''`](?:(?!integrity=)[^>])*>'
+    flags: gi
+    require_ai_confirm: true
+  - id: external-stylesheet-no-sri
+    description: "<link rel=stylesheet> from cross-origin without integrity=."
+    pattern: '<link\b(?:(?!integrity=)[^>])*rel\s*=\s*["''`]stylesheet["''`](?:(?!integrity=)[^>])*href\s*=\s*["''`]https?://(?:[^"''`]{0,300})["''`](?:(?!integrity=)[^>])*>'
+    flags: gi
+    require_ai_confirm: true

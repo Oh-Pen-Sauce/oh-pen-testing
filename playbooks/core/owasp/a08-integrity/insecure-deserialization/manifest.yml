@@ -1,0 +1,33 @@
+id: owasp/a08-integrity/insecure-deserialization
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A08:2021
+cwe: [CWE-502]
+severity_default: critical
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects unsafe deserialisation: eval, pickle.loads on untrusted input, yaml.load without SafeLoader, node-serialize."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: eval-on-input
+    description: "eval() with a non-literal argument."
+    pattern: '\beval\s*\((?!\s*["''`])'
+    flags: g
+    require_ai_confirm: true
+  - id: python-pickle-loads
+    description: "pickle.loads / pickle.load (inherently unsafe for untrusted input)."
+    pattern: 'pickle\.(?:loads?|Unpickler)\s*\('
+    flags: g
+    require_ai_confirm: true
+  - id: python-yaml-load-unsafe
+    description: "yaml.load without SafeLoader or yaml.load_all without Loader=SafeLoader."
+    pattern: 'yaml\.load(?:_all)?\s*\((?:(?!SafeLoader)[^)])+\)'
+    flags: gs
+    require_ai_confirm: true
+  - id: node-serialize-unserialize
+    description: "node-serialize package unserialize() — known RCE vector."
+    pattern: 'unserialize\s*\(\s*(?!["''`])'
+    flags: g
+    require_ai_confirm: true

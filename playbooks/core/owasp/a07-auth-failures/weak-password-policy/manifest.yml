@@ -1,0 +1,23 @@
+id: owasp/a07-auth-failures/weak-password-policy
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A07:2021
+cwe: [CWE-521]
+severity_default: medium
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects password policy configuration permitting very short passwords (< 8 chars)."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: password-min-length-short
+    description: "Password policy with minLength / min_length / passwordMinLength under 8."
+    pattern: '(?:minLength|min_length|passwordMinLength|minimumLength|min_password_length)\s*[:=]\s*[1-7]\b'
+    flags: gi
+    require_ai_confirm: true
+  - id: zod-password-min-short
+    description: "Zod / Yup schema with .min(N) on a password field where N < 8."
+    pattern: '(?:password|pwd|passwd)[^.]*\.min\s*\(\s*[1-7]\b'
+    flags: gi
+    require_ai_confirm: true

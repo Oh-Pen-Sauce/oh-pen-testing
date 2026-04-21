@@ -1,0 +1,28 @@
+id: owasp/a07-auth-failures/insecure-password-storage
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A07:2021
+cwe: [CWE-256, CWE-257, CWE-916]
+severity_default: critical
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects plaintext password storage (writing req.body.password directly to DB) or weak non-bcrypt hashing for passwords."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: store-password-plain
+    description: "Inserting/updating a password column with raw unhashed value."
+    pattern: '(?:INSERT\s+INTO|UPDATE)\s+\w+\s+SET\s+[^;]*password\s*=\s*[''"]?(?:\$\d|%\(password\)|\{password\})'
+    flags: gi
+    require_ai_confirm: true
+  - id: password-equals-req-password
+    description: "password field assigned directly from request body (no hash function)."
+    pattern: 'password\s*:\s*req\.body\.password\b'
+    flags: g
+    require_ai_confirm: true
+  - id: password-plain-compare
+    description: "Plaintext equality comparison for password auth (user.password === req.body.password)."
+    pattern: '\b(?:user|account|record)\.(?:password|pwd)\s*===?\s*(?:req|request)\.(?:body|params|query)\.(?:password|pwd)\b'
+    flags: g
+    require_ai_confirm: true

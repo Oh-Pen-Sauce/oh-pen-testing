@@ -1,0 +1,28 @@
+id: owasp/a10-ssrf/metadata-service-access
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A10:2021
+cwe: [CWE-918]
+severity_default: critical
+languages: [javascript, typescript, python, generic]
+authors: [oh-pen-testing-core]
+description: "Detects references to cloud metadata services (169.254.169.254, metadata.google.internal) — either the app talks to them intentionally, or it forwards attacker-controllable URLs to its own fetch layer which could."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: aws-metadata-ipv4
+    description: "AWS metadata service IP 169.254.169.254."
+    pattern: '169\.254\.169\.254'
+    flags: g
+    require_ai_confirm: true
+  - id: gcp-metadata-host
+    description: "GCP metadata service hostname."
+    pattern: 'metadata\.google\.internal\b'
+    flags: g
+    require_ai_confirm: true
+  - id: aws-metadata-imds-v2-token
+    description: "IMDSv2 token endpoint path (/latest/api/token) in code."
+    pattern: '/latest/api/token'
+    flags: g
+    require_ai_confirm: true

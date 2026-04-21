@@ -1,0 +1,23 @@
+id: owasp/a10-ssrf/user-controlled-fetch
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A10:2021
+cwe: [CWE-918]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects HTTP clients called with URLs built from user-controlled input (SSRF risk)."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: fetch-with-req-param
+    description: "fetch() or axios call with a URL derived from req.body / req.query / req.params."
+    pattern: '(?:fetch|axios(?:\.(?:get|post|put|delete))?|got|request)\s*\(\s*(?:`[^`]*\$\{[^}]*req\.(?:body|query|params)[^}]*\}|["''][^"'']*["'']\s*\+\s*req\.(?:body|query|params))'
+    flags: gs
+    require_ai_confirm: true
+  - id: python-requests-with-input
+    description: "requests.get/post with URL concatenated or f-stringed from request input."
+    pattern: 'requests\.(?:get|post|put|delete|head|request)\s*\(\s*(?:f["''][^"'']*\{(?:request|input|data)[^}]*\}|["''][^"'']*["'']\s*\+\s*(?:request|input|data)\.)'
+    flags: g
+    require_ai_confirm: true

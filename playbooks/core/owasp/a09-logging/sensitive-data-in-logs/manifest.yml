@@ -1,0 +1,18 @@
+id: owasp/a09-logging/sensitive-data-in-logs
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A09:2021
+cwe: [CWE-532, CWE-312]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects password, token, or secret values being passed to logging calls."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: log-call-sensitive-field
+    description: "Logging call referencing a sensitive-named field."
+    pattern: '(?:console\.(?:log|info|warn|debug|error)|log(?:ger)?\.(?:info|debug|warn|error|trace)|print|logging\.(?:info|debug|warn|error))\s*\([^)]*\b(?:password|passwd|pwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|session[_-]?id|credit[_-]?card|cc[_-]?number)\b'
+    flags: gi
+    require_ai_confirm: true
