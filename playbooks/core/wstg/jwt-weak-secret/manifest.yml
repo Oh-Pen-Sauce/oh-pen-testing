@@ -1,0 +1,22 @@
+id: wstg/jwt-weak-secret
+version: 1.0.0
+category: wstg
+cwe: [CWE-798, CWE-326]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects JWT signing/verification using a short, hardcoded, or env-default secret."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: jwt-sign-short-secret
+    description: "jsonwebtoken sign() with a short literal secret."
+    pattern: 'jwt\.sign\s*\(\s*[^,]+,\s*["''`][^"''`]{1,15}["''`]'
+    flags: g
+    require_ai_confirm: true
+  - id: pyjwt-encode-short
+    description: "PyJWT encode with a short literal secret."
+    pattern: 'jwt\.encode\s*\(\s*[^,]+,\s*["''][^"'']{1,15}["'']'
+    flags: g
+    require_ai_confirm: true

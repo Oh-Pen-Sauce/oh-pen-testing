@@ -1,0 +1,27 @@
+id: cwe-top-25/path-traversal
+version: 1.0.0
+category: cwe-top-25
+cwe: [CWE-22]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects path.join / open() with unvalidated user input that could traverse outside the intended directory."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: path-join-user-input
+    description: "path.join called with req.body/query/params component."
+    pattern: 'path\.join\s*\([^)]*req\.(?:body|query|params)\.'
+    flags: g
+    require_ai_confirm: true
+  - id: fs-open-user-input
+    description: "fs.readFile/createReadStream with user-controlled path."
+    pattern: 'fs\.(?:readFile|createReadStream|readFileSync)\s*\(\s*[^,)]*req\.(?:body|query|params)\.'
+    flags: g
+    require_ai_confirm: true
+  - id: python-open-user-input
+    description: "Python open() with user-controlled path."
+    pattern: '\bopen\s*\(\s*(?:f["''][^"'']*\{(?:request|input|data)[^}]*\}|[^,)]+\+\s*(?:request|input|data)\.)'
+    flags: g
+    require_ai_confirm: true

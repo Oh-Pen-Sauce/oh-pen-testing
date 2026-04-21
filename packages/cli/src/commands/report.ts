@@ -3,8 +3,10 @@ import path from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
 import {
+  buildCycloneDx,
   buildPdfReport,
   buildSarifLog,
+  buildSpdx,
   listIssues,
   loadConfig,
   ohpenPaths,
@@ -19,7 +21,7 @@ export function registerReport(program: Command): void {
     .description("Generate a report from the latest scan")
     .option(
       "-f, --format <format>",
-      "markdown | json | sarif | pdf (default: markdown)",
+      "markdown | json | sarif | pdf | sbom-cyclonedx | sbom-spdx (default: markdown)",
       "markdown",
     )
     .option(
@@ -77,6 +79,26 @@ export function registerReport(program: Command): void {
           });
           suggestedFile = "oh-pen-testing-report.pdf";
           encoding = "binary";
+          break;
+        }
+        case "sbom-cyclonedx": {
+          const config = await safeLoadConfigOrNull(cwd);
+          body = await buildCycloneDx({
+            cwd,
+            projectName: config?.project.name ?? "Unnamed project",
+            toolVersion: CLI_VERSION,
+          });
+          suggestedFile = "oh-pen-testing-sbom.cyclonedx.json";
+          break;
+        }
+        case "sbom-spdx": {
+          const config = await safeLoadConfigOrNull(cwd);
+          body = await buildSpdx({
+            cwd,
+            projectName: config?.project.name ?? "Unnamed project",
+            toolVersion: CLI_VERSION,
+          });
+          suggestedFile = "oh-pen-testing-sbom.spdx.json";
           break;
         }
         case "markdown":

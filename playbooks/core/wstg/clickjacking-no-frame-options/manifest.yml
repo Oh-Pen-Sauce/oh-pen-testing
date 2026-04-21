@@ -1,0 +1,17 @@
+id: wstg/clickjacking-no-frame-options
+version: 1.0.0
+category: wstg
+cwe: [CWE-1021]
+severity_default: medium
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: "Detects web frameworks serving HTML without X-Frame-Options / CSP frame-ancestors."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: express-no-helmet
+    description: "Express app without helmet() or app.use-based X-Frame-Options header."
+    pattern: '(?:express\(\)|new\s+Hono\(\))(?:(?!helmet\(|X-Frame-Options|frame-ancestors).)*?app\.listen'
+    flags: gs
+    require_ai_confirm: true

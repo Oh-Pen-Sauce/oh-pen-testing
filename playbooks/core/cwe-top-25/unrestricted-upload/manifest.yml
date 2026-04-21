@@ -1,0 +1,22 @@
+id: cwe-top-25/unrestricted-upload
+version: 1.0.0
+category: cwe-top-25
+cwe: [CWE-434]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects file upload handlers that accept any content-type / extension without validation."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: multer-no-file-filter
+    description: "multer() instantiated without a fileFilter option."
+    pattern: 'multer\s*\(\s*\{(?![\s\S]{0,500}fileFilter)'
+    flags: g
+    require_ai_confirm: true
+  - id: busboy-no-validation
+    description: "busboy or formidable stream piped to fs.createWriteStream without mimetype check."
+    pattern: '(?:busboy|formidable)[^\n]{0,200}pipe\s*\(\s*fs\.createWriteStream'
+    flags: g
+    require_ai_confirm: true

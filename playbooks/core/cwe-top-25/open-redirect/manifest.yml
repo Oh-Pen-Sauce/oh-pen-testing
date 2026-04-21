@@ -1,0 +1,22 @@
+id: cwe-top-25/open-redirect
+version: 1.0.0
+category: cwe-top-25
+cwe: [CWE-601]
+severity_default: medium
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects res.redirect / HTTP 3xx responses built from unvalidated user input."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: express-redirect-user-input
+    description: "res.redirect called with a value from req."
+    pattern: 'res\.redirect\s*\(\s*(?!["''`])[^)]*req\.'
+    flags: g
+    require_ai_confirm: true
+  - id: location-header-user-input
+    description: "Location header set from request input."
+    pattern: 'setHeader\s*\(\s*["'']Location["'']\s*,\s*(?!["''`])[^)]*req\.'
+    flags: g
+    require_ai_confirm: true
