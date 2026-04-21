@@ -1,0 +1,28 @@
+id: owasp/a01-broken-access-control/cors-wildcard
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A01:2021
+cwe: [CWE-942, CWE-346]
+severity_default: high
+languages: [javascript, typescript, python, java, go]
+authors: [oh-pen-testing-core]
+description: Detects permissive CORS configuration (Access-Control-Allow-Origin `*` combined with credentials, or reflected origin without allowlist).
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: cors-origin-wildcard-literal
+    description: "Literal `Access-Control-Allow-Origin: *` in config or code."
+    pattern: '(?:Access-Control-Allow-Origin|allow[_-]?origins?|allowedOrigins)\s*[:=]\s*[''"`]?\*[''"`]?'
+    flags: gi
+    require_ai_confirm: true
+  - id: cors-cors-package-wildcard
+    description: "Express `cors({ origin: \"*\" })` or similar explicit wildcard."
+    pattern: 'cors\s*\(\s*\{[^}]*origin\s*:\s*[''"`]\*[''"`]'
+    flags: gs
+    require_ai_confirm: true
+  - id: cors-reflected-origin
+    description: "Reflecting request Origin header as the allow-origin without validation."
+    pattern: 'Access-Control-Allow-Origin[''"`]?\s*,\s*[''"`]?\+?\s*req(?:uest)?\.headers?\[[''"`]origin[''"`]\]'
+    flags: gi
+    require_ai_confirm: true

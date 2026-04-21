@@ -1,0 +1,28 @@
+id: owasp/a03-injection/xss-innerhtml
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-79]
+severity_default: high
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: Detects XSS-prone DOM sinks fed with non-literal strings (innerHTML, outerHTML, document.write, dangerouslySetInnerHTML).
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: dangerously-set-inner-html
+    description: React dangerouslySetInnerHTML with non-literal __html.
+    pattern: 'dangerouslySetInnerHTML\s*=\s*\{\s*\{\s*__html\s*:(?!\s*["''`])'
+    flags: g
+    require_ai_confirm: true
+  - id: inner-html-assignment-non-literal
+    description: innerHTML/outerHTML assigned something other than a string literal.
+    pattern: '\.(?:innerHTML|outerHTML)\s*=(?!\s*["''`])'
+    flags: g
+    require_ai_confirm: true
+  - id: document-write-non-literal
+    description: document.write/writeln with a non-literal argument.
+    pattern: 'document\.(?:write|writeln)\s*\((?!\s*["''`])'
+    flags: g
+    require_ai_confirm: true

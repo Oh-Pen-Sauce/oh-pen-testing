@@ -1,0 +1,28 @@
+id: owasp/a02-cryptographic-failures/insecure-tls-version
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A02:2021
+cwe: [CWE-326, CWE-327]
+severity_default: high
+languages: [javascript, typescript, python, java, go, generic]
+authors: [oh-pen-testing-core]
+description: Detects TLS/SSL downgrades — SSLv2, SSLv3, TLSv1.0, TLSv1.1 configured explicitly.
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: insecure-tls-version-literal
+    description: "SSLv2, SSLv3, TLS 1.0 or TLS 1.1 specified as a protocol version."
+    pattern: '(?:SSLv2|SSLv3|TLSv1\.0|TLSv1\.1|TLS_1_0|TLS_1_1|TLS1\.0|TLS1\.1|PROTOCOL_SSLv3|PROTOCOL_TLSv1(?:_1)?)\b'
+    flags: g
+    require_ai_confirm: true
+  - id: node-min-version-weak
+    description: "Node TLS options setting minVersion/maxVersion to TLSv1.0 or TLSv1.1."
+    pattern: '(?:minVersion|maxVersion|secureProtocol)\s*:\s*[''"`](TLSv1(?:\.1)?_method|TLSv1_method|SSLv23_method)[''"`]'
+    flags: g
+    require_ai_confirm: true
+  - id: reject-unauthorized-false
+    description: "Node HTTPS with rejectUnauthorized: false (certificate validation disabled)."
+    pattern: 'rejectUnauthorized\s*:\s*false'
+    flags: g
+    require_ai_confirm: true

@@ -1,0 +1,33 @@
+id: owasp/a03-injection/command-injection
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-78]
+severity_default: critical
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects shell execution with interpolated or concatenated user input.
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: node-exec-template-literal
+    description: child_process.exec/execSync with a template literal.
+    pattern: '(?:exec|execSync|spawn|spawnSync)\s*\(\s*`[^`]*\$\{[^}]+\}'
+    flags: gs
+    require_ai_confirm: true
+  - id: node-exec-concat
+    description: child_process.exec called with string concatenation.
+    pattern: '(?:exec|execSync)\s*\(\s*["''`][^"''`]+["''`]\s*\+\s*\w+'
+    flags: g
+    require_ai_confirm: true
+  - id: python-subprocess-shell-true
+    description: subprocess call with shell=True and a non-literal command.
+    pattern: 'subprocess\.(?:run|call|Popen|check_call|check_output)\s*\([^)]*shell\s*=\s*True'
+    flags: gs
+    require_ai_confirm: true
+  - id: python-os-system
+    description: os.system with an f-string or concatenation.
+    pattern: 'os\.system\s*\(\s*(?:f["''][^"'']*\{|\w+\s*\+)'
+    flags: g
+    require_ai_confirm: true

@@ -1,0 +1,23 @@
+id: owasp/a02-cryptographic-failures/weak-random-for-security
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A02:2021
+cwe: [CWE-338]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects non-cryptographic randomness used in security-relevant contexts (tokens, session IDs, password resets).
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: math-random-in-token-context
+    description: Math.random() near a variable name suggesting security purpose.
+    pattern: '(?:token|secret|nonce|salt|session|reset|otp|code|key|password)\w*\s*[:=]\s*(?:[^;]{0,200})Math\.random\s*\('
+    flags: gi
+    require_ai_confirm: true
+  - id: python-random-in-token-context
+    description: Python random module used where secrets should be.
+    pattern: '(?:token|secret|nonce|salt|session|reset|otp|code)\w*\s*=\s*(?:[^#\n]{0,120})random\.(random|randint|choice|randrange|sample)'
+    flags: gi
+    require_ai_confirm: true

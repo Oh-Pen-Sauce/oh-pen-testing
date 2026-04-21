@@ -1,0 +1,33 @@
+id: owasp/a03-injection/xxe-vulnerable-parser
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-611]
+severity_default: high
+languages: [javascript, typescript, python, java]
+authors: [oh-pen-testing-core]
+description: Detects XML parsers configured with external entity resolution enabled (or defaults that leave it on).
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: node-libxmljs-noent
+    description: "libxmljs parse with noent: true (entity expansion enabled)."
+    pattern: 'libxmljs\.parseXml\s*\([^)]*noent\s*:\s*true'
+    flags: gs
+    require_ai_confirm: true
+  - id: python-etree-resolve-entities
+    description: "Python ElementTree parse with resolve_entities=True (XMLParser with DTD)."
+    pattern: 'XMLParser\s*\([^)]*resolve_entities\s*=\s*True'
+    flags: gs
+    require_ai_confirm: true
+  - id: python-lxml-no-dtd-protection
+    description: "lxml etree.parse / fromstring without an explicitly safe parser."
+    pattern: 'etree\.(parse|fromstring|XML)\s*\((?!.*(?:resolve_entities\s*=\s*False|no_network\s*=\s*True))[^)]*\)'
+    flags: gs
+    require_ai_confirm: true
+  - id: java-documentbuilder-default
+    description: "Java DocumentBuilderFactory.newInstance() without setFeature() disabling entities."
+    pattern: 'DocumentBuilderFactory\.newInstance\s*\(\s*\)(?![\s\S]{0,400}setFeature\s*\(\s*["''](?:http://apache\.org/xml/features/disallow-doctype-decl|http://xml\.org/sax/features/external-general-entities))'
+    flags: g
+    require_ai_confirm: true

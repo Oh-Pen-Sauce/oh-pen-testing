@@ -1,0 +1,33 @@
+id: owasp/a03-injection/sql-injection-raw
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-89]
+severity_default: critical
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects raw SQL with string interpolation of user-controlled values.
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: node-raw-template-literal
+    description: Template literal concatenating user input into a SQL string passed to query()/execute()/raw().
+    pattern: '(?:query|execute|raw|unsafe)\s*\(\s*`[^`]*\$\{[^}]+\}[^`]*`'
+    flags: gs
+    require_ai_confirm: true
+  - id: node-concat-select
+    description: String concatenation building a SELECT/INSERT/UPDATE/DELETE.
+    pattern: '["''`](?:SELECT|INSERT|UPDATE|DELETE)[^"''`]*["''`]\s*\+\s*\w+'
+    flags: gi
+    require_ai_confirm: true
+  - id: python-fstring-sql
+    description: Python f-string inside cursor.execute().
+    pattern: '(?:cursor|conn(?:ection)?)\.execute\s*\(\s*f(["'']).*?\{[^}]+\}.*?\1'
+    flags: g
+    require_ai_confirm: true
+  - id: python-format-sql
+    description: Python .format() or %-formatting inside cursor.execute.
+    pattern: '(?:cursor|conn(?:ection)?)\.execute\s*\(\s*["''][^"'']*%s[^"'']*["'']\s*%'
+    flags: g
+    require_ai_confirm: true

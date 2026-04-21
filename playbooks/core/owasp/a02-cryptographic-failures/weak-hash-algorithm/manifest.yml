@@ -1,0 +1,28 @@
+id: owasp/a02-cryptographic-failures/weak-hash-algorithm
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A02:2021
+cwe: [CWE-327, CWE-328]
+severity_default: high
+languages: [javascript, typescript, python, java, go, ruby, php]
+authors: [oh-pen-testing-core]
+description: Detects MD5 / SHA-1 used in a security-relevant context (passwords, tokens, signatures).
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: node-crypto-weak-hash
+    description: Node crypto.createHash("md5"|"sha1"|"sha").
+    pattern: 'crypto\.createHash\s*\(\s*[''"`](md5|sha1|sha)[''"`]\s*\)'
+    flags: gi
+    require_ai_confirm: true
+  - id: python-hashlib-weak
+    description: Python hashlib.md5()/sha1() usage.
+    pattern: 'hashlib\.(md5|sha1)\s*\('
+    flags: g
+    require_ai_confirm: true
+  - id: java-messagedigest-weak
+    description: Java MessageDigest.getInstance("MD5"|"SHA-1"|"SHA").
+    pattern: 'MessageDigest\.getInstance\s*\(\s*[''"](MD5|SHA-?1|SHA)[''"]\s*\)'
+    flags: g
+    require_ai_confirm: true

@@ -1,0 +1,4 @@
+# Fixture: psycopg parameterised. Must NOT flag.
+def find_user(cursor, email):
+    cursor.execute("SELECT * FROM users WHERE email = %s", (email,))
+    return cursor.fetchone()

@@ -1,0 +1,23 @@
+id: owasp/a01-broken-access-control/missing-authorisation-check
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A01:2021
+cwe: [CWE-284, CWE-285, CWE-862]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects endpoints that mutate state or return sensitive data without an auth middleware or manual auth check.
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: express-route-without-auth
+    description: Express POST/PUT/PATCH/DELETE handler with no auth middleware and no req.user check.
+    pattern: 'app\.(post|put|patch|delete)\s*\([^)]*,\s*(async\s*)?\([^)]*req[^)]*\)\s*=>\s*\{(?:(?!req\.(user|auth|session)\b|authenticate|requireAuth|ensureAuth|isAuthenticated|verifyToken|jwt).)*?res\.(json|send)'
+    flags: gs
+    require_ai_confirm: true
+  - id: fastapi-route-without-depends
+    description: FastAPI route with no Depends() and no authorization check in body.
+    pattern: '@(?:app|router)\.(post|put|patch|delete)\([^)]*\)\s*(?:async\s+)?def\s+\w+\([^)]*\):\s*(?:(?!Depends|current_user|require_auth|authenticate).)*?return'
+    flags: gs
+    require_ai_confirm: true
