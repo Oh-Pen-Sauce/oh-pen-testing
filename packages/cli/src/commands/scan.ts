@@ -6,10 +6,19 @@ import {
   writeConfig,
   ConfigSchema,
   ScopeViolation,
+  buildScanCompletedPayload,
+  newInstallId,
+  sendTelemetry,
 } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
-import { resolveProvider, runScan, RateLimitHalt } from "@oh-pen-testing/core";
+import {
+  resolveProvider,
+  runScan,
+  RateLimitHalt,
+  walkFiles,
+} from "@oh-pen-testing/core";
 import { resolveLocalPlaybooksRoot } from "../util/playbook-paths.js";
+import { CLI_VERSION } from "../index.js";
 
 export function registerScan(program: Command): void {
   program
@@ -99,6 +108,36 @@ export function registerScan(program: Command): void {
           console.log(
             `\nRun ${pc.cyan("oh-pen-testing remediate --issue <ID>")} to fix one.`,
           );
+        }
+
+        // Opt-in telemetry — enabled only if user explicitly ran
+        // `opt telemetry enable`. Fire-and-forget; errors never surface
+        // to the user and never slow the scan by more than 2s.
+        if (config.telemetry.enabled) {
+          try {
+            if (!config.telemetry.install_id) {
+              config.telemetry.install_id = newInstallId();
+              const validated = ConfigSchema.parse(config);
+              await writeConfig(cwd, validated);
+            }
+            let files = 0;
+            let lines = 0;
+            for await (const f of walkFiles(cwd)) {
+              files += 1;
+              lines += (f.content.match(/\n/g)?.length ?? 0) + 1;
+            }
+            const payload = buildScanCompletedPayload({
+              installId: config.telemetry.install_id!,
+              toolVersion: CLI_VERSION,
+              scan: result.scan,
+              issues: result.issues,
+              filesScanned: files,
+              linesScanned: lines,
+            });
+            await sendTelemetry(payload, config.telemetry.endpoint);
+          } catch {
+            // strict no-throw — telemetry never blocks
+          }
         }
       } catch (err) {
         if (err instanceof RateLimitHalt) {

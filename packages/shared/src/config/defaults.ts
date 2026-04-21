@@ -70,5 +70,8 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
     reports: {
       formats: ["markdown", "json"],
     },
+    telemetry: {
+      enabled: false,
+    },
   };
 }

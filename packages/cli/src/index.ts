@@ -7,6 +7,8 @@ import { registerApprove } from "./commands/approve.js";
 import { registerSetup } from "./commands/setup.js";
 import { registerReport } from "./commands/report.js";
 import { registerSchedule } from "./commands/schedule.js";
+import { registerShare } from "./commands/share.js";
+import { registerTelemetry } from "./commands/telemetry.js";
 import { registerVersion } from "./commands/version.js";
 import { registerAllProviders } from "./provider-registration.js";
 
@@ -31,6 +33,8 @@ export function buildCli(): Command {
   registerSetup(program);
   registerReport(program);
   registerSchedule(program);
+  registerShare(program);
+  registerTelemetry(program);
   registerVersion(program);
 
   return program;

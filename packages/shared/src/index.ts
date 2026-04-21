@@ -8,3 +8,5 @@ export * from "./paths.js";
 export * from "./provider/types.js";
 export * from "./sarif.js";
 export * from "./pdf-report.js";
+export * from "./telemetry.js";
+export * from "./share-card.js";

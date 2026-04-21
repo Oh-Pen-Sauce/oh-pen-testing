@@ -71,6 +71,16 @@ export const ReportFormatSchema = z.enum([
 ]);
 export type ReportFormat = z.infer<typeof ReportFormatSchema>;
 
+export const TelemetrySchema = z.object({
+  /** Opt-in. Default false. No data leaves the machine unless set true. */
+  enabled: z.boolean().default(false),
+  /** Endpoint override for self-hosting users. */
+  endpoint: z.string().url().optional(),
+  /** Anonymous install id (SHA-256 of random salt). Auto-generated on first opt-in. */
+  install_id: z.string().optional(),
+});
+export type Telemetry = z.infer<typeof TelemetrySchema>;
+
 export const TimeWindowSchema = z.object({
   start: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
   end: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
@@ -173,6 +183,7 @@ export const ConfigSchema = z.object({
       formats: z.array(ReportFormatSchema).default(["markdown", "json"]),
     })
     .default({ formats: ["markdown", "json"] }),
+  telemetry: TelemetrySchema.default({ enabled: false }),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
