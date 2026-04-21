@@ -1,0 +1,23 @@
+id: owasp/a05-security-misconfiguration/default-credentials
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A05:2021
+cwe: [CWE-798, CWE-1392]
+severity_default: critical
+languages: [javascript, typescript, python, generic]
+authors: [oh-pen-testing-core]
+description: "Detects classic default credentials (admin/admin, root/password, etc.) hardcoded in source or config."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: common-default-password-literal
+    description: "Classic default passwords used as literals."
+    pattern: '["''`]?(?:password|passwd|pwd)["''`]?\s*[:=]\s*["''`](?:admin|admin123|password|password123|changeme|changeit|letmein|welcome|default|root|toor|qwerty|12345678?|secret)["''`]'
+    flags: gi
+    require_ai_confirm: true
+  - id: admin-admin-pair
+    description: "admin/admin username+password pair in same block."
+    pattern: '["''`]admin["''`][^{}]{0,100}["''`]admin["''`]'
+    flags: g
+    require_ai_confirm: true

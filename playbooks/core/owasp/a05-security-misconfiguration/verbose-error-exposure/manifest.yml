@@ -1,0 +1,23 @@
+id: owasp/a05-security-misconfiguration/verbose-error-exposure
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A05:2021
+cwe: [CWE-209, CWE-550]
+severity_default: medium
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects HTTP handlers that return raw stack traces / exception details to clients."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: express-return-error-stack
+    description: "Express handler sending err.stack or full error object to the client."
+    pattern: 'res\.(?:json|send|status\([^)]+\)\.(?:json|send))\s*\(\s*\{[^}]*(?:stack|traceback|error)\s*:\s*(?:err|error|exception|e)(?:\.stack|\.message)?'
+    flags: gs
+    require_ai_confirm: true
+  - id: fastapi-return-exception-repr
+    description: "FastAPI/Flask error handler returning str(exc) or repr(exc)."
+    pattern: 'return\s+[^\n]*?(?:str|repr)\s*\(\s*(?:exc|exception|err)\s*\)'
+    flags: g
+    require_ai_confirm: true

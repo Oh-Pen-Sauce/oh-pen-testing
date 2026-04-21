@@ -1,0 +1,23 @@
+id: owasp/a04-insecure-design/no-rate-limit-on-auth
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A04:2021
+cwe: [CWE-307, CWE-770]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects login/signup/password-reset routes without visible rate-limiting middleware."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: express-auth-route-no-ratelimit
+    description: "Express /login, /signup, /reset, /forgot route handler without rateLimit / throttle / slowDown / limiter middleware in the declaration."
+    pattern: 'app\.(post|put)\s*\(\s*["''`](?:/[^"''`]*)(?:login|signin|signup|register|reset[_-]?password|forgot[_-]?password|verify)[^"''`]*["''`](?:(?!rateLimit|rate-limit|throttle|slowDown|limiter|rateLimiter).)*?,\s*(?:async\s*)?\('
+    flags: gis
+    require_ai_confirm: true
+  - id: fastapi-auth-route-no-limiter
+    description: "FastAPI auth-style route without slowapi @limiter decorator."
+    pattern: '@(?:app|router)\.(post|put)\s*\(\s*["''](?:/[^"'']*)(?:login|signin|signup|register|reset[_-]?password|forgot[_-]?password|verify)[^"'']*["''](?:(?!limiter|rate_limit|throttle).)*?(?:async\s+)?def\s+'
+    flags: gis
+    require_ai_confirm: true

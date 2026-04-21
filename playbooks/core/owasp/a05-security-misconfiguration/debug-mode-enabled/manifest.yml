@@ -1,0 +1,28 @@
+id: owasp/a05-security-misconfiguration/debug-mode-enabled
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A05:2021
+cwe: [CWE-489, CWE-215]
+severity_default: high
+languages: [javascript, typescript, python, generic]
+authors: [oh-pen-testing-core]
+description: "Detects debug/development flags hardcoded to true in code or config (DEBUG=true, app.debug=True)."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: python-django-debug-true
+    description: "Django settings DEBUG = True literal."
+    pattern: '^\s*DEBUG\s*=\s*True\b'
+    flags: gm
+    require_ai_confirm: true
+  - id: python-flask-debug-true
+    description: "Flask app.run(debug=True) or app.debug = True."
+    pattern: '(?:app\.run\s*\([^)]*debug\s*=\s*True|app\.debug\s*=\s*True)'
+    flags: g
+    require_ai_confirm: true
+  - id: node-express-error-handler-stack
+    description: "Express error handler returning err.stack / err itself to the client."
+    pattern: 'res\.(?:json|send|status\(\d+\)\.(?:json|send))\s*\(\s*\{[^}]*(?:stack|error)\s*:\s*err(?:or)?(?:\.stack)?\s*[,}]'
+    flags: gs
+    require_ai_confirm: true

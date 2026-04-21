@@ -1,0 +1,16 @@
+id: owasp/a06-vulnerable-components/sca
+version: 1.0.0
+category: sca
+owasp_ref: A06:2021
+cwe: [CWE-1104, CWE-937]
+severity_default: high
+languages: [javascript, typescript, python, ruby]
+authors: [oh-pen-testing-core]
+description: "Runs npm audit / pip-audit / bundler-audit and surfaces vulnerable dependencies as issues."
+risky: false
+requires_ai: false
+type: sca
+sca_sources:
+  - npm-audit
+  - pip-audit
+  - bundler-audit
