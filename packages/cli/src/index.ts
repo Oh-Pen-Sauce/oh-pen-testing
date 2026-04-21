@@ -1,6 +1,7 @@
 import { Command } from "commander";
 import { registerInit } from "./commands/init.js";
 import { registerScan } from "./commands/scan.js";
+import { registerScanDynamic } from "./commands/scan-dynamic.js";
 import { registerRemediate } from "./commands/remediate.js";
 import { registerVerify } from "./commands/verify.js";
 import { registerApprove } from "./commands/approve.js";
@@ -27,6 +28,7 @@ export function buildCli(): Command {
 
   registerInit(program);
   registerScan(program);
+  registerScanDynamic(program);
   registerRemediate(program);
   registerVerify(program);
   registerApprove(program);

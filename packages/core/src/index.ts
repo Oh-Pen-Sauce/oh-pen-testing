@@ -14,3 +14,6 @@ export * from "./provider-router/index.js";
 export * from "./scope/enforce.js";
 export * from "./verify/run-verify.js";
 export * from "./blame/git-blame.js";
+export * from "./dynamic/types.js";
+export * from "./dynamic/runner.js";
+export * from "./dynamic/playbooks.js";
