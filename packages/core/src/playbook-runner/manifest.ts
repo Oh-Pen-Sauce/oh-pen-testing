@@ -11,6 +11,13 @@ export const RegexRuleSchema = z.object({
 });
 export type RegexRule = z.infer<typeof RegexRuleSchema>;
 
+export const ScaSourceSchema = z.enum([
+  "npm-audit",
+  "pip-audit",
+  "bundler-audit",
+]);
+export type ScaSource = z.infer<typeof ScaSourceSchema>;
+
 export const PlaybookManifestSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-/]*[a-z0-9]$/),
   version: z.string(),
@@ -30,8 +37,10 @@ export const PlaybookManifestSchema = z.object({
   description: z.string().default(""),
   risky: z.boolean().default(false),
   requires_ai: z.boolean().default(true),
-  type: z.enum(["regex", "ast", "prompt"]).default("regex"),
+  type: z.enum(["regex", "ast", "prompt", "sca"]).default("regex"),
   rules: z.array(RegexRuleSchema).default([]),
+  /** For type=sca: which external auditor(s) to invoke. */
+  sca_sources: z.array(ScaSourceSchema).default([]),
 });
 
 export type PlaybookManifest = z.infer<typeof PlaybookManifestSchema>;

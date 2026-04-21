@@ -21,6 +21,7 @@ import { filterByLanguages, loadPlaybooks, type LoadedPlaybook } from "../playbo
 import { getBuiltinRules } from "../playbook-runner/builtin-rules/secrets.js";
 import { walkFiles, type WalkedFile } from "./file-walker.js";
 import { runRegexScan } from "./regex-scanner.js";
+import { runScaScan } from "./sca-scanner.js";
 import { confirmCandidate } from "./confirm.js";
 import {
   enforceTargetAllowed,
@@ -123,6 +124,71 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     const issues: Issue[] = [];
 
     for (const playbook of relevant) {
+      // SCA playbooks shell out to external auditors (npm audit / pip-audit
+      // / bundler-audit). Different runtime path from regex playbooks.
+      if (playbook.manifest.type === "sca") {
+        try {
+          const scaResult = await runScaScan(
+            cwd,
+            playbook.manifest.sca_sources,
+          );
+          logger.info("playbook.sca", {
+            playbookId: playbook.manifest.id,
+            findings: scaResult.findings.length,
+            skipped: scaResult.skippedSources,
+          });
+          for (const f of scaResult.findings) {
+            const issueId = await allocateIssueId(cwd);
+            const issue: Issue = {
+              id: issueId,
+              title: `${f.packageName}${f.installedVersion ? `@${f.installedVersion}` : ""} — ${f.summary}`,
+              severity: f.severity,
+              cwe: playbook.manifest.cwe,
+              owasp_category: playbook.manifest.owasp_ref,
+              status: "backlog",
+              assignee: null,
+              discovered_at: new Date().toISOString(),
+              discovered_by: `playbook:${playbook.manifest.id}/${f.source}`,
+              scan_id: scanId,
+              location: { file: f.file, line_range: [1, 1] },
+              evidence: {
+                rule_id: f.source,
+                code_snippet: `${f.packageName}${f.installedVersion ? `@${f.installedVersion}` : ""}`,
+                analysis: f.summary,
+                ai_reasoning: f.recommendation ?? f.summary,
+                ai_model: f.source,
+                ai_confidence: "high",
+              },
+              remediation: {
+                strategy: playbook.manifest.id,
+                auto_fixable: f.fixAvailable,
+                estimated_diff_size: 1,
+                requires_approval: false,
+              },
+              linked_pr: null,
+              verification: {
+                last_run_scan_id: null,
+                last_run_at: null,
+                hits_remaining: null,
+                verified_at: null,
+              },
+              comments: [],
+            };
+            await writeIssue(cwd, issue);
+            issues.push(issue);
+            scan.issues_found += 1;
+          }
+          scan.playbooks_run += 1;
+        } catch (err) {
+          logger.error("playbook.sca_failed", {
+            playbookId: playbook.manifest.id,
+            error: (err as Error).message,
+          });
+          scan.playbooks_skipped += 1;
+        }
+        continue;
+      }
+
       if (playbook.manifest.type !== "regex") {
         scan.playbooks_skipped += 1;
         continue;

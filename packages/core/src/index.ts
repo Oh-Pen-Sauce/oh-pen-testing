@@ -3,6 +3,7 @@ export * from "./playbook-runner/loader.js";
 export * from "./playbook-runner/builtin-rules/secrets.js";
 export * from "./scanner/file-walker.js";
 export * from "./scanner/regex-scanner.js";
+export * from "./scanner/sca-scanner.js";
 export * from "./scanner/confirm.js";
 export * from "./scanner/run-scan.js";
 export * from "./agent/marinara.js";
