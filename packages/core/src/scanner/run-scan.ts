@@ -10,12 +10,28 @@ import {
   writeScan,
   createLogger,
   type Logger,
+  RateLimitError,
 } from "@oh-pen-testing/shared";
+import {
+  createRateLimitManager,
+  type RateLimitManager,
+} from "@oh-pen-testing/rate-limit";
 import { filterByLanguages, loadPlaybooks, type LoadedPlaybook } from "../playbook-runner/loader.js";
 import { getBuiltinRules } from "../playbook-runner/builtin-rules/secrets.js";
 import { walkFiles, type WalkedFile } from "./file-walker.js";
 import { runRegexScan } from "./regex-scanner.js";
 import { confirmCandidate } from "./confirm.js";
+
+export class RateLimitHalt extends Error {
+  constructor(
+    message: string,
+    public readonly reason: "soft_cap" | "hard_cap" | "window_exhausted" | "provider",
+    public readonly scanId: string,
+  ) {
+    super(message);
+    this.name = "RateLimitHalt";
+  }
+}
 
 export interface RunScanOptions {
   cwd: string;
@@ -25,6 +41,8 @@ export interface RunScanOptions {
   logger?: Logger;
   /** Skip AI confirmation — used by unit tests of the regex layer. */
   skipAiConfirm?: boolean;
+  /** Optional rate-limit manager; if omitted, one is built from provider.rateLimitStrategy(). */
+  rateLimitManager?: RateLimitManager;
 }
 
 export interface RunScanResult {
@@ -38,6 +56,13 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
   const scanId = await allocateScanId(cwd);
   const logger = options.logger ?? (await createLogger(cwd, scanId));
   const startedAt = new Date().toISOString();
+
+  const rateLimitManager =
+    options.rateLimitManager ??
+    createRateLimitManager({
+      strategy: provider.rateLimitStrategy(),
+      budgetUsd: config.ai.rate_limit.budget_usd,
+    });
 
   logger.info("scan.start", { scanId, provider: provider.id });
 
@@ -102,6 +127,20 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
         let reasoning = "Rule matched (regex-only).";
 
         if (!skipAiConfirm && candidate.rule.require_ai_confirm) {
+          const gate = rateLimitManager.beforeCall();
+          if (gate === "hard_cap" || gate === "window_exhausted") {
+            scan.ended_at = new Date().toISOString();
+            scan.status = "failed";
+            scan.tokens_spent = rateLimitManager.snapshot().tokensIn + rateLimitManager.snapshot().tokensOut;
+            scan.cost_usd = rateLimitManager.snapshot().estimatedCostUsd;
+            await writeScan(cwd, scan);
+            logger.error("scan.halted", { reason: gate, scanId });
+            throw new RateLimitHalt(
+              `Scan halted: ${gate}. Utilisation ${rateLimitManager.utilisationPct().toFixed(0)}%.`,
+              gate,
+              scanId,
+            );
+          }
           scan.ai_calls += 1;
           try {
             const verdict = await confirmCandidate({
@@ -112,7 +151,15 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             confirmed = verdict.confirmed;
             severity = verdict.severity;
             reasoning = verdict.reasoning;
+            // We don't see usage from confirm directly — approximate via provider call chain.
+            // confirmCandidate will be extended to return usage in M2.
           } catch (err) {
+            if (err instanceof RateLimitError) {
+              scan.ended_at = new Date().toISOString();
+              scan.status = "failed";
+              await writeScan(cwd, scan);
+              throw new RateLimitHalt(err.message, "provider", scanId);
+            }
             logger.warn("playbook.ai_confirm_failed", {
               playbookId: playbook.manifest.id,
               ruleId: candidate.ruleId,

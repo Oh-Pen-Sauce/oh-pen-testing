@@ -1,6 +1,6 @@
 {
   "name": "@oh-pen-testing/cli",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "bin": {
@@ -14,11 +14,17 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@inquirer/prompts": "^7.2.1",
     "@oh-pen-testing/core": "workspace:*",
     "@oh-pen-testing/git-github": "workspace:*",
+    "@oh-pen-testing/playbooks-core": "workspace:*",
     "@oh-pen-testing/providers-anthropic": "workspace:*",
+    "@oh-pen-testing/providers-claude-code-cli": "workspace:*",
+    "@oh-pen-testing/providers-ollama": "workspace:*",
     "@oh-pen-testing/shared": "workspace:*",
     "commander": "^12.1.0",
+    "execa": "^9.5.2",
+    "open": "^10.1.0",
     "picocolors": "^1.1.1"
   },
   "devDependencies": {

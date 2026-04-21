@@ -28,6 +28,7 @@ function stubProvider(behaviour: StubProviderBehaviour = {}): AIProvider {
     id: "stub",
     name: "Stub provider",
     capabilities: [],
+    rateLimitStrategy: () => ({ class: "api-key", softCapPct: 50, hardCapPct: 100 }),
     async complete(req: CompletionRequest): Promise<CompletionResult> {
       calls.push(req);
       const messageText =

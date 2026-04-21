@@ -1,6 +1,6 @@
 {
   "name": "@oh-pen-testing/core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
   "main": "./dist/index.js",
@@ -20,7 +20,11 @@
   },
   "dependencies": {
     "@oh-pen-testing/git-github": "workspace:*",
+    "@oh-pen-testing/playbooks-core": "workspace:*",
     "@oh-pen-testing/providers-anthropic": "workspace:*",
+    "@oh-pen-testing/providers-claude-code-cli": "workspace:*",
+    "@oh-pen-testing/providers-ollama": "workspace:*",
+    "@oh-pen-testing/rate-limit": "workspace:*",
     "@oh-pen-testing/shared": "workspace:*",
     "ignore": "^6.0.2",
     "yaml": "^2.6.1",

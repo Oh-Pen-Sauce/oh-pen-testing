@@ -48,11 +48,34 @@ export interface CompletionResult {
   model: string;
 }
 
+export type ProviderClass = "api-key" | "session-window" | "local";
+
+export interface RateLimitStrategy {
+  class: ProviderClass;
+  /** For api-key: percent of budget_usd at which to warn. */
+  softCapPct?: number;
+  /** For api-key: percent at which to halt. */
+  hardCapPct?: number;
+  /** For session-window: rolling window length in hours. */
+  windowHours?: number;
+  /** For session-window: percent utilisation at which to halt. */
+  haltAtPct?: number;
+}
+
+export interface CompletionChunk {
+  deltaText: string;
+  usage?: Partial<CompletionUsage>;
+  done?: boolean;
+}
+
 export interface AIProvider {
   readonly id: string;
   readonly name: string;
   readonly capabilities: readonly string[];
   complete(request: CompletionRequest): Promise<CompletionResult>;
+  /** Optional streaming API. Providers that don't support it can omit. */
+  completeStream?(request: CompletionRequest): AsyncIterable<CompletionChunk>;
+  rateLimitStrategy(): RateLimitStrategy;
 }
 
 export class RateLimitError extends Error {

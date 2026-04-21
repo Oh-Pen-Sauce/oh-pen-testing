@@ -1,8 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
   type AIProvider,
+  type CompletionChunk,
   type CompletionRequest,
   type CompletionResult,
+  type RateLimitStrategy,
   ProviderError,
   RateLimitError,
 } from "@oh-pen-testing/shared";
@@ -48,25 +50,73 @@ export function createAnthropicProvider(
   const model = options.model ?? process.env.OHPEN_MODEL ?? DEFAULT_ANTHROPIC_MODEL;
   const client = new Anthropic({ apiKey: options.apiKey });
 
+  const buildSystem = (request: CompletionRequest) =>
+    request.system?.map((block) => ({
+      type: "text" as const,
+      text: block.text,
+      ...(block.cache
+        ? { cache_control: { type: "ephemeral" as const } }
+        : {}),
+    }));
+
   return {
     id: "claude-api",
     name: "Anthropic Claude",
-    capabilities: ["prompt-caching", "json-output", "long-context"],
+    capabilities: ["prompt-caching", "json-output", "long-context", "streaming"],
+    rateLimitStrategy(): RateLimitStrategy {
+      return { class: "api-key", softCapPct: 50, hardCapPct: 100 };
+    },
+    async *completeStream(
+      request: CompletionRequest,
+    ): AsyncIterable<CompletionChunk> {
+      try {
+        const stream = client.messages.stream({
+          model,
+          max_tokens: request.maxTokens ?? options.maxTokens ?? 4096,
+          temperature: request.temperature ?? 0,
+          system: buildSystem(request),
+          messages: request.messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
+        });
+        let inputTokens = 0;
+        let outputTokens = 0;
+        for await (const event of stream) {
+          if (
+            event.type === "content_block_delta" &&
+            event.delta.type === "text_delta"
+          ) {
+            yield { deltaText: event.delta.text };
+          } else if (event.type === "message_delta" && event.usage) {
+            outputTokens = event.usage.output_tokens;
+          } else if (event.type === "message_start" && event.message.usage) {
+            inputTokens = event.message.usage.input_tokens;
+          }
+        }
+        yield {
+          deltaText: "",
+          done: true,
+          usage: { inputTokens, outputTokens },
+        };
+      } catch (err) {
+        if (err instanceof Anthropic.RateLimitError) {
+          const retryAfter = err.headers?.["retry-after"];
+          throw new RateLimitError(
+            `Anthropic rate limit: ${err.message}`,
+            retryAfter ? Number(retryAfter) : undefined,
+          );
+        }
+        throw err;
+      }
+    },
     async complete(request: CompletionRequest): Promise<CompletionResult> {
       try {
-        const system = request.system?.map((block) => ({
-          type: "text" as const,
-          text: block.text,
-          ...(block.cache
-            ? { cache_control: { type: "ephemeral" as const } }
-            : {}),
-        }));
-
         const response = await client.messages.create({
           model,
           max_tokens: request.maxTokens ?? options.maxTokens ?? 4096,
           temperature: request.temperature ?? 0,
-          system,
+          system: buildSystem(request),
           messages: request.messages.map((m) => ({
             role: m.role,
             content: m.content,

@@ -1,26 +1,39 @@
 {
   "name": "@oh-pen-testing/web",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 7676",
+    "dev": "next dev -H 127.0.0.1 -p 7676",
     "build": "next build",
-    "start": "next start -p 7676",
+    "start": "next start -H 127.0.0.1 -p 7676",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf .next .turbo"
   },
   "dependencies": {
+    "@oh-pen-testing/core": "workspace:*",
+    "@oh-pen-testing/git-github": "workspace:*",
+    "@oh-pen-testing/playbooks-core": "workspace:*",
+    "@oh-pen-testing/providers-anthropic": "workspace:*",
+    "@oh-pen-testing/providers-claude-code-cli": "workspace:*",
+    "@oh-pen-testing/providers-ollama": "workspace:*",
+    "@oh-pen-testing/rate-limit": "workspace:*",
+    "@oh-pen-testing/shared": "workspace:*",
     "next": "^15.1.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "shiki": "^1.24.0",
+    "yaml": "^2.6.1",
+    "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.10.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "tailwindcss": "^3.4.17",
-    "postcss": "^8.5.0",
-    "autoprefixer": "^10.4.20",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2"
   }
 }

@@ -1,6 +1,6 @@
 {
   "name": "oh-pen-testing",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "description": "Local, opensource penetration testing suite. Your code. Your AI. Your terms.",
   "license": "MIT",
@@ -19,7 +19,11 @@
   "devDependencies": {
     "@oh-pen-testing/core": "workspace:*",
     "@oh-pen-testing/git-github": "workspace:*",
+    "@oh-pen-testing/playbooks-core": "workspace:*",
     "@oh-pen-testing/providers-anthropic": "workspace:*",
+    "@oh-pen-testing/providers-claude-code-cli": "workspace:*",
+    "@oh-pen-testing/providers-ollama": "workspace:*",
+    "@oh-pen-testing/rate-limit": "workspace:*",
     "@oh-pen-testing/shared": "workspace:*",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",

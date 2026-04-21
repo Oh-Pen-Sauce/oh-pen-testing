@@ -1,6 +1,12 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  --color-ohpen-critical: oklch(0.55 0.21 28);
+  --color-ohpen-high: oklch(0.62 0.18 40);
+  --color-ohpen-medium: oklch(0.75 0.16 85);
+  --color-ohpen-low: oklch(0.65 0.15 235);
+  --color-ohpen-info: oklch(0.7 0.02 260);
+}
 
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;

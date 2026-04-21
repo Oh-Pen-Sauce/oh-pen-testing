@@ -1,6 +1,28 @@
 {
   "name": "@oh-pen-testing/playbooks-core",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
-  "description": "Bundled core playbooks shipped with oh-pen-testing."
+  "type": "module",
+  "description": "Bundled core playbooks shipped with oh-pen-testing.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./dir": "./index.mjs"
+  },
+  "files": ["dist", "index.mjs", "secrets", "owasp", "sca", "wstg", "cwe-top-25"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.2"
+  }
 }

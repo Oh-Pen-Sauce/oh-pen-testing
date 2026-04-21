@@ -8,3 +8,4 @@ export * from "./scanner/run-scan.js";
 export * from "./agent/marinara.js";
 export * from "./agent/run-agent.js";
 export * from "./init/scaffold.js";
+export * from "./provider-router/index.js";

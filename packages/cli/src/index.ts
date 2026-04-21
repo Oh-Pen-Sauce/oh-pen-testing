@@ -6,10 +6,12 @@ import { registerSetup } from "./commands/setup.js";
 import { registerReport } from "./commands/report.js";
 import { registerSchedule } from "./commands/schedule.js";
 import { registerVersion } from "./commands/version.js";
+import { registerAllProviders } from "./provider-registration.js";
 
-export const CLI_VERSION = "0.0.1";
+export const CLI_VERSION = "0.1.0";
 
 export function buildCli(): Command {
+  registerAllProviders();
   const program = new Command();
   program
     .name("oh-pen-testing")
