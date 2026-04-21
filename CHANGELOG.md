@@ -2,6 +2,30 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.6.0] — 2026-04-21
+
+M6 — PDF pen-test report (the v1.0 crown jewel, landed ahead of schedule).
+
+### Added
+- **`buildPdfReport`** in `@oh-pen-testing/shared` — pdfkit-based (no Chromium dependency). Cover page, executive summary with severity bar chart, methodology with bundled-standards list, per-finding detail with scanner output + AI analysis split and chip row (severity, OWASP ref, CWE, status), residual-risks page, signature page.
+- **`opt report --format pdf`** — writes to `.ohpentesting/reports/oh-pen-testing-report.pdf` by default; `-o` overrides. Output is a valid PDF 1.3 document suitable for enterprise buyer due-diligence packets, investor rooms, SOC2 evidence folders.
+- PDF metadata includes title, author (`Oh Pen Testing v<version>`), subject, and producer — searchable in the reader.
+
+### Changed
+- `opt report --format <fmt>` now accepts `pdf` alongside `markdown | json | sarif`.
+
+## [0.5.0] — 2026-04-21
+
+M5 — launch polish. Docs, dogfood, release workflow, Homebrew formula reference.
+
+### Added
+- **README.md** rewritten as a landing page — zero-config quickstart, OWASP coverage table, agent roster, autonomy modes, provider matrix, 7 non-negotiable principles, install matrix.
+- **docs/** — getting-started, playbook-authoring, architecture, provider-setup guides.
+- **CONTRIBUTING.md** — project layout + commit conventions + fixture-gate contract + dogfood step + security-sensitive-file list.
+- **Homebrew formula** at `Formula/oh-pen-testing.rb` (reference; real tap lives at `oh-pen-sauce/homebrew-tap`).
+- **`.github/workflows/release.yml`** — triggers on `v*` tag push: typecheck + build + test → publishes `@oh-pen-testing/*` to npm (if `NPM_TOKEN` secret set) → creates GitHub Release with changelog-extracted notes.
+- **`scripts/dogfood.mjs`** + **`pnpm dogfood`** — runs the regex layer of our own playbooks against the repo. Allowlists fixtures, docs, tests. Currently clean across 122 files and 21 regex playbooks.
+
 ## [0.4.0] — 2026-04-21
 
 M4 — Agent pool + autonomy enforcement.

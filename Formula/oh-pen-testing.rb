@@ -12,7 +12,7 @@
 class OhPenTesting < Formula
   desc "Local, opensource penetration testing suite. Your code. Your AI. Your terms."
   homepage "https://github.com/Oh-Pen-Sauce/oh-pen-testing"
-  url "https://registry.npmjs.org/@oh-pen-testing/cli/-/cli-0.5.0.tgz"
+  url "https://registry.npmjs.org/@oh-pen-testing/cli/-/cli-0.6.0.tgz"
   sha256 "REPLACE_WITH_PUBLISHED_TARBALL_SHA256"
   license "MIT"
 
@@ -25,6 +25,6 @@ class OhPenTesting < Formula
 
   test do
     assert_match "oh-pen-testing", shell_output("#{bin}/opt --help")
-    assert_match "0.5.0", shell_output("#{bin}/opt --version")
+    assert_match "0.6.0", shell_output("#{bin}/opt --version")
   end
 end

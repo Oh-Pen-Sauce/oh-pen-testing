@@ -3,8 +3,10 @@ import path from "node:path";
 import type { Command } from "commander";
 import pc from "picocolors";
 import {
+  buildPdfReport,
   buildSarifLog,
   listIssues,
+  loadConfig,
   ohpenPaths,
   type Issue,
   type ScanRun,
@@ -17,7 +19,7 @@ export function registerReport(program: Command): void {
     .description("Generate a report from the latest scan")
     .option(
       "-f, --format <format>",
-      "markdown | json | sarif (default: markdown)",
+      "markdown | json | sarif | pdf (default: markdown)",
       "markdown",
     )
     .option(
@@ -40,17 +42,19 @@ export function registerReport(program: Command): void {
       }
 
       const latestScan = await readLatestScan(paths.scans);
+      const scanForReport =
+        latestScan ?? buildFallbackScan(issues[0]!.scan_id ?? "SCAN-000");
 
-      let body: string;
+      let body: string | Uint8Array;
       let suggestedFile: string;
+      let encoding: "utf-8" | "binary" = "utf-8";
+
       switch (opts.format) {
         case "sarif":
           body = JSON.stringify(
             buildSarifLog({
               issues,
-              scan:
-                latestScan ??
-                buildFallbackScan(issues[0]!.scan_id ?? "SCAN-000"),
+              scan: scanForReport,
               toolVersion: CLI_VERSION,
             }),
             null,
@@ -62,41 +66,51 @@ export function registerReport(program: Command): void {
           body = JSON.stringify({ issues, scan: latestScan }, null, 2);
           suggestedFile = "oh-pen-testing-report.json";
           break;
+        case "pdf": {
+          const config = await safeLoadConfigOrNull(cwd);
+          body = await buildPdfReport({
+            issues,
+            scan: scanForReport,
+            toolVersion: CLI_VERSION,
+            projectName: config?.project.name ?? "Unnamed project",
+            generatedAt: new Date(),
+          });
+          suggestedFile = "oh-pen-testing-report.pdf";
+          encoding = "binary";
+          break;
+        }
         case "markdown":
         default:
           body = buildMarkdownReport(issues, latestScan);
           suggestedFile = "oh-pen-testing-report.md";
           break;
-        case "pdf":
-          // eslint-disable-next-line no-console
-          console.log(
-            pc.yellow(
-              "PDF report export lands in v1.0 (the consultancy-grade deliverable).",
-            ),
-          );
-          return;
       }
 
-      if (opts.output) {
-        const outPath = path.isAbsolute(opts.output)
+      const outPath = opts.output
+        ? path.isAbsolute(opts.output)
           ? opts.output
-          : path.join(cwd, opts.output);
-        await fs.mkdir(path.dirname(outPath), { recursive: true });
-        await fs.writeFile(outPath, body, "utf-8");
-        // eslint-disable-next-line no-console
-        console.log(
-          pc.green(`✔ ${opts.format} report written → ${outPath}`),
-        );
+          : path.join(cwd, opts.output)
+        : path.join(paths.reports, suggestedFile);
+
+      await fs.mkdir(path.dirname(outPath), { recursive: true });
+      if (encoding === "binary") {
+        await fs.writeFile(outPath, Buffer.from(body as Uint8Array));
       } else {
-        const defaultOut = path.join(paths.reports, suggestedFile);
-        await fs.mkdir(paths.reports, { recursive: true });
-        await fs.writeFile(defaultOut, body, "utf-8");
-        // eslint-disable-next-line no-console
-        console.log(
-          pc.green(`✔ ${opts.format} report written → ${defaultOut}`),
-        );
+        await fs.writeFile(outPath, body as string, "utf-8");
       }
+      // eslint-disable-next-line no-console
+      console.log(
+        pc.green(`✔ ${opts.format} report written → ${outPath}`),
+      );
     });
+}
+
+async function safeLoadConfigOrNull(cwd: string) {
+  try {
+    return await loadConfig(cwd);
+  } catch {
+    return null;
+  }
 }
 
 async function readLatestScan(scansDir: string): Promise<ScanRun | null> {

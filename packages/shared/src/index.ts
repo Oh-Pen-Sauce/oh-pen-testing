@@ -7,3 +7,4 @@ export * from "./logger.js";
 export * from "./paths.js";
 export * from "./provider/types.js";
 export * from "./sarif.js";
+export * from "./pdf-report.js";
