@@ -17,3 +17,5 @@ export * from "./blame/git-blame.js";
 export * from "./dynamic/types.js";
 export * from "./dynamic/runner.js";
 export * from "./dynamic/playbooks.js";
+export * from "./registry/types.js";
+export * from "./registry/client.js";

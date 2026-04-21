@@ -23,3 +23,7 @@ export function resolveBundledPlaybooksRoot(): string {
 export function resolveLocalPlaybooksRoot(cwd: string): string {
   return path.join(cwd, ".ohpentesting", "playbooks", "local");
 }
+
+export function resolveRemotePlaybooksRoot(cwd: string): string {
+  return path.join(cwd, ".ohpentesting", "playbooks", "remote");
+}

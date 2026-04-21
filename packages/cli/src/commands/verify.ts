@@ -3,7 +3,10 @@ import pc from "picocolors";
 import { loadConfig, ScopeViolation } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import { resolveProvider, runVerify } from "@oh-pen-testing/core";
-import { resolveLocalPlaybooksRoot } from "../util/playbook-paths.js";
+import {
+  resolveLocalPlaybooksRoot,
+  resolveRemotePlaybooksRoot,
+} from "../util/playbook-paths.js";
 
 export function registerVerify(program: Command): void {
   program
@@ -33,6 +36,7 @@ export function registerVerify(program: Command): void {
             provider,
             playbookRoots: [
               BUNDLED_PLAYBOOKS_DIR,
+              resolveRemotePlaybooksRoot(cwd),
               resolveLocalPlaybooksRoot(cwd),
             ],
             skipAiConfirm: opts.skipAi,

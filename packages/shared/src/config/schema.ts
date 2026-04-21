@@ -184,6 +184,12 @@ export const ConfigSchema = z.object({
     })
     .default({ formats: ["markdown", "json"] }),
   telemetry: TelemetrySchema.default({ enabled: false }),
+  /**
+   * List of playbook registry index URLs. Registries are *opt-in* and
+   * **never** polled implicitly — the user must run `opt playbooks install`.
+   * Files are SHA-256 verified before they hit disk.
+   */
+  playbook_registries: z.array(z.string().url()).default([]),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

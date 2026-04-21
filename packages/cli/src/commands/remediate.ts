@@ -12,7 +12,10 @@ import {
   createGitHubAdapter,
   resolveGitHubToken,
 } from "@oh-pen-testing/git-github";
-import { resolveLocalPlaybooksRoot } from "../util/playbook-paths.js";
+import {
+  resolveLocalPlaybooksRoot,
+  resolveRemotePlaybooksRoot,
+} from "../util/playbook-paths.js";
 
 export function registerRemediate(program: Command): void {
   program
@@ -58,6 +61,7 @@ export function registerRemediate(program: Command): void {
 
         const playbookRoots = [
           BUNDLED_PLAYBOOKS_DIR,
+          resolveRemotePlaybooksRoot(cwd),
           resolveLocalPlaybooksRoot(cwd),
         ];
 

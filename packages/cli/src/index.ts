@@ -10,6 +10,7 @@ import { registerReport } from "./commands/report.js";
 import { registerSchedule } from "./commands/schedule.js";
 import { registerShare } from "./commands/share.js";
 import { registerTelemetry } from "./commands/telemetry.js";
+import { registerPlaybooks } from "./commands/playbooks.js";
 import { registerVersion } from "./commands/version.js";
 import { registerAllProviders } from "./provider-registration.js";
 
@@ -37,6 +38,7 @@ export function buildCli(): Command {
   registerSchedule(program);
   registerShare(program);
   registerTelemetry(program);
+  registerPlaybooks(program);
   registerVersion(program);
 
   return program;

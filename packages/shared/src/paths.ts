@@ -10,6 +10,7 @@ export const ohpenPaths = (repoRoot: string) => ({
   reports: path.join(repoRoot, OHPEN_DIR, "reports"),
   logs: path.join(repoRoot, OHPEN_DIR, "logs"),
   playbooksLocal: path.join(repoRoot, OHPEN_DIR, "playbooks", "local"),
+  playbooksRemote: path.join(repoRoot, OHPEN_DIR, "playbooks", "remote"),
   counter: path.join(repoRoot, OHPEN_DIR, ".counter.json"),
   gitignore: path.join(repoRoot, OHPEN_DIR, ".gitignore"),
 });

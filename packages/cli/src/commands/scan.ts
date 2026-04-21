@@ -17,7 +17,10 @@ import {
   RateLimitHalt,
   walkFiles,
 } from "@oh-pen-testing/core";
-import { resolveLocalPlaybooksRoot } from "../util/playbook-paths.js";
+import {
+  resolveLocalPlaybooksRoot,
+  resolveRemotePlaybooksRoot,
+} from "../util/playbook-paths.js";
 import { CLI_VERSION } from "../index.js";
 
 export function registerScan(program: Command): void {
@@ -71,6 +74,7 @@ export function registerScan(program: Command): void {
 
       const playbookRoots = [
         BUNDLED_PLAYBOOKS_DIR,
+        resolveRemotePlaybooksRoot(cwd),
         resolveLocalPlaybooksRoot(cwd),
       ];
 

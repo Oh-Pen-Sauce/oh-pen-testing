@@ -73,5 +73,6 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
     telemetry: {
       enabled: false,
     },
+    playbook_registries: [],
   };
 }
