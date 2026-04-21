@@ -39,13 +39,18 @@ export const ProviderIdSchema = z.enum([
 ]);
 export type ProviderId = z.infer<typeof ProviderIdSchema>;
 
-export const AutonomyModeSchema = z.enum(["yolo", "recommended", "careful"]);
+export const AutonomyModeSchema = z.enum([
+  "yolo",
+  "full-yolo",
+  "recommended",
+  "careful",
+]);
 export type AutonomyMode = z.infer<typeof AutonomyModeSchema>;
 
 export const SeveritySchema = z.enum(["info", "low", "medium", "high", "critical"]);
 export type Severity = z.infer<typeof SeveritySchema>;
 
-export const GitHostSchema = z.enum(["github"]);
+export const GitHostSchema = z.enum(["github", "gitlab", "bitbucket"]);
 export type GitHost = z.infer<typeof GitHostSchema>;
 
 export const ApprovalTriggerSchema = z.enum([
@@ -56,7 +61,14 @@ export const ApprovalTriggerSchema = z.enum([
 ]);
 export type ApprovalTrigger = z.infer<typeof ApprovalTriggerSchema>;
 
-export const ReportFormatSchema = z.enum(["markdown", "json", "sarif"]);
+export const ReportFormatSchema = z.enum([
+  "markdown",
+  "json",
+  "sarif",
+  "pdf",
+  "sbom-cyclonedx",
+  "sbom-spdx",
+]);
 export type ReportFormat = z.infer<typeof ReportFormatSchema>;
 
 export const TimeWindowSchema = z.object({

@@ -25,6 +25,16 @@ export const VerificationSchema = z.object({
 });
 export type Verification = z.infer<typeof VerificationSchema>;
 
+export const BlameSchema = z.object({
+  oldest_commit_sha: z.string().nullable().default(null),
+  oldest_commit_iso: z.string().nullable().default(null),
+  oldest_commit_author: z.string().nullable().default(null),
+  oldest_commit_summary: z.string().nullable().default(null),
+  age_days: z.number().int().nullable().default(null),
+  contributors: z.array(z.string()).default([]),
+});
+export type Blame = z.infer<typeof BlameSchema>;
+
 export const IssueSchema = z.object({
   id: z.string().regex(/^ISSUE-\d{3,}$/),
   title: z.string().min(1),
@@ -72,6 +82,14 @@ export const IssueSchema = z.object({
     last_run_at: null,
     hits_remaining: null,
     verified_at: null,
+  }),
+  blame: BlameSchema.default({
+    oldest_commit_sha: null,
+    oldest_commit_iso: null,
+    oldest_commit_author: null,
+    oldest_commit_summary: null,
+    age_days: null,
+    contributors: [],
   }),
   comments: z
     .array(

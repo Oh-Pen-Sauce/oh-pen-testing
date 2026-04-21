@@ -528,14 +528,19 @@ function AutonomyStep({
         {(
           [
             {
+              id: "full-yolo" as const,
+              label: "Full YOLO ⚠️",
+              desc: "Agents open PRs for EVERYTHING including auth, secrets rotation, schema migrations. Dev/test repos only.",
+            },
+            {
               id: "yolo" as const,
               label: "YOLO",
-              desc: "Agents open PRs for everything except explicitly guarded zones.",
+              desc: "Agents open PRs freely. Still pauses on auth, secrets rotation, schema migrations, large diffs.",
             },
             {
               id: "recommended" as const,
               label: "Recommended (default)",
-              desc: "Auto-approves low-risk fixes; blocks on auth, secrets, schema, large diffs.",
+              desc: "Auto-approves low-risk fixes; blocks on critical severity + auth, secrets, schema, large diffs.",
             },
             {
               id: "careful" as const,

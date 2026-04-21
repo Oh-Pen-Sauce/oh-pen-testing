@@ -27,6 +27,7 @@ import {
   enforceTargetAllowed,
   enforceTimeWindows,
 } from "../scope/enforce.js";
+import { runGitBlame } from "../blame/git-blame.js";
 
 export class RateLimitHalt extends Error {
   constructor(
@@ -172,6 +173,14 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
                 hits_remaining: null,
                 verified_at: null,
               },
+              blame: {
+                oldest_commit_sha: null,
+                oldest_commit_iso: null,
+                oldest_commit_author: null,
+                oldest_commit_summary: null,
+                age_days: null,
+                contributors: [],
+              },
               comments: [],
             };
             await writeIssue(cwd, issue);
@@ -309,8 +318,38 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             hits_remaining: null,
             verified_at: null,
           },
+          blame: {
+            oldest_commit_sha: null,
+            oldest_commit_iso: null,
+            oldest_commit_author: null,
+            oldest_commit_summary: null,
+            age_days: null,
+            contributors: [],
+          },
           comments: [],
         };
+        // Enrich with git blame if this is a git repo. Failures are silent
+        // so non-git scans (e.g. a tarball) still produce issues.
+        try {
+          const blame = await runGitBlame(
+            cwd,
+            candidate.file,
+            candidate.lineRange[0],
+            candidate.lineRange[1],
+          );
+          if (blame.oldestCommit) {
+            issue.blame = {
+              oldest_commit_sha: blame.oldestCommit.commitSha,
+              oldest_commit_iso: blame.oldestCommit.authorTimeIso,
+              oldest_commit_author: blame.oldestCommit.author,
+              oldest_commit_summary: blame.oldestCommit.summary,
+              age_days: blame.ageDays,
+              contributors: blame.uniqueAuthors,
+            };
+          }
+        } catch {
+          // non-git / file not tracked → leave blame block null
+        }
         await writeIssue(cwd, issue);
         issues.push(issue);
         scan.issues_found += 1;

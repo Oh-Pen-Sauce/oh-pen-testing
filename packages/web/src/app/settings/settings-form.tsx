@@ -42,7 +42,8 @@ export function SettingsForm({ initial }: { initial: Config }) {
           onChange={(e) => setAutonomy(e.target.value as AutonomyMode)}
           className="block w-full rounded border border-slate-300 px-3 py-2 text-sm"
         >
-          <option value="yolo">YOLO — no prompts</option>
+          <option value="full-yolo">Full YOLO ⚠️ — no triggers, no prompts</option>
+          <option value="yolo">YOLO — prompts on triggers only</option>
           <option value="recommended">Recommended — safe defaults</option>
           <option value="careful">Careful — always confirm</option>
         </select>

@@ -64,6 +64,10 @@ export default async function IssueDetailPage({
         </span>
       </div>
 
+      {issue.blame?.oldest_commit_sha && (
+        <BlameTimeline blame={issue.blame} />
+      )}
+
       {/* Evidence/interpretation split (PRD Principle 5): raw scanner
           output on the left is machine-verifiable; AI analysis on the
           right is advisory. Never merged. */}
@@ -194,20 +198,92 @@ function canRemediateNow(
   severity: string,
   autonomy: string,
 ): { allowed: boolean; reason?: string } {
-  // M1 ships a half-feature: full agent pool + 3-mode gating is M4.
-  if (severity === "critical") {
-    return {
-      allowed: false,
-      reason:
-        "Critical issues require the full agent pool (M4). For now, remediate from the CLI with explicit `--agent marinara`.",
-    };
-  }
+  // Critical + careful: still block from web UI. Everything else: trust the
+  // autonomy gate inside runAgent to make the call.
   if (autonomy === "careful") {
     return {
       allowed: false,
       reason:
-        "Careful mode blocks web-initiated remediation until M4's approval flow.",
+        "Careful mode blocks web-initiated remediation — run `opt approve --issue <id>` first, or switch to Recommended in settings.",
+    };
+  }
+  if (severity === "critical" && autonomy === "recommended") {
+    return {
+      allowed: false,
+      reason:
+        "Critical severity is gated in Recommended mode. Switch to YOLO or Full YOLO in settings, or use `opt remediate` from the CLI after reviewing the plan.",
     };
   }
   return { allowed: true };
+}
+
+interface BlameProp {
+  oldest_commit_sha: string | null;
+  oldest_commit_iso: string | null;
+  oldest_commit_author: string | null;
+  oldest_commit_summary: string | null;
+  age_days: number | null;
+  contributors: string[];
+}
+
+function BlameTimeline({ blame }: { blame: BlameProp }) {
+  if (!blame.oldest_commit_sha) return null;
+  const age = humanAge(blame.age_days);
+  const banner =
+    blame.age_days !== null && blame.age_days > 365 * 2
+      ? "bg-red-50 border-red-200 text-red-900"
+      : blame.age_days !== null && blame.age_days > 180
+        ? "bg-amber-50 border-amber-200 text-amber-900"
+        : "bg-slate-50 border-slate-200 text-slate-700";
+  return (
+    <section className={`mb-6 rounded-lg border p-4 ${banner}`}>
+      <h2 className="font-semibold text-sm mb-2">
+        <span className="mr-1">🕰️</span> This bug has been here {age}
+      </h2>
+      <dl className="text-xs space-y-1">
+        <div>
+          <dt className="inline font-medium">Oldest commit:</dt>{" "}
+          <dd className="inline font-mono">
+            {blame.oldest_commit_sha?.slice(0, 10)}
+          </dd>
+        </div>
+        <div>
+          <dt className="inline font-medium">Introduced:</dt>{" "}
+          <dd className="inline">{blame.oldest_commit_iso?.slice(0, 10)}</dd>
+        </div>
+        <div>
+          <dt className="inline font-medium">Author:</dt>{" "}
+          <dd className="inline">{blame.oldest_commit_author}</dd>
+        </div>
+        {blame.oldest_commit_summary && (
+          <div>
+            <dt className="inline font-medium">Commit:</dt>{" "}
+            <dd className="inline italic">
+              "{blame.oldest_commit_summary}"
+            </dd>
+          </div>
+        )}
+        {blame.contributors.length > 0 && (
+          <div>
+            <dt className="inline font-medium">Contributors to range:</dt>{" "}
+            <dd className="inline">{blame.contributors.join(", ")}</dd>
+          </div>
+        )}
+      </dl>
+    </section>
+  );
+}
+
+function humanAge(days: number | null): string {
+  if (days === null) return "an unknown time";
+  if (days < 1) return "since today";
+  if (days < 2) return "since yesterday";
+  if (days < 30) return `for ${days} days`;
+  const months = Math.floor(days / 30);
+  if (months < 12) return `for ${months} month${months === 1 ? "" : "s"}`;
+  const years = Math.floor(days / 365);
+  const remMonths = Math.floor((days - years * 365) / 30);
+  if (remMonths === 0)
+    return `for ${years} year${years === 1 ? "" : "s"}`;
+  return `for ${years} year${years === 1 ? "" : "s"}, ${remMonths} month${remMonths === 1 ? "" : "s"}`;
 }

@@ -55,6 +55,12 @@ export function evaluateAutonomyGate(
   const mode = config.agents.autonomy;
   const triggers = config.agents.approval_triggers;
 
+  // full-yolo bypasses every gate including approval_triggers. Recommended
+  // only for dev/test repos you don't mind the agent autonomously editing.
+  if (mode === "full-yolo") {
+    return { allowed: true };
+  }
+
   if (mode === "careful") {
     return { allowed: false, reason: "careful mode — all fixes require approval" };
   }

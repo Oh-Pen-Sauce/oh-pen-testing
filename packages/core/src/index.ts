@@ -13,3 +13,4 @@ export * from "./init/scaffold.js";
 export * from "./provider-router/index.js";
 export * from "./scope/enforce.js";
 export * from "./verify/run-verify.js";
+export * from "./blame/git-blame.js";
