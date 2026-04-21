@@ -74,5 +74,8 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
       enabled: false,
     },
     playbook_registries: [],
+    learning: {
+      enabled: false,
+    },
   };
 }

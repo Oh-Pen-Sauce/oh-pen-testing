@@ -12,6 +12,7 @@ import {
   type Logger,
   RateLimitError,
   ScopeViolation,
+  recordLearningEvent,
 } from "@oh-pen-testing/shared";
 import {
   createRateLimitManager,
@@ -226,6 +227,16 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
         let confirmed = true;
         let reasoning = "Rule matched (regex-only).";
 
+        if (config.learning.enabled) {
+          await recordLearningEvent(cwd, {
+            kind: "regex_hit",
+            playbook_id: playbook.manifest.id,
+            rule_id: candidate.ruleId,
+            severity: playbook.manifest.severity_default,
+            human_touched: false,
+          });
+        }
+
         if (!skipAiConfirm && candidate.rule.require_ai_confirm) {
           const gate = rateLimitManager.beforeCall();
           if (gate === "hard_cap" || gate === "window_exhausted") {
@@ -267,6 +278,16 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             });
             confirmed = false;
           }
+        }
+
+        if (config.learning.enabled && candidate.rule.require_ai_confirm) {
+          await recordLearningEvent(cwd, {
+            kind: confirmed ? "ai_confirm_true" : "ai_confirm_false",
+            playbook_id: playbook.manifest.id,
+            rule_id: candidate.ruleId,
+            severity,
+            human_touched: false,
+          });
         }
 
         if (!confirmed) continue;
@@ -358,6 +379,15 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
           severity,
           file: candidate.file,
         });
+        if (config.learning.enabled) {
+          await recordLearningEvent(cwd, {
+            kind: "issue_created",
+            playbook_id: playbook.manifest.id,
+            rule_id: candidate.ruleId,
+            severity,
+            human_touched: false,
+          });
+        }
       }
 
       scan.playbooks_run += 1;

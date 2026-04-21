@@ -185,6 +185,17 @@ export const ConfigSchema = z.object({
     .default({ formats: ["markdown", "json"] }),
   telemetry: TelemetrySchema.default({ enabled: false }),
   /**
+   * Learning mode — when enabled, issue lifecycle events are appended
+   * to `.ohpentesting/learning/<date>.ndjson`. Strictly local unless
+   * telemetry.enabled is also true, and even then only aggregate counts
+   * ship.
+   */
+  learning: z
+    .object({
+      enabled: z.boolean().default(false),
+    })
+    .default({ enabled: false }),
+  /**
    * List of playbook registry index URLs. Registries are *opt-in* and
    * **never** polled implicitly — the user must run `opt playbooks install`.
    * Files are SHA-256 verified before they hit disk.

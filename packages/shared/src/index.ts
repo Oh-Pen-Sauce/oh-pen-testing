@@ -11,3 +11,6 @@ export * from "./pdf-report.js";
 export * from "./telemetry.js";
 export * from "./share-card.js";
 export * from "./sbom.js";
+export * from "./compliance/frameworks.js";
+export * from "./compliance/mapping.js";
+export * from "./learning/events.js";
