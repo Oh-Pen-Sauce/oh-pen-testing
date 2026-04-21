@@ -2,6 +2,22 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.4.0] — 2026-04-21
+
+M4 — Agent pool + autonomy enforcement.
+
+### Added
+- **4 named agents**: Marinara 🍅 (injection), Carbonara 🥓 (crypto), Alfredo 🧀 (auth), Pesto 🌿 (dependencies). Each with specialty-tuned system prompts.
+- **Work-stealing agent pool** (`runAgentPool`) with per-agent bucket assignment + cross-bucket stealing by severity.
+- **Full autonomy-mode enforcement**: careful blocks all, recommended blocks critical + approval_triggers, yolo allows everything except approval_triggers.
+- **`pending_approval` issue status** + new "Pending Approval" kanban column.
+- **`/reviews` web route** with approve/reject server actions.
+- **`opt remediate --all [--severity <level>]`** runs the full pool with live progress.
+- **`opt approve --issue <id>`** unblocks a gated issue.
+
+### Tests
+99/99 passing (was 86). 13 new tests in agent-pool.test.ts.
+
 ## [0.3.0] — 2026-04-21
 
 M3 — OWASP Top 10 coverage. 22 playbooks across all ten categories, each with positive/negative fixtures auto-exercised by the fixture-gate test harness.

@@ -1,0 +1,66 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # needed to create the GitHub Release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so gh CLI can build release notes
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Test
+        run: pnpm test
+
+      - name: Publish CLI to npm
+        # Only runs if NPM_TOKEN is set; skipped silently otherwise so
+        # contributors can tag without publishing.
+        if: ${{ env.NPM_TOKEN != '' }}
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          pnpm --filter "@oh-pen-testing/*" --no-git-checks publish --access public
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # Extract the changelog section for this tag (the block under the
+          # matching `## [X.Y.Z]` header, up to the next `## [`).
+          TAG="${GITHUB_REF#refs/tags/v}"
+          awk -v t="## [$TAG]" '
+            $0 ~ t        { found=1; next }
+            found && /^## \[/ { exit }
+            found
+          ' CHANGELOG.md > release-notes.md
+          gh release create "v$TAG" \
+            --title "v$TAG" \
+            --notes-file release-notes.md \
+            --verify-tag

@@ -2,69 +2,130 @@
 
 > Your code. Your AI. Your terms.
 
-A free, opensource, locally-run penetration testing suite. Install it in your repo, connect your AI (Claude, OpenAI, Ollama — your tokens, your machine), and it runs OWASP-grade scans, files issues to a kanban board, and opens remediation PRs. No SaaS. No code leaves your machine.
+A free, opensource, locally-run penetration testing suite. Install it in your repo, connect your AI (Claude / OpenAI / Ollama — your credentials, your machine), and it runs OWASP-grade scans, files issues to a kanban board, and has pasta-named agents that open remediation PRs.
 
-**Status: v0.2.0 — M2**
+No SaaS. No code leaves your machine. No vendor lock-in. MIT licensed.
 
-## M2 capabilities
+[![tests](https://github.com/Oh-Pen-Sauce/oh-pen-testing/actions/workflows/test.yml/badge.svg)](https://github.com/Oh-Pen-Sauce/oh-pen-testing/actions)
+[![release](https://img.shields.io/github/v/release/Oh-Pen-Sauce/oh-pen-testing)](https://github.com/Oh-Pen-Sauce/oh-pen-testing/releases)
+[![license](https://img.shields.io/badge/licence-MIT-blue)](./LICENCE)
 
-Everything in M1, plus:
-
-- **Authorisation gate** — every scan requires explicit acknowledgement. Setup wizard has a required checkbox; CLI prompts on first scan in any repo. Hard-refuses to proceed without it.
-- **Scope policy** — `scope.time_windows`, `scope.allowed_targets`, `scope.rate_limits` in `config.yml` enforced before each playbook. Schedule scans to only run overnight; refuse scans against targets you don't own.
-- **Verification rerun** — `opt verify --issue ISSUE-001` re-runs the playbook to confirm a fix landed. Issues transition to `verified` when zero hits remain. "Verify fix" button on the web `/issue/[id]` page.
-- **Evidence/AI split** — issue detail page shows raw scanner output and AI analysis in two distinct columns with provenance metadata. Separates what the scanner literally found from what the LLM said about it.
-- **SARIF 2.1.0 export** — `opt report --format sarif` emits GitHub Code Scanning-compatible output. Markdown + JSON formats also fleshed out.
-
-## M1 capabilities (still here)
-
-- Scaffold `.ohpentesting/` in a target repo (`opt init`)
-- **Web UI** on `http://127.0.0.1:7676` with 7-column kanban, issue detail, scans, settings, and a 6-step setup wizard (`opt setup`)
-- **Three providers**: Claude API (`claude-opus-4-7` default), Claude Code CLI (free on Max plan), Ollama (local, default model `kimi-k2.6`)
-- **Rate-limit management**: budget cap for API providers, 5-hour rolling window for Claude Max, local-no-op for Ollama
-- **Nightly schedule**: `opt schedule --nightly` (launchd on macOS, crontab on Linux)
-- Scan for hardcoded secrets (AWS keys, GitHub PATs, Slack tokens, private keys) with AI confirmation
-- Have **Marinara** 🍅 propose a fix, commit to a branch, and open a GitHub PR
-
-## Known limitations (M2)
-
-- One playbook: `hardcoded-secrets-scanner` (the full OWASP Top 10 lands in M3)
-- One agent: Marinara (Carbonara, Alfredo, Pesto land in M4 with the agent pool)
-- One git host: GitHub (GitLab + Bitbucket land in v1.0)
-- "Remediate now" button in the web UI ships as a half-feature: Recommended autonomy + non-critical issues only; Careful mode and critical issues require the CLI until M4
-- No dynamic testing yet — v1.0
-
-See [PRD.md](./PRD.md) for v0.5 scope and [FUTURE_FEATURES.md](./FUTURE_FEATURES.md) for v1.0+ roadmap.
+---
 
 ## Quickstart
 
 ```bash
-# In your project root:
-npx oh-pen-testing init
+# In your project root
+npx oh-pen-testing@latest init
 
-# The CLI will prompt for an authorisation ack on first scan.
-# No API key needed if `claude` is on PATH (uses your OAuth session):
+# Zero config if you have `claude` on PATH (Claude Code CLI session)
+# Otherwise set one of:
+export ANTHROPIC_API_KEY=sk-ant-…
+export GITHUB_TOKEN=ghp_…                   # for PR opening
+
+# Scan, triage, remediate, verify
 opt scan
-opt remediate --issue ISSUE-001
-opt verify --issue ISSUE-001
+opt remediate --all           # agent pool opens PRs for the whole board
+opt approve --issue ISSUE-007 # unblock anything gated by autonomy mode
+opt verify  --issue ISSUE-001 # confirm the fix landed
+opt report  --format pdf      # consultancy-grade pen-test deliverable
 
-# Alternative: use an API key
-export ANTHROPIC_API_KEY=sk-ant-...
-export GITHUB_TOKEN=ghp_...
-opt scan
-
-# Or fully local with Ollama:
-ollama serve && ollama pull kimi-k2.6
-opt scan --provider ollama
-
-# Launch the web UI (kanban, setup wizard, settings):
-opt setup
-
-# Generate a report:
-opt report --format sarif  # → .ohpentesting/reports/oh-pen-testing.sarif
-opt report --format markdown
+# Prefer a UI?
+opt setup   # opens http://127.0.0.1:7676 with the kanban + review queue
 ```
+
+## What ships
+
+### 22 OWASP Top 10 playbooks
+
+| Cat | Coverage |
+|---|---|
+| A01 Broken Access Control | missing-authorisation-check, cors-wildcard |
+| A02 Cryptographic Failures | weak-hash-algorithm, weak-random-for-security, insecure-tls-version, hardcoded-secrets |
+| A03 Injection | sql-injection-raw, command-injection, xss-innerhtml, xxe-vulnerable-parser |
+| A04 Insecure Design | no-rate-limit-on-auth |
+| A05 Security Misconfiguration | debug-mode-enabled, default-credentials, verbose-error-exposure |
+| A06 Vulnerable Components | sca (npm-audit + pip-audit + bundler-audit) |
+| A07 Auth Failures | weak-password-policy, insecure-password-storage |
+| A08 Integrity | missing-sri, insecure-deserialization |
+| A09 Logging | sensitive-data-in-logs |
+| A10 SSRF | user-controlled-fetch, metadata-service-access |
+
+Every regex playbook ships with positive + negative test fixtures enforced in CI.
+
+### 4 remediation agents
+
+- **Marinara** 🍅 — injection, secrets, input-validation
+- **Carbonara** 🥓 — crypto, secrets, TLS
+- **Alfredo** 🧀 — auth, access-control, session
+- **Pesto** 🌿 — dependencies, supply-chain
+
+They run in parallel with a work-stealing queue so critical findings get picked up first.
+
+### 3 autonomy modes
+
+- **Careful** — every fix requires your approval
+- **Recommended** (default) — auto-PR for non-critical; block on auth / secrets-rotation / schema migrations / large diffs
+- **YOLO** — auto-PR for everything except the hard triggers
+
+### BYO AI, BYO git
+
+- Claude API, Claude Code CLI (**free on Max**), OpenAI, OpenRouter, Ollama
+- GitHub (GitLab + Bitbucket via the `GitAdapter` interface in v1.0)
+
+### Reports
+
+- Markdown (human-readable)
+- JSON (machine-readable)
+- SARIF 2.1.0 (feeds GitHub Code Scanning / Snyk / Sonatype)
+- PDF (consultancy-grade pen-test deliverable)
+
+## Principles (non-negotiable)
+
+1. **Authorised testing only** — scan refuses without explicit ack
+2. **Local-first** — no telemetry, no phoning home
+3. **BYO AI** — your credentials, your machine
+4. **AI for reasoning, not unchecked power** — deterministic code discovers + applies; AI reasons + explains
+5. **Evidence first, interpretation second** — scanner output separated from AI analysis in the UI
+6. **Human review for remediation** — agents draft PRs; humans merge
+7. **Single-user local tool in v1.0** — multi-user enterprise is a v2.0 decision
+
+See [PRD.md](./PRD.md) for the full spec and [FUTURE_FEATURES.md](./FUTURE_FEATURES.md) for v1.0+ roadmap.
+
+## Install
+
+```bash
+# npm (cross-platform)
+npm install -g @oh-pen-testing/cli
+# or just
+npx oh-pen-testing@latest init
+
+# Homebrew (coming with v0.5.0 tap)
+brew tap oh-pen-sauce/tap
+brew install oh-pen-testing
+
+# From source
+git clone https://github.com/Oh-Pen-Sauce/oh-pen-testing.git
+cd oh-pen-testing
+pnpm install
+pnpm turbo run build
+```
+
+## Documentation
+
+- [docs/getting-started.md](./docs/getting-started.md) — zero-to-first-scan
+- [docs/playbook-authoring.md](./docs/playbook-authoring.md) — write your own playbook
+- [docs/architecture.md](./docs/architecture.md) — how the monorepo fits together
+- [docs/provider-setup.md](./docs/provider-setup.md) — Claude, OpenAI, Ollama configuration
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## Security
+
+See [SECURITY.md](./SECURITY.md).
 
 ## Licence
 
-MIT. Free forever. Donations accepted — see the website.
+MIT. Free forever. Donations welcome — [oh-pen-sauce.com](https://oh-pen-sauce.com).
