@@ -95,6 +95,7 @@ describe("end-to-end scan + remediate (mocked)", () => {
       cwd,
       projectName: "e2e-sandbox",
       languages: ["typescript"],
+      authorisationAcknowledged: true,
     });
   });
 

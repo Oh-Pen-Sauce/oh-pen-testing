@@ -146,3 +146,22 @@ export async function setRiskyAction(
   await writeConfig(cwd, validated);
   revalidatePath("/setup");
 }
+
+export async function setAuthorisationAckAction(
+  acknowledged: boolean,
+  actor?: string,
+): Promise<void> {
+  const cwd = getOhpenCwd();
+  const current = await loadConfig(cwd);
+  current.scope.authorisation_acknowledged = acknowledged;
+  if (acknowledged) {
+    current.scope.authorisation_acknowledged_at = new Date().toISOString();
+    current.scope.authorisation_acknowledged_by = actor ?? null;
+  } else {
+    current.scope.authorisation_acknowledged_at = null;
+    current.scope.authorisation_acknowledged_by = null;
+  }
+  const validated = ConfigSchema.parse(current);
+  await writeConfig(cwd, validated);
+  revalidatePath("/setup");
+}

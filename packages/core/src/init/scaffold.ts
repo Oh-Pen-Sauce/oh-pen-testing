@@ -18,6 +18,12 @@ export interface ScaffoldOptions {
   overwrite?: boolean;
   projectName?: string;
   languages?: Language[];
+  /**
+   * Pre-set the authorisation acknowledgement. Primarily for tests and
+   * programmatic setups. In production, this is false by default so the
+   * setup wizard or CLI prompt can capture it interactively.
+   */
+  authorisationAcknowledged?: boolean;
 }
 
 export interface ScaffoldResult {
@@ -75,6 +81,10 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
       repo,
       preferredProvider,
     });
+    if (options.authorisationAcknowledged) {
+      defaultConfig.scope.authorisation_acknowledged = true;
+      defaultConfig.scope.authorisation_acknowledged_at = new Date().toISOString();
+    }
     await writeConfig(options.cwd, defaultConfig);
     created.push(path.relative(options.cwd, paths.config));
   }

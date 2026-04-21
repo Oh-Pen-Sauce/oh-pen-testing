@@ -14,6 +14,7 @@ import {
   setProviderAction,
   setRepoAction,
   setRiskyAction,
+  setAuthorisationAckAction,
 } from "./actions";
 
 const STEPS = [
@@ -21,10 +22,11 @@ const STEPS = [
   "Credentials",
   "GitHub",
   "Autonomy",
+  "Authorisation",
   "Risky tests",
 ] as const;
 
-type StepIdx = 0 | 1 | 2 | 3 | 4;
+type StepIdx = 0 | 1 | 2 | 3 | 4 | 5;
 
 export function SetupWizard({ initial }: { initial: Config | null }) {
   const [step, setStep] = useState<StepIdx>(0);
@@ -34,6 +36,12 @@ export function SetupWizard({ initial }: { initial: Config | null }) {
   const [model, setModel] = useState(initial?.ai.model ?? "claude-opus-4-7");
   const [autonomy, setAutonomy] = useState<AutonomyMode>(
     initial?.agents.autonomy ?? "recommended",
+  );
+  const [authAck, setAuthAck] = useState(
+    initial?.scope?.authorisation_acknowledged ?? false,
+  );
+  const [authActor, setAuthActor] = useState(
+    initial?.scope?.authorisation_acknowledged_by ?? "",
   );
   const [risky, setRisky] = useState<Record<string, boolean>>(
     initial?.scans.risky ?? {},
@@ -92,16 +100,100 @@ export function SetupWizard({ initial }: { initial: Config | null }) {
         />
       )}
       {step === 4 && (
+        <AuthorisationStep
+          ack={authAck}
+          setAck={setAuthAck}
+          actor={authActor}
+          setActor={setAuthActor}
+          onBack={() => setStep(3)}
+          onNext={async () => {
+            await setAuthorisationAckAction(true, authActor || undefined);
+            setStep(5);
+          }}
+        />
+      )}
+      {step === 5 && (
         <RiskyStep
           risky={risky}
           setRisky={setRisky}
-          onBack={() => setStep(3)}
+          onBack={() => setStep(4)}
           onDone={async () => {
             await setRiskyAction(risky);
             window.location.href = "/";
           }}
         />
       )}
+    </div>
+  );
+}
+
+function AuthorisationStep({
+  ack,
+  setAck,
+  actor,
+  setActor,
+  onBack,
+  onNext,
+}: {
+  ack: boolean;
+  setAck: (v: boolean) => void;
+  actor: string;
+  setActor: (v: string) => void;
+  onBack: () => void;
+  onNext: () => void;
+}) {
+  return (
+    <div className="space-y-5">
+      <h2 className="font-semibold">Authorisation acknowledgement</h2>
+      <div className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 space-y-3">
+        <p>
+          <strong>Oh Pen Testing only scans code you are authorised to test.</strong>{" "}
+          Running security tests against systems you don't own or have
+          permission to test may be illegal in your jurisdiction.
+        </p>
+        <p>
+          By checking the box below you confirm that you have explicit
+          authorisation to run security testing against every target configured
+          in this installation. This acknowledgement is stored in{" "}
+          <code>.ohpentesting/config.yml</code> with a timestamp.
+        </p>
+      </div>
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={ack}
+          onChange={(e) => setAck(e.target.checked)}
+          className="mt-1"
+        />
+        <span className="text-sm">
+          I confirm I have authorisation to run security testing against every
+          target configured here.
+        </span>
+      </label>
+      <div>
+        <label className="block text-sm font-medium mb-1">
+          Your name or email (optional — recorded with the acknowledgement)
+        </label>
+        <input
+          type="text"
+          value={actor}
+          onChange={(e) => setActor(e.target.value)}
+          placeholder="sam@example.com"
+          className="block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        />
+      </div>
+      <div className="flex justify-between">
+        <button onClick={onBack} className="text-sm px-3 py-2 text-slate-600">
+          ← Back
+        </button>
+        <button
+          onClick={onNext}
+          disabled={!ack}
+          className="px-4 py-2 rounded bg-blue-600 text-white text-sm disabled:opacity-50"
+        >
+          Confirm &amp; next →
+        </button>
+      </div>
     </div>
   );
 }

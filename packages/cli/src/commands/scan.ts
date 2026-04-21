@@ -1,6 +1,12 @@
 import type { Command } from "commander";
 import pc from "picocolors";
-import { loadConfig } from "@oh-pen-testing/shared";
+import { confirm } from "@inquirer/prompts";
+import {
+  loadConfig,
+  writeConfig,
+  ConfigSchema,
+  ScopeViolation,
+} from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import { resolveProvider, runScan, RateLimitHalt } from "@oh-pen-testing/core";
 import { resolveLocalPlaybooksRoot } from "../util/playbook-paths.js";
@@ -13,6 +19,40 @@ export function registerScan(program: Command): void {
     .action(async (opts: { provider?: string }, cmd) => {
       const cwd: string = cmd.parent?.opts().cwd ?? process.cwd();
       const config = await loadConfig(cwd);
+
+      // Principle 1: authorisation gate. Prompt on first scan in any repo,
+      // then persist so subsequent scans don't nag.
+      if (!config.scope.authorisation_acknowledged) {
+        // eslint-disable-next-line no-console
+        console.log(
+          pc.yellow(
+            "\n⚠  Authorisation check — Oh Pen Testing only scans code you're authorised to test.",
+          ),
+        );
+        // eslint-disable-next-line no-console
+        console.log(pc.dim(`   Target: ${cwd}\n`));
+        const ack = await confirm({
+          message:
+            "Do you confirm you have authorisation to run security testing against this codebase?",
+          default: false,
+        });
+        if (!ack) {
+          // eslint-disable-next-line no-console
+          console.log(
+            pc.red(
+              "✖ Scan cancelled. Only run Oh Pen Testing on code you own or have explicit permission to test.",
+            ),
+          );
+          process.exitCode = 1;
+          return;
+        }
+        config.scope.authorisation_acknowledged = true;
+        config.scope.authorisation_acknowledged_at = new Date().toISOString();
+        const validated = ConfigSchema.parse(config);
+        await writeConfig(cwd, validated);
+        // eslint-disable-next-line no-console
+        console.log(pc.green("✔ Authorisation recorded. Proceeding with scan.\n"));
+      }
 
       if (opts.provider) {
         config.ai.primary_provider = opts.provider as typeof config.ai.primary_provider;
@@ -71,6 +111,14 @@ export function registerScan(program: Command): void {
             pc.dim(`  Scan ${err.scanId} saved with status=failed.`),
           );
           process.exitCode = 2;
+          return;
+        }
+        if (err instanceof ScopeViolation) {
+          // eslint-disable-next-line no-console
+          console.error(pc.red(`\n✖ Scope violation (${err.kind}):`));
+          // eslint-disable-next-line no-console
+          console.error(pc.dim(`  ${err.message}`));
+          process.exitCode = 3;
           return;
         }
         throw err;

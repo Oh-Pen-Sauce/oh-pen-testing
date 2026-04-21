@@ -11,6 +11,7 @@ import {
   createLogger,
   type Logger,
   RateLimitError,
+  ScopeViolation,
 } from "@oh-pen-testing/shared";
 import {
   createRateLimitManager,
@@ -53,6 +54,17 @@ export interface RunScanResult {
 
 export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
   const { cwd, config, provider, playbookRoots, skipAiConfirm } = options;
+
+  // Hard gate: refuse to start any scan without explicit authorisation ack.
+  // This is Principle 1 of the PRD — "authorised testing only, you own the
+  // authorisation". Wizard/CLI must have set this true before we touch a file.
+  if (!config.scope.authorisation_acknowledged) {
+    throw new ScopeViolation(
+      "authorisation_not_acknowledged",
+      "Scan refused: authorisation has not been acknowledged. Run `opt scan` interactively (you'll be prompted), or complete the web setup wizard, or set `scope.authorisation_acknowledged: true` in .ohpentesting/config.yml after confirming you are authorised to test this codebase.",
+    );
+  }
+
   const scanId = await allocateScanId(cwd);
   const logger = options.logger ?? (await createLogger(cwd, scanId));
   const startedAt = new Date().toISOString();

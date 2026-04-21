@@ -47,6 +47,16 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
         "large_diff",
       ],
     },
+    scope: {
+      authorisation_acknowledged: false,
+      authorisation_acknowledged_at: null,
+      authorisation_acknowledged_by: null,
+      allowed_targets: [],
+      time_windows: [],
+      rate_limits: {
+        default: { requests_per_minute: 60, max_concurrent: 4 },
+      },
+    },
     scans: {
       playbooks: {
         owasp_top_10: true,

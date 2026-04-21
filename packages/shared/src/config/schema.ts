@@ -59,6 +59,42 @@ export type ApprovalTrigger = z.infer<typeof ApprovalTriggerSchema>;
 export const ReportFormatSchema = z.enum(["markdown", "json", "sarif"]);
 export type ReportFormat = z.infer<typeof ReportFormatSchema>;
 
+export const TimeWindowSchema = z.object({
+  start: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
+  end: z.string().regex(/^\d{2}:\d{2}$/, "Must be HH:MM"),
+  timezone: z.string().default("UTC"),
+});
+export type TimeWindow = z.infer<typeof TimeWindowSchema>;
+
+export const RateLimitProfileSchema = z.object({
+  requests_per_minute: z.number().int().positive().default(60),
+  max_concurrent: z.number().int().positive().default(4),
+});
+export type RateLimitProfile = z.infer<typeof RateLimitProfileSchema>;
+
+export const ScopeSchema = z.object({
+  /** Hard gate — no scan runs while false. Set by wizard ack or CLI prompt. */
+  authorisation_acknowledged: z.boolean().default(false),
+  authorisation_acknowledged_at: z.string().nullable().default(null),
+  authorisation_acknowledged_by: z.string().nullable().default(null),
+  /** Allowlist of paths/URLs the scanner may touch. Empty = cwd only. */
+  allowed_targets: z.array(z.string()).default([]),
+  /** Only scan inside these windows; empty = no restriction. */
+  time_windows: z.array(TimeWindowSchema).default([]),
+  /** Per-target rate limits. `default` is applied when no matching profile. */
+  rate_limits: z
+    .object({
+      default: RateLimitProfileSchema.default({
+        requests_per_minute: 60,
+        max_concurrent: 4,
+      }),
+    })
+    .default({
+      default: { requests_per_minute: 60, max_concurrent: 4 },
+    }),
+});
+export type Scope = z.infer<typeof ScopeSchema>;
+
 export const ConfigSchema = z.object({
   version: z.literal("0.5"),
   project: z.object({
@@ -92,6 +128,16 @@ export const ConfigSchema = z.object({
       "large_diff",
     ]),
   }),
+  scope: ScopeSchema.default({
+    authorisation_acknowledged: false,
+    authorisation_acknowledged_at: null,
+    authorisation_acknowledged_by: null,
+    allowed_targets: [],
+    time_windows: [],
+    rate_limits: {
+      default: { requests_per_minute: 60, max_concurrent: 4 },
+    },
+  }),
   scans: z.object({
     playbooks: z
       .object({
@@ -123,5 +169,22 @@ export class ConfigError extends Error {
   constructor(message: string, public readonly issues?: unknown) {
     super(message);
     this.name = "ConfigError";
+  }
+}
+
+export type ScopeViolationKind =
+  | "authorisation_not_acknowledged"
+  | "outside_time_window"
+  | "target_not_allowed"
+  | "rate_limit_exceeded";
+
+export class ScopeViolation extends Error {
+  constructor(
+    public readonly kind: ScopeViolationKind,
+    message: string,
+    public readonly context?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "ScopeViolation";
   }
 }

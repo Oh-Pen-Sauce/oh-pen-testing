@@ -44,6 +44,7 @@ describe("rate-limit halt propagates through scan", () => {
       cwd,
       projectName: "ratelimit-test",
       languages: ["typescript"],
+      authorisationAcknowledged: true,
     });
   });
 
