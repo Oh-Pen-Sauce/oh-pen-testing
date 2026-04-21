@@ -1,0 +1,17 @@
+id: iac/compose-plaintext-secrets
+version: 1.0.0
+category: iac
+cwe: [CWE-798]
+severity_default: high
+languages: [generic]
+authors: [oh-pen-testing-core]
+description: "Flags docker-compose.yml files that declare secret-looking env vars inline instead of using Docker secrets or env_file."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: compose-inline-password
+    description: "PASSWORD / SECRET / KEY / TOKEN env assigned a literal (non-\\${} ) value inside a compose file."
+    pattern: '^\s{2,}[A-Z_]*(?:PASSWORD|SECRET|API_?KEY|TOKEN|PRIVATE_KEY)[A-Z_]*\s*[:=]\s*(?!["'']?\$\{)["'']?[A-Za-z0-9\-_=+/]{8,}'
+    flags: gmi
+    require_ai_confirm: true

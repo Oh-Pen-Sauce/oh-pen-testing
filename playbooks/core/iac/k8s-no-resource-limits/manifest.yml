@@ -1,0 +1,27 @@
+id: iac/k8s-no-resource-limits
+version: 1.0.0
+category: iac
+cwe: [CWE-400]
+severity_default: medium
+languages: [generic]
+authors: [oh-pen-testing-core]
+description: "Flags Kubernetes workloads (Deployment, StatefulSet, DaemonSet) that define containers without resource limits or requests — a DoS / noisy-neighbour risk."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: k8s-privileged-container
+    description: "Container declared with privileged: true."
+    pattern: 'privileged\s*:\s*true'
+    flags: g
+    require_ai_confirm: true
+  - id: k8s-run-as-root
+    description: "Explicit runAsUser: 0."
+    pattern: 'runAsUser\s*:\s*0\b'
+    flags: g
+    require_ai_confirm: true
+  - id: k8s-host-network
+    description: "hostNetwork: true — container shares the node's network namespace."
+    pattern: 'hostNetwork\s*:\s*true'
+    flags: g
+    require_ai_confirm: true

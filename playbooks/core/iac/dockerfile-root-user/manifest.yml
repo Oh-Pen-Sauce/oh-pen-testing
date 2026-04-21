@@ -1,0 +1,22 @@
+id: iac/dockerfile-root-user
+version: 1.0.0
+category: iac
+cwe: [CWE-250]
+severity_default: medium
+languages: [generic]
+authors: [oh-pen-testing-core]
+description: "Flags Dockerfiles that explicitly switch to USER root before CMD/ENTRYPOINT, or that never declare a USER (defaults to root)."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: dockerfile-user-root
+    description: "Explicit USER root / USER 0 after base image."
+    pattern: '^\s*USER\s+(?:root|0)\b'
+    flags: gm
+    require_ai_confirm: true
+  - id: dockerfile-sudo-install
+    description: "Installing sudo inside the container image."
+    pattern: '^\s*RUN\s+(?:apt-get|apk|yum|dnf)[^\n]*\bsudo\b'
+    flags: gm
+    require_ai_confirm: true

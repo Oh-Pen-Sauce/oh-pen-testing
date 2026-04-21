@@ -27,6 +27,7 @@ export const PlaybookManifestSchema = z.object({
     "sca",
     "wstg",
     "cwe-top-25",
+    "iac",
     "custom",
   ]),
   owasp_ref: z.string().optional(),

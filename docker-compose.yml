@@ -1,0 +1,48 @@
+# Oh Pen Testing — dev stack.
+#
+# `docker compose up` boots the web UI (and, optionally, an Ollama
+# instance for offline runs). Mount your project at /workspace:
+#
+#   cd /path/to/your/project
+#   OPT_WORKSPACE="$PWD" docker compose -f /path/to/oh-pen-testing/docker-compose.yml up
+#
+# Secrets go in `.env` next to this file — never inline here.
+
+services:
+  opt-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: oh-pen-sauce/oh-pen-testing:dev
+    container_name: opt-web
+    ports:
+      - "7676:7676"
+    # OPT_WORKSPACE is the host path to the project you want to scan.
+    # Default to the current directory — override when launching.
+    volumes:
+      - "${OPT_WORKSPACE:-.}:/workspace:rw"
+    environment:
+      # Prefer the anon/claude-code-cli provider inside the container.
+      # Anything sensitive should arrive through env_file, not inline.
+      NODE_ENV: production
+    env_file:
+      - path: ./.env
+        required: false
+    read_only: false
+    security_opt:
+      - no-new-privileges:true
+
+  # Optional: self-hosted provider for the offline / air-gapped mode.
+  # Commented out by default so the stack stays lean. Uncomment + `docker
+  # compose up ollama` to run local models.
+  #
+  # ollama:
+  #   image: ollama/ollama:latest
+  #   container_name: opt-ollama
+  #   ports:
+  #     - "11434:11434"
+  #   volumes:
+  #     - ollama-models:/root/.ollama
+
+# volumes:
+#   ollama-models:

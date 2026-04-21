@@ -1,0 +1,8 @@
+services:
+  api:
+    image: acme/api:latest
+    environment:
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
+      DATABASE_PASSWORD: ${DB_PASSWORD}
+    env_file:
+      - .env.api

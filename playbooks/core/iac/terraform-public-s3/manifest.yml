@@ -1,0 +1,27 @@
+id: iac/terraform-public-s3
+version: 1.0.0
+category: iac
+cwe: [CWE-732]
+severity_default: high
+languages: [generic]
+authors: [oh-pen-testing-core]
+description: "Flags aws_s3_bucket resources with public ACLs or permissive bucket policies."
+risky: false
+requires_ai: true
+type: regex
+rules:
+  - id: s3-public-acl
+    description: "aws_s3_bucket[_acl] with public-read / public-read-write ACL."
+    pattern: 'acl\s*=\s*"(?:public-read|public-read-write)"'
+    flags: gi
+    require_ai_confirm: true
+  - id: s3-block-public-access-disabled
+    description: "aws_s3_bucket_public_access_block with any *_public_* flag set to false."
+    pattern: '(?:block_public_acls|ignore_public_acls|block_public_policy|restrict_public_buckets)\s*=\s*false'
+    flags: gi
+    require_ai_confirm: true
+  - id: s3-policy-star-principal
+    description: "Bucket policy with Principal: * or AWS: '*' (open to the world)."
+    pattern: '"Principal"\s*:\s*(?:"\*"|\{\s*"AWS"\s*:\s*"\*"\s*\})'
+    flags: g
+    require_ai_confirm: true
