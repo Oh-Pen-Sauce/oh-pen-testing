@@ -22,6 +22,10 @@ import { getBuiltinRules } from "../playbook-runner/builtin-rules/secrets.js";
 import { walkFiles, type WalkedFile } from "./file-walker.js";
 import { runRegexScan } from "./regex-scanner.js";
 import { confirmCandidate } from "./confirm.js";
+import {
+  enforceTargetAllowed,
+  enforceTimeWindows,
+} from "../scope/enforce.js";
 
 export class RateLimitHalt extends Error {
   constructor(
@@ -64,6 +68,15 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
       "Scan refused: authorisation has not been acknowledged. Run `opt scan` interactively (you'll be prompted), or complete the web setup wizard, or set `scope.authorisation_acknowledged: true` in .ohpentesting/config.yml after confirming you are authorised to test this codebase.",
     );
   }
+
+  // Hard gate: time-window check. If the user configured scope.time_windows,
+  // halt any scan started outside all of them. No-op when windows are empty
+  // (the indie-dev default).
+  enforceTimeWindows(config);
+
+  // Hard gate: target allowlist. v0.5 is static-only, so the "target" is the
+  // cwd — must be in allowed_targets (if set) or match the default (== cwd).
+  enforceTargetAllowed(config, cwd, cwd);
 
   const scanId = await allocateScanId(cwd);
   const logger = options.logger ?? (await createLogger(cwd, scanId));

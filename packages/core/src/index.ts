@@ -9,3 +9,4 @@ export * from "./agent/marinara.js";
 export * from "./agent/run-agent.js";
 export * from "./init/scaffold.js";
 export * from "./provider-router/index.js";
+export * from "./scope/enforce.js";
