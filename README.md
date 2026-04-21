@@ -100,9 +100,14 @@ npm install -g @oh-pen-testing/cli
 # or just
 npx oh-pen-testing@latest init
 
-# Homebrew (coming with v0.5.0 tap)
+# Homebrew (tap published alongside v1.0.0)
 brew tap oh-pen-sauce/tap
 brew install oh-pen-testing
+
+# Docker
+docker pull ghcr.io/oh-pen-sauce/oh-pen-testing:1.0.0
+docker run --rm -v "$PWD":/workspace -w /workspace \
+  ghcr.io/oh-pen-sauce/oh-pen-testing:1.0.0 opt init
 
 # From source
 git clone https://github.com/Oh-Pen-Sauce/oh-pen-testing.git
