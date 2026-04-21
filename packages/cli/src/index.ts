@@ -9,7 +9,7 @@ import { registerSchedule } from "./commands/schedule.js";
 import { registerVersion } from "./commands/version.js";
 import { registerAllProviders } from "./provider-registration.js";
 
-export const CLI_VERSION = "0.2.0";
+export const CLI_VERSION = "0.3.0";
 
 export function buildCli(): Command {
   registerAllProviders();

@@ -2,6 +2,37 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [0.3.0] — 2026-04-21
+
+M3 — OWASP Top 10 coverage. 22 playbooks across all ten categories, each with positive/negative fixtures auto-exercised by the fixture-gate test harness.
+
+### Added
+
+**Framework**:
+- **SCA playbook type** — new `type: sca` in `PlaybookManifestSchema` with `sca_sources: [npm-audit | pip-audit | bundler-audit]`. Runtime shells out to the relevant auditors (skipping those whose manifest file is absent), normalises their output into standard Issue shape, skips AI confirmation (auditor verdicts are authoritative).
+- **Auto-discovery fixture-gate test harness** — `regex-scanner.test.ts` now walks every playbook under `playbooks/core/`, discovers `tests/positive/` and `tests/negative/` dirs, enforces the contract (positive MUST match, negative must NOT match) for every one. New playbooks get tested with zero test-file edits.
+
+**22 playbooks** (21 regex + 1 SCA):
+- **A01 Broken Access Control (2)**: missing-authorisation-check, cors-wildcard
+- **A02 Cryptographic Failures (3)**: weak-hash-algorithm, weak-random-for-security, insecure-tls-version (+ existing hardcoded-secrets from M0)
+- **A03 Injection (4)**: sql-injection-raw, command-injection, xss-innerhtml, xxe-vulnerable-parser
+- **A04 Insecure Design (1)**: no-rate-limit-on-auth
+- **A05 Security Misconfiguration (3)**: debug-mode-enabled, default-credentials, verbose-error-exposure
+- **A06 Vulnerable Components (1 SCA)**: npm-audit + pip-audit + bundler-audit bundled
+- **A07 Auth Failures (2)**: weak-password-policy, insecure-password-storage
+- **A08 Integrity (2)**: missing-sri, insecure-deserialization
+- **A09 Logging (1)**: sensitive-data-in-logs
+- **A10 SSRF (2)**: user-controlled-fetch, metadata-service-access
+
+Each playbook ships: `manifest.yml` with regex rules + metadata, `scan.prompt.md` for AI confirmation guidance, `remediate.prompt.md` for fix strategy, positive and negative test fixtures.
+
+### Changed
+- Every OWASP finding now tags itself with the category (A01-A10), CWE IDs, and default severity — feeds directly into SARIF exports and the PDF report planned for v1.0.
+
+### Tests
+- 86/86 passing across 14 suites (was 46/13 in v0.2.0).
+- 40 new auto-generated fixture-gate tests across the 20 new regex playbooks.
+
 ## [0.2.0] — 2026-04-21
 
 M2 — trust and verification. Joe's PRD review produced a short list of gaps; this release closes them.
