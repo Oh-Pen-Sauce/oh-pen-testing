@@ -10,10 +10,19 @@ export const IssueStatusSchema = z.enum([
   "ready",
   "in_progress",
   "in_review",
+  "verified",
   "done",
   "wont_fix",
 ]);
 export type IssueStatus = z.infer<typeof IssueStatusSchema>;
+
+export const VerificationSchema = z.object({
+  last_run_scan_id: z.string().nullable().default(null),
+  last_run_at: z.string().nullable().default(null),
+  hits_remaining: z.number().int().nullable().default(null),
+  verified_at: z.string().nullable().default(null),
+});
+export type Verification = z.infer<typeof VerificationSchema>;
 
 export const IssueSchema = z.object({
   id: z.string().regex(/^ISSUE-\d{3,}$/),
@@ -44,6 +53,12 @@ export const IssueSchema = z.object({
     })
     .optional(),
   linked_pr: z.string().url().nullable().default(null),
+  verification: VerificationSchema.default({
+    last_run_scan_id: null,
+    last_run_at: null,
+    hits_remaining: null,
+    verified_at: null,
+  }),
   comments: z
     .array(
       z.object({

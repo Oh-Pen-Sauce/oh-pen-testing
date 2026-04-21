@@ -5,6 +5,7 @@ import { loadConfig } from "@oh-pen-testing/shared";
 import {
   resolveProvider,
   runAgent,
+  runVerify,
   registerProvider,
 } from "@oh-pen-testing/core";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
@@ -52,4 +53,29 @@ export async function remediateAction(
   revalidatePath(`/issue/${issueId}`);
   revalidatePath("/board");
   return { prUrl: result.prUrl, prNumber: result.prNumber };
+}
+
+export async function verifyAction(
+  issueId: string,
+): Promise<{ verified: boolean; hitsRemaining: number }> {
+  ensureProvidersRegistered();
+  const cwd = getOhpenCwd();
+  const config = await loadConfig(cwd);
+  const provider = await resolveProvider({ config });
+  const result = await runVerify({
+    cwd,
+    config,
+    issueId,
+    provider,
+    playbookRoots: [
+      BUNDLED_PLAYBOOKS_DIR,
+      path.join(cwd, ".ohpentesting", "playbooks", "local"),
+    ],
+  });
+  revalidatePath(`/issue/${issueId}`);
+  revalidatePath("/board");
+  return {
+    verified: result.verified,
+    hitsRemaining: result.hitsRemaining,
+  };
 }

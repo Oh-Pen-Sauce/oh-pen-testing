@@ -223,6 +223,12 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             requires_approval: severity === "critical" ? false : false,
           },
           linked_pr: null,
+          verification: {
+            last_run_scan_id: null,
+            last_run_at: null,
+            hits_remaining: null,
+            verified_at: null,
+          },
           comments: [],
         };
         await writeIssue(cwd, issue);
