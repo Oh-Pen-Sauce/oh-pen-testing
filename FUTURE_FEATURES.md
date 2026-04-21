@@ -59,6 +59,17 @@ v0.5 ships 15 critical items; v1.0 covers all 25.
 
 ## v2.0 — specialised domains
 
+### Docker Compose quickstart for team self-hosting
+Single-machine shared install for teams who want to run Oh Pen Testing once and have a small group use it — without going full enterprise (no RBAC, no SSO, no hosted plane).
+
+- `docker-compose.yml` in the repo with two services: the core engine + the web UI on `:7676`.
+- Named volumes for `.ohpentesting/` state + OS-keychain-equivalent Docker secrets for credentials.
+- `docker compose up` from the repo root spins everything up; `docker compose exec core opt scan /workspace/<repo>` runs scans against mounted repos.
+- Still not enterprise: no multi-tenant, no per-user auth, localhost binding by default. Gateway-hosting is a user responsibility.
+- Target audience: a 2-5 person startup with a shared dev box, a consultant running against multiple client repos, or an OSS maintainer running Oh Pen Testing on a home server.
+
+**Not a v1.0 requirement.** Indie-dev local `brew install` / `npx` remains the primary distribution path.
+
 ### API-specific test suite
 OWASP API Security Top 10 (2023):
 - Broken object-level authorisation
