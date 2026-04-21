@@ -1,0 +1,176 @@
+name: "Oh Pen Testing"
+description: "Run Oh Pen Testing against your repo on every PR. OWASP Top 10 + SCA with AI confirmation."
+author: "Oh Pen Sauce"
+branding:
+  icon: shield
+  color: red
+
+inputs:
+  provider:
+    description: "AI provider: claude-api | claude-code-cli | ollama. Default: claude-api."
+    required: false
+    default: "claude-api"
+  anthropic-api-key:
+    description: "Anthropic API key (required when provider=claude-api)."
+    required: false
+  github-token:
+    description: "GitHub token for PR creation. Use ${{ secrets.GITHUB_TOKEN }} or a PAT with repo write."
+    required: false
+    default: ${{ github.token }}
+  autonomy:
+    description: "Autonomy mode: full-yolo | yolo | recommended | careful."
+    required: false
+    default: "careful"
+  fail-on:
+    description: "Fail the action if findings at or above this severity exist: info | low | medium | high | critical."
+    required: false
+    default: "high"
+  post-pr-comment:
+    description: "Post a summary comment on the PR when triggered from pull_request."
+    required: false
+    default: "true"
+  upload-sarif:
+    description: "Upload SARIF output to GitHub Code Scanning after the scan."
+    required: false
+    default: "true"
+
+outputs:
+  scan-id:
+    description: "Scan ID that was produced (SCAN-XXX)."
+  issues-found:
+    description: "Total number of issues found."
+  sarif-path:
+    description: "Path to the emitted SARIF file."
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "22"
+
+    - name: Install Oh Pen Testing
+      shell: bash
+      run: npm install -g @oh-pen-testing/cli@latest
+
+    - name: Configure
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        opt init --force --languages=typescript,javascript,python
+        # CI runs are always authorised — the repo owner invoked the action
+        node -e "
+          const { loadConfig, writeConfig } = require('@oh-pen-testing/shared');
+          (async () => {
+            const cwd = process.cwd();
+            const cfg = await loadConfig(cwd);
+            cfg.scope.authorisation_acknowledged = true;
+            cfg.scope.authorisation_acknowledged_at = new Date().toISOString();
+            cfg.scope.authorisation_acknowledged_by = 'github-actions:${{ github.actor }}';
+            cfg.ai.primary_provider = '${{ inputs.provider }}';
+            cfg.agents.autonomy = '${{ inputs.autonomy }}';
+            cfg.git.repo = '${{ github.repository }}';
+            await writeConfig(cwd, cfg);
+          })();
+        "
+
+    - name: Scan
+      id: scan
+      shell: bash
+      env:
+        ANTHROPIC_API_KEY: ${{ inputs.anthropic-api-key }}
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      run: |
+        set +e
+        opt scan
+        EXIT=$?
+        set -e
+        # Emit outputs
+        if [ -d .ohpentesting/issues ]; then
+          COUNT=$(ls -1 .ohpentesting/issues/*.json 2>/dev/null | wc -l | tr -d ' ')
+        else
+          COUNT=0
+        fi
+        echo "issues-found=$COUNT" >> $GITHUB_OUTPUT
+        SCAN=$(ls -1 .ohpentesting/scans/*.json 2>/dev/null | tail -1 | xargs -I {} basename {} .json || echo "SCAN-000")
+        echo "scan-id=$SCAN" >> $GITHUB_OUTPUT
+        exit $EXIT
+
+    - name: Generate SARIF
+      if: always()
+      shell: bash
+      run: |
+        opt report --format sarif -o oh-pen-testing.sarif
+        echo "sarif-path=$(pwd)/oh-pen-testing.sarif" >> $GITHUB_OUTPUT
+
+    - name: Upload SARIF to Code Scanning
+      if: always() && inputs.upload-sarif == 'true'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: oh-pen-testing.sarif
+        category: oh-pen-testing
+
+    - name: Post PR comment
+      if: always() && github.event_name == 'pull_request' && inputs.post-pr-comment == 'true'
+      uses: actions/github-script@v7
+      env:
+        ISSUES_FOUND: ${{ steps.scan.outputs.issues-found }}
+      with:
+        script: |
+          const fs = require("fs");
+          const issuesDir = ".ohpentesting/issues";
+          let bodyLines = ["## 🛡️ Oh Pen Testing", ""];
+          if (!fs.existsSync(issuesDir)) {
+            bodyLines.push("No issues found. Nice one.");
+          } else {
+            const files = fs.readdirSync(issuesDir).filter(f => f.endsWith(".json"));
+            if (files.length === 0) {
+              bodyLines.push("No issues found. Nice one.");
+            } else {
+              const issues = files.map(f => JSON.parse(fs.readFileSync(`${issuesDir}/${f}`, "utf-8")));
+              const bySeverity = { critical: 0, high: 0, medium: 0, low: 0, info: 0 };
+              for (const i of issues) bySeverity[i.severity] = (bySeverity[i.severity] ?? 0) + 1;
+              bodyLines.push(`Found **${files.length}** issue(s):`);
+              bodyLines.push("");
+              bodyLines.push(`| Severity | Count |`);
+              bodyLines.push(`|---|---|`);
+              for (const s of ["critical", "high", "medium", "low", "info"]) {
+                bodyLines.push(`| ${s} | ${bySeverity[s] ?? 0} |`);
+              }
+              bodyLines.push("");
+              bodyLines.push("See the Code Scanning tab for per-line detail.");
+            }
+          }
+          await github.rest.issues.createComment({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+            body: bodyLines.join("\n"),
+          });
+
+    - name: Enforce fail-on threshold
+      shell: bash
+      env:
+        FAIL_ON: ${{ inputs.fail-on }}
+      run: |
+        node -e "
+          const fs = require('fs');
+          const rank = { info: 0, low: 1, medium: 2, high: 3, critical: 4 };
+          const threshold = rank['${FAIL_ON}'] ?? 3;
+          const dir = '.ohpentesting/issues';
+          if (!fs.existsSync(dir)) process.exit(0);
+          const files = fs.readdirSync(dir).filter(f => f.endsWith('.json'));
+          let exceeded = 0;
+          for (const f of files) {
+            const issue = JSON.parse(fs.readFileSync(dir + '/' + f, 'utf-8'));
+            if ((rank[issue.severity] ?? 0) >= threshold) exceeded++;
+          }
+          if (exceeded > 0) {
+            console.error(\`❌ \${exceeded} issue(s) at or above ${FAIL_ON} severity.\`);
+            process.exit(1);
+          }
+          console.log('✅ No issues at or above ${FAIL_ON} severity.');
+        "

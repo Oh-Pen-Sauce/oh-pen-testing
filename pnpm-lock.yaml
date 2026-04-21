@@ -140,6 +140,25 @@ importers:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)
 
+  packages/git-adapters/bitbucket:
+    dependencies:
+      '@oh-pen-testing/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      simple-git:
+        specifier: ^3.27.0
+        version: 3.36.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.17
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.10)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+
   packages/git-adapters/github:
     dependencies:
       '@octokit/rest':
@@ -164,6 +183,25 @@ importers:
       vitest:
         specifier: ^2.1.8
         version: 2.1.9(@types/node@22.19.17)(lightningcss@1.32.0)
+
+  packages/git-adapters/gitlab:
+    dependencies:
+      '@oh-pen-testing/shared':
+        specifier: workspace:*
+        version: link:../../shared
+      simple-git:
+        specifier: ^3.27.0
+        version: 3.36.0
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.0
+        version: 22.19.17
+      tsup:
+        specifier: ^8.3.5
+        version: 8.5.1(jiti@2.6.1)(postcss@8.5.10)(typescript@5.9.3)(yaml@2.8.3)
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
 
   packages/providers/anthropic:
     dependencies:
