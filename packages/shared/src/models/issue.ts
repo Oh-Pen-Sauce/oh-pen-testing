@@ -41,8 +41,21 @@ export const IssueSchema = z.object({
     line_range: z.tuple([z.number(), z.number()]),
   }),
   evidence: z.object({
+    // Raw, machine-verifiable data. What the scanner literally produced.
+    rule_id: z.string().optional(),
     code_snippet: z.string(),
+    match_position: z
+      .object({
+        line: z.number().int().positive(),
+        column: z.number().int().nonnegative(),
+        length: z.number().int().nonnegative(),
+      })
+      .optional(),
+    // AI-advisory interpretation. The LLM's read of the raw finding.
     analysis: z.string(),
+    ai_reasoning: z.string().optional(),
+    ai_model: z.string().optional(),
+    ai_confidence: z.enum(["low", "medium", "high"]).optional(),
   }),
   remediation: z
     .object({

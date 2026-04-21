@@ -213,8 +213,22 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             line_range: candidate.lineRange,
           },
           evidence: {
+            rule_id: candidate.ruleId,
             code_snippet: candidate.context,
+            match_position: {
+              line: candidate.line,
+              column: 0,
+              length: candidate.match.length,
+            },
             analysis: reasoning,
+            ai_reasoning: reasoning,
+            ai_model: provider.id,
+            ai_confidence:
+              severity === "critical" || severity === "high"
+                ? "high"
+                : severity === "medium"
+                  ? "medium"
+                  : "low",
           },
           remediation: {
             strategy: playbook.manifest.id,

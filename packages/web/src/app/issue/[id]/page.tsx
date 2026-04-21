@@ -64,40 +64,104 @@ export default async function IssueDetailPage({
         </span>
       </div>
 
-      <section className="mb-6">
-        <h2 className="font-semibold mb-2">Analysis</h2>
-        <p className="text-slate-700">{issue.evidence.analysis}</p>
-      </section>
-
-      <section className="mb-6">
-        <h2 className="font-semibold mb-2">Code context</h2>
-        <div className="text-xs text-slate-500 mb-1 font-mono">
-          {issue.location.file}:{issue.location.line_range[0]}–
-          {issue.location.line_range[1]}
-        </div>
-        {snippet ? (
-          <pre className="bg-slate-900 text-slate-100 text-xs rounded-lg p-4 overflow-x-auto">
-            {snippet.lines.map((line, i) => {
-              const lineNo = snippet.startLine + i;
-              const inRange =
-                lineNo >= issue.location.line_range[0] &&
-                lineNo <= issue.location.line_range[1];
-              return (
-                <div key={i} className={inRange ? "bg-red-500/10" : ""}>
-                  <span className="text-slate-500 mr-3 select-none">
-                    {String(lineNo).padStart(4, " ")}
-                  </span>
-                  {line}
-                </div>
-              );
-            })}
-          </pre>
-        ) : (
-          <div className="text-sm text-slate-500">
-            Source file no longer available.
+      {/* Evidence/interpretation split (PRD Principle 5): raw scanner
+          output on the left is machine-verifiable; AI analysis on the
+          right is advisory. Never merged. */}
+      <div className="grid md:grid-cols-2 gap-4 mb-6">
+        <section className="rounded-lg border border-slate-200 bg-white p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold text-sm">
+              <span className="inline-block w-2 h-2 rounded-full bg-slate-900 mr-2 align-middle" />
+              Scanner output
+            </h2>
+            <span className="text-xs text-slate-500">machine-verifiable</span>
           </div>
-        )}
-      </section>
+          <dl className="text-xs text-slate-600 space-y-1 mb-3">
+            {issue.evidence.rule_id && (
+              <div>
+                <dt className="inline">Rule:</dt>{" "}
+                <dd className="inline font-mono">{issue.evidence.rule_id}</dd>
+              </div>
+            )}
+            <div>
+              <dt className="inline">Location:</dt>{" "}
+              <dd className="inline font-mono">
+                {issue.location.file}:{issue.location.line_range[0]}
+                {issue.location.line_range[1] !== issue.location.line_range[0] &&
+                  `-${issue.location.line_range[1]}`}
+              </dd>
+            </div>
+            {issue.evidence.match_position && (
+              <div>
+                <dt className="inline">Match length:</dt>{" "}
+                <dd className="inline">
+                  {issue.evidence.match_position.length} chars
+                </dd>
+              </div>
+            )}
+          </dl>
+          {snippet ? (
+            <pre className="bg-slate-900 text-slate-100 text-xs rounded p-3 overflow-x-auto">
+              {snippet.lines.map((line, i) => {
+                const lineNo = snippet.startLine + i;
+                const inRange =
+                  lineNo >= issue.location.line_range[0] &&
+                  lineNo <= issue.location.line_range[1];
+                return (
+                  <div key={i} className={inRange ? "bg-red-500/10" : ""}>
+                    <span className="text-slate-500 mr-3 select-none">
+                      {String(lineNo).padStart(4, " ")}
+                    </span>
+                    {line}
+                  </div>
+                );
+              })}
+            </pre>
+          ) : (
+            <div className="text-sm text-slate-500">
+              Source file no longer available.
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-lg border border-blue-200 bg-blue-50/30 p-4">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold text-sm">
+              <span className="inline-block w-2 h-2 rounded-full bg-blue-600 mr-2 align-middle" />
+              AI analysis
+            </h2>
+            <span className="text-xs text-blue-700">advisory</span>
+          </div>
+          <p className="text-sm text-slate-700 mb-3">
+            {issue.evidence.analysis}
+          </p>
+          {issue.evidence.ai_reasoning &&
+            issue.evidence.ai_reasoning !== issue.evidence.analysis && (
+              <details className="text-xs text-slate-600 mb-3">
+                <summary className="cursor-pointer hover:text-slate-900">
+                  Detailed reasoning
+                </summary>
+                <p className="mt-2 pl-3 border-l-2 border-blue-200">
+                  {issue.evidence.ai_reasoning}
+                </p>
+              </details>
+            )}
+          <details className="text-xs text-slate-500">
+            <summary className="cursor-pointer hover:text-slate-700">
+              Provenance
+            </summary>
+            <dl className="mt-2 space-y-1 font-mono">
+              <div>Model: {issue.evidence.ai_model ?? "unknown"}</div>
+              {issue.evidence.ai_confidence && (
+                <div>Confidence: {issue.evidence.ai_confidence}</div>
+              )}
+              <div>Discovered by: {issue.discovered_by}</div>
+              <div>Discovered at: {issue.discovered_at}</div>
+              <div>Scan: {issue.scan_id}</div>
+            </dl>
+          </details>
+        </section>
+      </div>
 
       {issue.linked_pr && (
         <section className="mb-6">
