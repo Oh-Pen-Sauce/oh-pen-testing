@@ -1,13 +1,22 @@
-import type { Config, Language, Framework } from "./schema.js";
+import type { Config, Language, Framework, ProviderId } from "./schema.js";
 
 export interface DefaultsInput {
   projectName: string;
   languages: Language[];
   frameworks?: Framework[];
   repo?: string;
+  /** Optional hint from the init scaffolder about which provider to default to. */
+  preferredProvider?: ProviderId;
 }
 
 export function buildDefaultConfig(input: DefaultsInput): Config {
+  const provider: ProviderId = input.preferredProvider ?? "claude-code-cli";
+  const model =
+    provider === "ollama"
+      ? "kimi-k2.6"
+      : provider === "claude-code-cli"
+        ? "claude-sonnet-4-6"
+        : "claude-opus-4-7";
   return {
     version: "0.5",
     project: {
@@ -16,8 +25,8 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
       frameworks: input.frameworks ?? [],
     },
     ai: {
-      primary_provider: "claude-api",
-      model: "claude-opus-4-7",
+      primary_provider: provider,
+      model,
       rate_limit: {
         strategy: "auto",
         budget_usd: 5.0,

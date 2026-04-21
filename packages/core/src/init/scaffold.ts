@@ -8,6 +8,7 @@ import {
   writeConfig,
   type Language,
   type Framework,
+  type ProviderId,
 } from "@oh-pen-testing/shared";
 
 const exec = promisify(execFile);
@@ -66,11 +67,13 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
     const languages = options.languages ?? (await inferLanguages(options.cwd));
     const frameworks = await inferFrameworks(options.cwd);
     const repo = await inferGitRepo(options.cwd);
+    const preferredProvider = await detectPreferredProvider();
     const defaultConfig = buildDefaultConfig({
       projectName,
       languages,
       frameworks,
       repo,
+      preferredProvider,
     });
     await writeConfig(options.cwd, defaultConfig);
     created.push(path.relative(options.cwd, paths.config));
@@ -129,6 +132,38 @@ async function readFileIfExists(file: string): Promise<string | undefined> {
     if ((err as NodeJS.ErrnoException).code === "ENOENT") return undefined;
     throw err;
   }
+}
+
+/**
+ * Detect the best-available provider to default the config to:
+ *  1. `claude` CLI on PATH → claude-code-cli (free on Max, no API key needed)
+ *  2. ANTHROPIC_API_KEY in env → claude-api
+ *  3. Ollama reachable at localhost:11434 → ollama (free, local)
+ *  4. Otherwise → claude-code-cli as a hopeful default (user will be prompted
+ *     to install or override).
+ */
+async function detectPreferredProvider(): Promise<ProviderId> {
+  try {
+    await exec("claude", ["--version"], { timeout: 3000 });
+    return "claude-code-cli";
+  } catch {
+    // claude CLI not found
+  }
+  if (process.env.ANTHROPIC_API_KEY) {
+    return "claude-api";
+  }
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch("http://localhost:11434/api/version", {
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (res.ok) return "ollama";
+  } catch {
+    // ollama not reachable
+  }
+  return "claude-code-cli";
 }
 
 async function inferProjectName(cwd: string): Promise<string> {

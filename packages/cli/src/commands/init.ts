@@ -1,7 +1,7 @@
 import type { Command } from "commander";
 import pc from "picocolors";
 import { scaffold } from "@oh-pen-testing/core";
-import type { Language } from "@oh-pen-testing/shared";
+import { loadConfig, type Language } from "@oh-pen-testing/shared";
 
 export function registerInit(program: Command): void {
   program
@@ -24,6 +24,7 @@ export function registerInit(program: Command): void {
         projectName: opts.projectName,
         languages,
       });
+
       // eslint-disable-next-line no-console
       console.log(pc.green("✔ oh-pen-testing initialised"));
       for (const file of result.created) {
@@ -34,17 +35,54 @@ export function registerInit(program: Command): void {
         // eslint-disable-next-line no-console
         console.log(`  ${pc.gray("skipped")} ${file} (already exists — use --force to overwrite)`);
       }
+
+      const config = await loadConfig(cwd);
+      const provider = config.ai.primary_provider;
+
+      // eslint-disable-next-line no-console
+      console.log(
+        `\n${pc.bold("Default provider:")} ${pc.cyan(provider)} (model: ${config.ai.model})`,
+      );
+      // eslint-disable-next-line no-console
+      console.log(pc.dim("  Edit .ohpentesting/config.yml or use --provider on scan to override."));
+
       // eslint-disable-next-line no-console
       console.log(`\n${pc.bold("Next steps:")}`);
+      if (provider === "claude-code-cli") {
+        // eslint-disable-next-line no-console
+        console.log(
+          `  1. ${pc.dim("(no API key needed — uses your local `claude` CLI session)")}`,
+        );
+        // eslint-disable-next-line no-console
+        console.log(`  2. Run ${pc.cyan("opt scan")}`);
+        // eslint-disable-next-line no-console
+        console.log(
+          `  3. For PRs: ${pc.dim("export GITHUB_TOKEN=ghp_... && opt remediate --issue ISSUE-001")}`,
+        );
+      } else if (provider === "ollama") {
+        // eslint-disable-next-line no-console
+        console.log(
+          `  1. ${pc.dim(`Make sure ollama is running: ollama serve + ollama pull ${config.ai.model}`)}`,
+        );
+        // eslint-disable-next-line no-console
+        console.log(`  2. Run ${pc.cyan("opt scan")}`);
+        // eslint-disable-next-line no-console
+        console.log(
+          `  3. For PRs: ${pc.dim("export GITHUB_TOKEN=ghp_... && opt remediate --issue ISSUE-001")}`,
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(`  1. Set credentials:`);
+        // eslint-disable-next-line no-console
+        console.log(`     ${pc.dim("export ANTHROPIC_API_KEY=sk-ant-...")}`);
+        // eslint-disable-next-line no-console
+        console.log(`     ${pc.dim("export GITHUB_TOKEN=ghp_...")}`);
+        // eslint-disable-next-line no-console
+        console.log(`  2. Run ${pc.cyan("opt scan")}`);
+      }
       // eslint-disable-next-line no-console
-      console.log(`  1. Set credentials:`);
-      // eslint-disable-next-line no-console
-      console.log(`     ${pc.dim("export ANTHROPIC_API_KEY=sk-ant-...")}`);
-      // eslint-disable-next-line no-console
-      console.log(`     ${pc.dim("export GITHUB_TOKEN=ghp_...")}`);
-      // eslint-disable-next-line no-console
-      console.log(`  2. Review ${pc.cyan(".ohpentesting/config.yml")}`);
-      // eslint-disable-next-line no-console
-      console.log(`  3. Run ${pc.cyan("oh-pen-testing scan")}`);
+      console.log(
+        `\n  Prefer a UI? Run ${pc.cyan("opt setup")} to open the wizard at http://127.0.0.1:7676`,
+      );
     });
 }

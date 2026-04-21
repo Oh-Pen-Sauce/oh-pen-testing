@@ -30,7 +30,11 @@ describe("oh-pen-testing init", () => {
     expect(config.project.name).toBe("test-project");
     expect(config.project.primary_languages).toEqual(["typescript"]);
     expect(config.version).toBe("0.5");
-    expect(config.ai.model).toBe("claude-opus-4-7");
+    // Default provider is detected from environment: claude-code-cli if
+    // `claude` is on PATH, else claude-api (via ANTHROPIC_API_KEY), else
+    // ollama, else claude-code-cli. Model pairs with the provider.
+    expect(config.ai.primary_provider).toBeTruthy();
+    expect(config.ai.model).toBeTruthy();
   });
 
   it("skips existing config without --force", async () => {
