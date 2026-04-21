@@ -9,6 +9,7 @@ export const IssueStatusSchema = z.enum([
   "backlog",
   "ready",
   "in_progress",
+  "pending_approval",
   "in_review",
   "verified",
   "done",

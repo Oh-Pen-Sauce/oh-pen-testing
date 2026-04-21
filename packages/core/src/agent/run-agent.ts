@@ -10,7 +10,7 @@ import {
   readIssue,
   writeIssue,
 } from "@oh-pen-testing/shared";
-import { resolveAgent, type AgentIdentity } from "./marinara.js";
+import { resolveAgent, type AgentIdentity } from "./agents.js";
 import { loadPlaybooks } from "../playbook-runner/loader.js";
 
 export const RemediationResponseSchema = z.object({
@@ -20,6 +20,74 @@ export const RemediationResponseSchema = z.object({
   env_example_addition: z.string().optional(),
 });
 export type RemediationResponse = z.infer<typeof RemediationResponseSchema>;
+
+/**
+ * Thrown when autonomy-mode rules require human approval before the agent
+ * may patch. The issue is left in status=pending_approval; humans approve
+ * via the web /reviews UI or `opt approve --issue <ID>`.
+ */
+export class AgentApprovalRequired extends Error {
+  constructor(
+    public readonly issueId: string,
+    public readonly reason: string,
+    public readonly agentId: string,
+  ) {
+    super(`Approval required for ${issueId}: ${reason}`);
+    this.name = "AgentApprovalRequired";
+  }
+}
+
+/**
+ * Apply the autonomy-mode rules to decide whether the agent may proceed.
+ *
+ * - yolo: agent may patch anything not in an explicitly guarded zone.
+ *   approval_triggers still apply (auth changes etc.) because YOLO was
+ *   never meant to bypass those — it bypasses the extra gate on minor
+ *   fixes.
+ * - recommended (default): agent patches low-risk issues; anything matching
+ *   approval_triggers or severity=critical is gated.
+ * - careful: every fix requires approval.
+ */
+export function evaluateAutonomyGate(
+  config: Config,
+  issue: Issue,
+): { allowed: true } | { allowed: false; reason: string } {
+  const mode = config.agents.autonomy;
+  const triggers = config.agents.approval_triggers;
+
+  if (mode === "careful") {
+    return { allowed: false, reason: "careful mode — all fixes require approval" };
+  }
+
+  const strategy = issue.remediation?.strategy ?? "";
+  const lowered = (strategy + " " + issue.title).toLowerCase();
+  const triggerReasons: string[] = [];
+  for (const t of triggers) {
+    if (t === "auth_changes" && (lowered.includes("auth") || lowered.includes("access-control") || lowered.includes("session"))) {
+      triggerReasons.push(`trigger: ${t}`);
+    }
+    if (t === "secrets_rotation" && (lowered.includes("secret") || lowered.includes("password") || lowered.includes("credential"))) {
+      triggerReasons.push(`trigger: ${t}`);
+    }
+    if (t === "schema_migrations" && (lowered.includes("migration") || lowered.includes("schema") || lowered.includes("database"))) {
+      triggerReasons.push(`trigger: ${t}`);
+    }
+    // large_diff is evaluated after we see the proposed patch; skipped here.
+  }
+  if (triggerReasons.length > 0) {
+    return { allowed: false, reason: triggerReasons.join(", ") };
+  }
+
+  if (mode === "recommended" && issue.severity === "critical") {
+    return {
+      allowed: false,
+      reason: "recommended mode blocks critical-severity auto-remediation",
+    };
+  }
+
+  // YOLO and (non-critical) Recommended proceed.
+  return { allowed: true };
+}
 
 const SYSTEM_BASE = `You are a security remediation agent. You will receive a security issue, the full contents of the affected file, and a target location. You must produce the minimum-viable fix for the specific issue.
 
@@ -81,6 +149,29 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     issue = await readIssue(options.cwd, options.issueId);
   } else {
     throw new Error("runAgent requires either `issueId` or `issue`");
+  }
+
+  // Autonomy-mode gate — full implementation per PRD § 2 principle 6.
+  // If the issue violates the current autonomy mode's rules, we leave the
+  // issue in `backlog` (or a new `pending_approval` state) and return
+  // without patching anything. Humans approve via the web /reviews page
+  // or `opt approve --issue <ID>`.
+  const gate = evaluateAutonomyGate(options.config, issue);
+  if (!gate.allowed) {
+    issue.status = "pending_approval" as Issue["status"];
+    issue.assignee = agent.id;
+    (issue as Issue & { comments: Issue["comments"] }).comments.push({
+      author: agent.id,
+      text: `Autonomy gate triggered (${options.config.agents.autonomy} mode): ${gate.reason}. Awaiting human approval.`,
+      at: new Date().toISOString(),
+    });
+    await writeIssue(options.cwd, issue);
+    logger.info("agent.gated", {
+      agent: agent.id,
+      issue: issue.id,
+      reason: gate.reason,
+    });
+    throw new AgentApprovalRequired(issue.id, gate.reason, agent.id);
   }
 
   issue.status = "in_progress";

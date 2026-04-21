@@ -3,6 +3,7 @@ import { registerInit } from "./commands/init.js";
 import { registerScan } from "./commands/scan.js";
 import { registerRemediate } from "./commands/remediate.js";
 import { registerVerify } from "./commands/verify.js";
+import { registerApprove } from "./commands/approve.js";
 import { registerSetup } from "./commands/setup.js";
 import { registerReport } from "./commands/report.js";
 import { registerSchedule } from "./commands/schedule.js";
@@ -26,6 +27,7 @@ export function buildCli(): Command {
   registerScan(program);
   registerRemediate(program);
   registerVerify(program);
+  registerApprove(program);
   registerSetup(program);
   registerReport(program);
   registerSchedule(program);

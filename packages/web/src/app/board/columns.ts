@@ -4,6 +4,7 @@ export const BOARD_COLUMNS: Array<{ status: IssueStatus; label: string }> = [
   { status: "backlog", label: "Backlog" },
   { status: "ready", label: "Ready" },
   { status: "in_progress", label: "In Progress" },
+  { status: "pending_approval", label: "Pending Approval" },
   { status: "in_review", label: "In Review" },
   { status: "verified", label: "Verified" },
   { status: "done", label: "Done" },

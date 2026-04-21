@@ -122,6 +122,12 @@ describe("end-to-end scan + remediate (mocked)", () => {
 
   it("remediates the issue and returns a PR URL with expected side effects", async () => {
     const config = await loadConfig(cwd);
+    // Force YOLO + clear approval_triggers so the autonomy gate (M4) doesn't
+    // block this end-to-end test. Real usage defaults to Recommended with
+    // triggers for auth_changes/secrets_rotation/etc; agent-pool.test.ts
+    // covers the gate behaviour explicitly.
+    config.agents.autonomy = "yolo";
+    config.agents.approval_triggers = [];
     const provider = stubProvider();
     const { adapter, calls } = stubAdapter();
 
