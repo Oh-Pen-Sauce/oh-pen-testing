@@ -6,3 +6,4 @@ export * from "./models/scan.js";
 export * from "./logger.js";
 export * from "./paths.js";
 export * from "./provider/types.js";
+export * from "./sarif.js";
