@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { safeLoadConfig } from "../lib/repo";
 import { Sidebar } from "../components/trattoria/sidebar";
@@ -8,6 +9,29 @@ export const metadata: Metadata = {
   description: "Local pen-testing suite — your code, your AI, your terms.",
 };
 
+// Self-hosted Google Fonts via next/font — no runtime @import, no layout
+// shift. Each one binds a CSS variable so the tokens in globals.css
+// (--font-body etc.) resolve to the right face on every surface.
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-inter",
+  display: "swap",
+});
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  weight: ["500", "700"],
+  variable: "--font-jetbrains-mono",
+  display: "swap",
+});
+const display = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["700", "900"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
 export default async function RootLayout({
   children,
 }: {
@@ -16,7 +40,10 @@ export default async function RootLayout({
   const config = await safeLoadConfig();
   const projectName = config?.project.name ?? "unconfigured";
   return (
-    <html lang="en">
+    <html
+      lang="en"
+      className={`${inter.variable} ${mono.variable} ${display.variable}`}
+    >
       <body
         className="min-h-screen trattoria"
         style={{

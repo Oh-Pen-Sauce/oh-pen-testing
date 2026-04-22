@@ -6,9 +6,11 @@
  * Design tokens ported from the Oh Pen Sauce redesign handoff. These are
  * available both as CSS variables (`var(--sauce)`) and as Tailwind colour
  * utilities (`bg-sauce`, `text-ink`, etc.) via the @theme block below.
+ *
+ * Fonts are loaded via next/font in layout.tsx — CSS @import url() can't
+ * be used here because Tailwind v4's `@import "tailwindcss"` above inlines
+ * hundreds of rules first, and CSS requires @import to precede all rules.
  */
-
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap");
 
 :root {
   --sauce: #c8321e;
@@ -35,11 +37,17 @@
   --sev-info-fg: #1e3a8a;
   --sev-info-bg: #dee4f5;
 
-  /* typography */
-  --font-display: "Playfair Display", ui-serif, Georgia, serif;
-  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
-    monospace;
+  /*
+   * Typography — next/font injects --font-inter / --font-playfair /
+   * --font-jetbrains-mono on the <html>. We alias them to the tokens the
+   * components already reference so the tokens stay the canonical names.
+   * Fallbacks cover the brief window before the font swaps in.
+   */
+  --font-display: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-body: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
+    sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular",
+    Menlo, Consolas, monospace;
 }
 
 @theme {
@@ -61,6 +69,10 @@
   --color-sev-low: #3f7a3a;
   --color-sev-info: #1e3a8a;
 
+  /* Tailwind's font utilities (font-sans, font-mono, font-display)
+     still need concrete family names at the theme layer — next/font
+     registers the real faces, and these fallback chains make sure
+     bare utilities without our CSS-variable aliases still look right. */
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo,
