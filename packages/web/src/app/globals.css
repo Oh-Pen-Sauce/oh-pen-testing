@@ -123,3 +123,29 @@ body {
 .dashed-ink {
   border-bottom: 2px dashed var(--ink);
 }
+
+/*
+ * Typing indicator used in the setup chat while the AI is thinking.
+ * Three dots fade in/out on a staggered 0.9s loop — the classic chat
+ * "they're typing" cadence.
+ */
+.typing-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  opacity: 0.2;
+  animation: typing-bounce 0.9s infinite ease-in-out;
+}
+
+@keyframes typing-bounce {
+  0%, 80%, 100% {
+    opacity: 0.2;
+    transform: translateY(0);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}

@@ -119,7 +119,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns]);
+  }, [turns, busy]);
 
   // Seed opener. If the config already has a provider set (via
   // `opt connect` in the terminal, or a previous session), try to pick
@@ -633,6 +633,9 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             </div>
           )}
 
+          {/* Live typing indicator while the AI is working on the next turn. */}
+          {busy && <TypingBubble />}
+
           <div ref={endRef} />
         </div>
 
@@ -731,21 +734,43 @@ function ChatHeader({
       </div>
       <div>
         <div
-          className="font-black italic text-[16px]"
+          className="font-black italic text-[18px]"
           style={{ fontFamily: "var(--font-display)" }}
         >
           Marinara
         </div>
         <div
-          className="text-[10px] opacity-70 flex items-center gap-1.5"
-          style={{ fontFamily: "var(--font-mono)" }}
+          className="text-[12px] flex items-center gap-2 mt-0.5"
+          style={{
+            fontFamily: "var(--font-mono)",
+            opacity: busy ? 1 : 0.75,
+          }}
         >
           <span
-            className="w-[6px] h-[6px] rounded-full"
-            style={{ background: aiLive ? "#8bd17c" : "#d1b77c" }}
+            className="w-[7px] h-[7px] rounded-full"
+            style={{
+              background: busy
+                ? "var(--sauce-soft)"
+                : aiLive
+                  ? "#8bd17c"
+                  : "#d1b77c",
+              animation: busy ? "typing-bounce 0.9s infinite" : "none",
+            }}
           />
-          {busy ? "typing…" : aiLive ? "smart mode" : "picking a kitchen"} ·{" "}
-          {stepLabels[state.currentStep]}
+          <span
+            style={{
+              color: busy ? "var(--sauce-soft)" : "var(--cream)",
+              fontWeight: busy ? 700 : 500,
+              letterSpacing: busy ? "0.06em" : "normal",
+            }}
+          >
+            {busy
+              ? "Marinara is thinking…"
+              : aiLive
+                ? "smart mode"
+                : "picking a kitchen"}
+          </span>
+          <span className="opacity-60">· {stepLabels[state.currentStep]}</span>
         </div>
       </div>
     </div>
@@ -776,6 +801,56 @@ function BotBubble({
         🍅
       </div>
       <div className="max-w-[85%]">
+        {/*
+          Action card renders *before* the explanation bubble when an
+          action is attached. This matches the mental model: the thing
+          the user has to act on comes first, with the bubble text as
+          the supporting rationale beneath.
+        */}
+        {pendingAction && (
+          <div
+            className="mb-2 px-3.5 py-3 rounded-[10px] flex items-center justify-between gap-3"
+            style={{
+              background: "var(--parmesan)",
+              border: "2px solid var(--ink)",
+              boxShadow: "2px 2px 0 var(--ink)",
+            }}
+          >
+            <div className="min-w-0">
+              <div
+                className="text-[10px] font-bold tracking-[0.15em] uppercase mb-0.5"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--sauce-dark)",
+                }}
+              >
+                ▶ Action needed
+              </div>
+              <div className="text-[13px] font-semibold text-ink">
+                {pendingAction.description}
+              </div>
+            </div>
+            <button
+              disabled={busy}
+              onClick={() =>
+                onConfirm({
+                  id: pendingAction.id,
+                  input: pendingAction.input,
+                })
+              }
+              className="px-3.5 py-[7px] text-[12px] font-bold rounded-md disabled:opacity-50 shrink-0"
+              style={{
+                background: "var(--basil)",
+                color: "var(--cream)",
+                border: "2px solid var(--ink)",
+                boxShadow: "2px 2px 0 var(--ink)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              Do it →
+            </button>
+          </div>
+        )}
         <div
           className="px-3.5 py-2.5 text-[14px] leading-snug"
           style={{
@@ -791,42 +866,41 @@ function BotBubble({
         >
           {content}
         </div>
-        {pendingAction && (
-          <div
-            className="mt-2 px-3 py-2.5 text-[12px] rounded-[10px] flex items-center justify-between gap-3"
-            style={{
-              background: "var(--parmesan)",
-              border: "1.5px solid var(--ink)",
-            }}
-          >
-            <div className="min-w-0">
-              <div
-                className="text-[9px] font-bold tracking-[0.1em] uppercase text-ink-soft mb-0.5"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                Suggested action
-              </div>
-              <div className="text-ink">{pendingAction.description}</div>
-            </div>
-            <button
-              disabled={busy}
-              onClick={() =>
-                onConfirm({
-                  id: pendingAction.id,
-                  input: pendingAction.input,
-                })
-              }
-              className="px-3 py-[6px] text-[11px] font-bold rounded-md disabled:opacity-50 shrink-0"
-              style={{
-                background: "var(--basil)",
-                color: "var(--cream)",
-                border: "1.5px solid var(--ink)",
-              }}
-            >
-              Do it →
-            </button>
-          </div>
-        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Typing-dots bubble shown at the bottom of the transcript while the
+ * AI is thinking. Uses the CSS keyframe defined in globals.css.
+ */
+function TypingBubble() {
+  return (
+    <div className="flex gap-2.5 mb-3.5 items-start">
+      <div
+        className="w-8 h-8 rounded-full flex items-center justify-center text-[16px] shrink-0"
+        style={{
+          background: "var(--sauce)",
+          border: "2px solid var(--ink)",
+        }}
+        aria-hidden
+      >
+        🍅
+      </div>
+      <div
+        className="px-4 py-3 inline-flex items-center gap-[6px]"
+        style={{
+          background: "var(--cream)",
+          border: "2px solid var(--ink)",
+          borderRadius: "14px 14px 14px 2px",
+        }}
+        aria-live="polite"
+        aria-label="Marinara is typing"
+      >
+        <span className="typing-dot" />
+        <span className="typing-dot" style={{ animationDelay: "0.15s" }} />
+        <span className="typing-dot" style={{ animationDelay: "0.3s" }} />
       </div>
     </div>
   );
