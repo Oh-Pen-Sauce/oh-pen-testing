@@ -7,6 +7,8 @@ languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects path.join / open() with unvalidated user input that could traverse outside the intended directory."
 risky: false
+risk_profile: safe
+impact: "Pure static scan — reads your source tree looking for the pattern. Doesn't actually try to traverse anything."
 requires_ai: true
 type: regex
 rules:

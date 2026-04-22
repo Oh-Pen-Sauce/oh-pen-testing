@@ -8,6 +8,8 @@ languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: Detects raw SQL with string interpolation of user-controlled values.
 risky: false
+risk_profile: safe
+impact: Pure static scan — reads source files only. No database calls, no network, no side-effects.
 requires_ai: true
 type: regex
 rules:

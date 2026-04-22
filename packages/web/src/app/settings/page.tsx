@@ -2,6 +2,7 @@ import Link from "next/link";
 import { safeLoadConfig } from "../../lib/repo";
 import { SettingsForm } from "./settings-form";
 import { PageHeader } from "../../components/trattoria/page-header";
+import { BtnLink } from "../../components/trattoria/button";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,11 @@ export default async function SettingsPage() {
             </code>
             .
           </>
+        }
+        actions={
+          <BtnLink href="/settings/tests" variant="ghost" icon="📖">
+            Tests catalog
+          </BtnLink>
         }
       />
       {config ? (

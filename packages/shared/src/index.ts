@@ -18,3 +18,4 @@ export * from "./compliance/frameworks.js";
 export * from "./compliance/mapping.js";
 export * from "./learning/events.js";
 export * from "./setup-assistant/index.js";
+export * from "./starter-scan.js";

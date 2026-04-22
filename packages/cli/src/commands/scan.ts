@@ -9,6 +9,7 @@ import {
   buildScanCompletedPayload,
   newInstallId,
   sendTelemetry,
+  STARTER_PLAYBOOK_IDS,
 } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import {
@@ -28,7 +29,19 @@ export function registerScan(program: Command): void {
     .command("scan")
     .description("Run the configured playbooks against the current repo")
     .option("-p, --provider <id>", "Override config.ai.primary_provider")
-    .action(async (opts: { provider?: string }, cmd) => {
+    .option(
+      "--starter",
+      "Run only the starter set (5 safe regex-only playbooks). Fast first-time run — no network, no AI cost.",
+    )
+    .option(
+      "--only <ids>",
+      "Comma-separated list of playbook ids to restrict this run to.",
+    )
+    .action(
+      async (
+        opts: { provider?: string; starter?: boolean; only?: string },
+        cmd,
+      ) => {
       const cwd: string = cmd.parent?.opts().cwd ?? process.cwd();
       const config = await loadConfig(cwd);
 
@@ -78,8 +91,33 @@ export function registerScan(program: Command): void {
         resolveLocalPlaybooksRoot(cwd),
       ];
 
-      // eslint-disable-next-line no-console
-      console.log(pc.bold(`▶ Scanning with ${provider.name} (${config.ai.model})`));
+      // Build the onlyPlaybookIds filter (starter > --only > none).
+      const onlyPlaybookIds: string[] | undefined = opts.starter
+        ? [...STARTER_PLAYBOOK_IDS]
+        : opts.only
+          ? opts.only.split(",").map((s) => s.trim()).filter(Boolean)
+          : undefined;
+
+      if (opts.starter) {
+        // eslint-disable-next-line no-console
+        console.log(
+          pc.bold(
+            `▶ Starter scan — ${STARTER_PLAYBOOK_IDS.length} safe regex playbooks, no network, no AI cost.`,
+          ),
+        );
+      } else if (onlyPlaybookIds) {
+        // eslint-disable-next-line no-console
+        console.log(
+          pc.bold(
+            `▶ Restricted scan — ${onlyPlaybookIds.length} playbook(s): ${onlyPlaybookIds.join(", ")}`,
+          ),
+        );
+      } else {
+        // eslint-disable-next-line no-console
+        console.log(
+          pc.bold(`▶ Scanning with ${provider.name} (${config.ai.model})`),
+        );
+      }
 
       try {
         const result = await runScan({
@@ -87,6 +125,11 @@ export function registerScan(program: Command): void {
           config,
           provider,
           playbookRoots,
+          onlyPlaybookIds,
+          // Starter scan never touches the AI — the 5 playbooks are all
+          // regex-only and their findings are copy-obvious. Saves the
+          // first-time user any API cost.
+          skipAiConfirm: opts.starter ? true : undefined,
         });
 
         // eslint-disable-next-line no-console
@@ -166,7 +209,8 @@ export function registerScan(program: Command): void {
         }
         throw err;
       }
-    });
+    },
+  );
 }
 
 function severityColor(severity: string): (s: string) => string {

@@ -8,6 +8,8 @@ languages: [javascript, typescript]
 authors: [oh-pen-testing-core]
 description: Detects XSS-prone DOM sinks fed with non-literal strings (innerHTML, outerHTML, document.write, dangerouslySetInnerHTML).
 risky: false
+risk_profile: safe
+impact: Pure static scan — grep-equivalent over your source. Cannot execute code or touch a browser.
 requires_ai: true
 type: regex
 rules:

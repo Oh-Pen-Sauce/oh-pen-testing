@@ -18,6 +18,28 @@ export const ScaSourceSchema = z.enum([
 ]);
 export type ScaSource = z.infer<typeof ScaSourceSchema>;
 
+/**
+ * How invasive a playbook is at runtime.
+ *
+ *   safe       — pure static analysis on source files; no network,
+ *                no process side-effects. Regex & AST playbooks.
+ *   read-only  — makes outbound requests but only GETs. Cannot cause
+ *                state change on the target (header probes, etc.).
+ *   probe      — sends POST/PUT but the target can always safely
+ *                replay; no emails sent, no persistent writes.
+ *   mutating   — may cause real-world side-effects (emails sent,
+ *                files uploaded, rate-limit counters incremented).
+ *                These are the ones that can lock out real users if
+ *                run against production.
+ */
+export const RiskProfileSchema = z.enum([
+  "safe",
+  "read-only",
+  "probe",
+  "mutating",
+]);
+export type RiskProfile = z.infer<typeof RiskProfileSchema>;
+
 export const PlaybookManifestSchema = z.object({
   id: z.string().regex(/^[a-z0-9][a-z0-9-/]*[a-z0-9]$/),
   version: z.string(),
@@ -37,6 +59,20 @@ export const PlaybookManifestSchema = z.object({
   authors: z.array(z.string()).default([]),
   description: z.string().default(""),
   risky: z.boolean().default(false),
+  /**
+   * Risk profile — drives UI badges and whether the playbook is
+   * eligible for the starter scan. Defaults to 'safe' since every
+   * regex playbook that doesn't explicitly declare itself higher-risk
+   * is by definition a static-only scan.
+   */
+  risk_profile: RiskProfileSchema.default("safe"),
+  /**
+   * Human-readable "what could this break" sentence. Shown in the
+   * Settings → Tests catalog so users can decide whether to enable
+   * the test against a given target. Optional; UI falls back to the
+   * risk_profile explanation if not provided.
+   */
+  impact: z.string().optional(),
   requires_ai: z.boolean().default(true),
   type: z.enum(["regex", "ast", "prompt", "sca"]).default("regex"),
   rules: z.array(RegexRuleSchema).default([]),

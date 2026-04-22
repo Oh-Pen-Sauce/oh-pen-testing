@@ -177,6 +177,19 @@ export const ConfigSchema = z.object({
         cwe_top_25: false,
       }),
     risky: z.record(z.string(), z.boolean()).default({}),
+    /**
+     * Has the user completed a starter scan yet? Starter runs a small,
+     * deliberately safe subset of playbooks so newcomers see the tool
+     * work end-to-end before letting it loose on their whole codebase.
+     * Flipped to true after the first successful scan (starter or
+     * full-with-bypass).
+     */
+    starter_complete: z.boolean().default(false),
+    /**
+     * Per-playbook opt-out. Populated via Settings → Tests. Playbook
+     * ids listed here are skipped regardless of their category flag.
+     */
+    disabled_playbooks: z.array(z.string()).default([]),
   }),
   reports: z
     .object({

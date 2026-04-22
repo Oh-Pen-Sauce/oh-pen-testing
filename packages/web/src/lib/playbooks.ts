@@ -36,6 +36,8 @@ export interface PlaybookCatalogRule {
   require_ai_confirm: boolean;
 }
 
+export type PlaybookRiskProfile = "safe" | "read-only" | "probe" | "mutating";
+
 export interface PlaybookCatalogEntry {
   id: string;
   displayName: string;
@@ -46,6 +48,11 @@ export interface PlaybookCatalogEntry {
   languages: string[];
   description: string;
   risky: boolean;
+  /** Runtime-invasiveness tier. Defaults to "safe" if the manifest
+   *  doesn't declare it — every regex playbook is safe by definition. */
+  risk_profile: PlaybookRiskProfile;
+  /** Human-readable "what could this break" sentence. */
+  impact?: string;
   requires_ai: boolean;
   type: string;
   rules: PlaybookCatalogRule[];
@@ -107,6 +114,8 @@ export async function listCatalog(): Promise<PlaybookCatalogEntry[]> {
         languages?: string[];
         description?: string;
         risky?: boolean;
+        risk_profile?: PlaybookRiskProfile;
+        impact?: string;
         requires_ai?: boolean;
         type?: string;
         rules?: Array<{
@@ -132,6 +141,9 @@ export async function listCatalog(): Promise<PlaybookCatalogEntry[]> {
         languages: manifest.languages ?? ["generic"],
         description: manifest.description ?? "",
         risky: manifest.risky ?? false,
+        risk_profile:
+          manifest.risk_profile ?? (manifest.risky ? "probe" : "safe"),
+        impact: manifest.impact,
         requires_ai: manifest.requires_ai ?? true,
         type: manifest.type ?? "regex",
         rules:

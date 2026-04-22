@@ -8,6 +8,8 @@ import {
   type ScanRun,
   writeIssue,
   writeScan,
+  writeConfig,
+  ConfigSchema,
   createLogger,
   type Logger,
   RateLimitError,
@@ -51,6 +53,12 @@ export interface RunScanOptions {
   skipAiConfirm?: boolean;
   /** Optional rate-limit manager; if omitted, one is built from provider.rateLimitStrategy(). */
   rateLimitManager?: RateLimitManager;
+  /**
+   * If provided, only playbooks whose id is in this list will run.
+   * Used by the "starter scan" flow (5 safe regex playbooks) and by
+   * the forthcoming `--only <id>` CLI flag.
+   */
+  onlyPlaybookIds?: readonly string[];
 }
 
 export interface RunScanResult {
@@ -60,7 +68,7 @@ export interface RunScanResult {
 }
 
 export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
-  const { cwd, config, provider, playbookRoots, skipAiConfirm } = options;
+  const { cwd, config, provider, playbookRoots, skipAiConfirm, onlyPlaybookIds } = options;
 
   // Hard gate: refuse to start any scan without explicit authorisation ack.
   // This is Principle 1 of the PRD — "authorised testing only, you own the
@@ -113,9 +121,24 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
 
   try {
     const allPlaybooks = await loadPlaybooks(playbookRoots);
-    const relevant = filterByLanguages(allPlaybooks, config.project.primary_languages);
+    // Filter stack — each step narrows the set.
+    const byLanguage = filterByLanguages(
+      allPlaybooks,
+      config.project.primary_languages,
+    );
+    // onlyPlaybookIds wins over everything else — used by starter scan
+    // and by `--only` to restrict a run to a specific subset.
+    const byOnly = onlyPlaybookIds
+      ? byLanguage.filter((p) => onlyPlaybookIds.includes(p.manifest.id))
+      : byLanguage;
+    // disabled_playbooks is the user's opt-out list from Settings → Tests.
+    const disabled = new Set(config.scans.disabled_playbooks ?? []);
+    const relevant = byOnly.filter((p) => !disabled.has(p.manifest.id));
     logger.info("scan.playbooks_loaded", {
       total: allPlaybooks.length,
+      byLanguage: byLanguage.length,
+      afterOnly: byOnly.length,
+      disabled: byOnly.length - relevant.length,
       relevant: relevant.length,
     });
 
@@ -401,6 +424,28 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
       issues_found: scan.issues_found,
       playbooks_run: scan.playbooks_run,
     });
+
+    // First successful scan of any kind unlocks the full-scan path in
+    // the web UI. `opt scan --starter` and a full `opt scan` both flip
+    // it; the `--bypass` flag in the web Scans page also flips it
+    // via its own server action without actually running a scan.
+    if (!config.scans.starter_complete) {
+      try {
+        const updated = { ...config };
+        updated.scans = {
+          ...config.scans,
+          starter_complete: true,
+        };
+        await writeConfig(cwd, ConfigSchema.parse(updated));
+        logger.info("starter_complete.flipped", { scanId });
+      } catch (err) {
+        // Config write failure shouldn't fail the scan.
+        logger.warn("starter_complete.write_failed", {
+          error: (err as Error).message,
+        });
+      }
+    }
+
     return { scanId, issues, scan };
   } catch (err) {
     scan.ended_at = new Date().toISOString();

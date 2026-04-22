@@ -66,6 +66,8 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
         cwe_top_25: false,
       },
       risky: {},
+      starter_complete: false,
+      disabled_playbooks: [],
     },
     reports: {
       formats: ["markdown", "json"],

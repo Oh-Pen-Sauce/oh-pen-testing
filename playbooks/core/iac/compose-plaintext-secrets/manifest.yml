@@ -7,6 +7,8 @@ languages: [generic]
 authors: [oh-pen-testing-core]
 description: "Flags docker-compose.yml files that declare secret-looking env vars inline instead of using Docker secrets or env_file."
 risky: false
+risk_profile: safe
+impact: "Pure static scan of your compose files. Doesn't start containers or touch Docker."
 requires_ai: true
 type: regex
 rules:

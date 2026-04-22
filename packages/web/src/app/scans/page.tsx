@@ -1,29 +1,53 @@
 import Link from "next/link";
-import { listScans } from "../../lib/repo";
+import { listScans, safeLoadConfig } from "../../lib/repo";
+import { listCatalog } from "../../lib/playbooks";
+import { STARTER_PLAYBOOK_IDS } from "@oh-pen-testing/shared";
 import { PageHeader } from "../../components/trattoria/page-header";
 import { Btn } from "../../components/trattoria/button";
+import { StarterGate } from "./starter-gate";
 
 export const dynamic = "force-dynamic";
 
 export default async function ScansPage() {
-  const scans = await listScans();
+  const [scans, config, catalog] = await Promise.all([
+    listScans(),
+    safeLoadConfig(),
+    listCatalog(),
+  ]);
+
+  const starterComplete = config?.scans.starter_complete ?? false;
+  const startersDetail = STARTER_PLAYBOOK_IDS.map((id) => {
+    const hit = catalog.find((p) => p.id === id);
+    return {
+      id,
+      displayName: hit?.displayName ?? id,
+      description:
+        hit?.description ??
+        "Static pattern match over your source files.",
+    };
+  });
+
   return (
     <div>
       <PageHeader
         kicker="05 — Il Registro"
         title={<>Scans</>}
-        sub={`${scans.length} scan run${
-          scans.length === 1 ? "" : "s"
-        } on record.`}
+        sub={
+          starterComplete
+            ? `${scans.length} scan run${scans.length === 1 ? "" : "s"} on record.`
+            : "Let's ease into this — start with a tiny, safe scan below."
+        }
         actions={
           <>
             <Btn variant="ghost" icon="⟳">
               Refresh
             </Btn>
-            <Btn icon="🔎">Run scan</Btn>
+            {starterComplete && <Btn icon="🔎">Run scan</Btn>}
           </>
         }
       />
+
+      {!starterComplete && <StarterGate startersDetail={startersDetail} />}
 
       {scans.length === 0 ? (
         <EmptyState />
