@@ -102,9 +102,15 @@ Four things to check, in order:
    *"Configure SSO"* button next to each classic PAT in the list.
 
 **"It still doesn't work and I'm frustrated."**
-Don't loop. Offer the env-var fallback: *"Worst case, open a new terminal
-and run `export GITHUB_TOKEN=ghp_…`, then come back here and say 'I'll
-use an env var'. The git adapter checks that before the keychain."*
+Don't loop. The save action is resilient by design — if the OS
+keychain refuses (common on Linux without libsecret), the runtime
+falls back to `~/.ohpentesting/secrets.json` automatically (mode
+0600, never inside a repo). The user does not need to `export`
+anything manually. The token is kept user-only and is read back the
+same way for every git-adapter call. If the save *still* fails, the
+most common cause is a genuinely malformed token — ask them to
+re-copy it directly from GitHub (no double-click, no trailing
+newline) and try once more.
 
 ---
 

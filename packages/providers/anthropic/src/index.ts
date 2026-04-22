@@ -20,28 +20,16 @@ export interface AnthropicProviderOptions {
 }
 
 /**
- * Resolve an Anthropic API key from env first, keytar fallback.
- * Returns null if neither present.
+ * Resolve an Anthropic API key via the three-tier secrets store:
+ *   1. ANTHROPIC_API_KEY env var
+ *   2. OS keychain (account: anthropic-api-key)
+ *   3. ~/.ohpentesting/secrets.json fallback file
+ * Returns null if none of them have it.
  */
 export async function resolveAnthropicApiKey(): Promise<string | null> {
-  const fromEnv = process.env.ANTHROPIC_API_KEY;
-  if (fromEnv) return fromEnv;
-  try {
-    const dynamicImport = new Function(
-      "m",
-      "return import(m)",
-    ) as (m: string) => Promise<{
-      default: { getPassword(service: string, account: string): Promise<string | null> };
-    }>;
-    const mod = await dynamicImport("keytar");
-    const fromKeychain = await mod.default.getPassword(
-      KEYTAR_SERVICE,
-      KEYTAR_ACCOUNT_ANTHROPIC,
-    );
-    return fromKeychain ?? null;
-  } catch {
-    return null;
-  }
+  const { getSecret } = await import("@oh-pen-testing/shared");
+  const result = await getSecret(KEYTAR_ACCOUNT_ANTHROPIC);
+  return result.value;
 }
 
 export function createAnthropicProvider(

@@ -84,9 +84,9 @@ via the local `claude` binary.
 ## Security rules (hard rules — never break)
 
 1. **Never** include the key value in your `say` field. Use masking: `sk-ant-…9a2f` if you must reference it.
-2. **Never** write the key to `config.yml` — that's why this goes through `keytar`.
+2. **Never** write the key to `config.yml` — secrets go through the three-tier store (keychain → `~/.ohpentesting/secrets.json` → env).
 3. If the key looks malformed (wrong prefix, under 10 chars), refuse: reply without an action and ask the user to re-paste.
-4. If `keytar` isn't available (the action will throw *"Could not write to OS keychain…"*), tell the user to export the env var in their shell instead, and advance the conversation as if saved.
+4. The action returns `{ location, detail }`. `location` is `"keychain"` or `"file"` — relay it in your confirmation bubble so the user knows where their key ended up. Example: *"Saved to your OS keychain 🔐"* or *"Saved to `~/.ohpentesting/secrets.json` (0600, user-only)."*
 
 Expected prefixes (soft check — just to catch typos):
 
@@ -97,18 +97,21 @@ Expected prefixes (soft check — just to catch typos):
 ## Common failures
 
 **"The key won't save."**
-`keytar` is a native module and occasionally fails on fresh Linux
-installs without `libsecret`. Offer: *"Fall back to an env var — open
-a terminal, run `export ANTHROPIC_API_KEY=sk-ant-…` (or the matching
-OPENAI_/OPENROUTER_ variable), then come back and say 'I'm using an
-env var'."*
+The action is resilient — if the OS keychain refuses (common on
+Linux without `libsecret`), the runtime falls back to
+`~/.ohpentesting/secrets.json` (mode 0600, user-only, never inside a
+repo). The user does not need to `export` anything. If the action
+still throws, the most common cause is a genuinely malformed key —
+re-copy from the provider's console and try once more.
 
 **"I pasted but Oh Pen Testing says invalid key later."**
-Usually the key was truncated — GitHub Copilot–style keys contain
-underscores and hyphens that some paste buffers don't like. Ask them to
+Usually the key was truncated — some paste buffers drop trailing
+characters on keys that contain underscores or hyphens. Ask them to
 re-copy from the provider's console and re-paste.
 
 **"I'm nervous about pasting a secret in a chat."**
 Reassure: *"The string doesn't leave your machine. It goes straight to
-your OS keychain via keytar. The text you typed here isn't logged, not
-even locally."* If they're still uncomfortable, use the env-var path.
+your OS keychain, or a user-only file if the keychain isn't available.
+The chat transcript doesn't persist it."* If they're still uncomfortable,
+they can set the matching env var before launching the app and we'll
+pick it up automatically.

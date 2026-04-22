@@ -6,6 +6,7 @@ import {
   buildDefaultConfig,
   loadConfig,
   writeConfig,
+  setSecret,
   type ProviderId,
 } from "@oh-pen-testing/shared";
 import { scaffold } from "@oh-pen-testing/core";
@@ -17,8 +18,6 @@ import {
   detectOllamaReachable,
   DEFAULT_OLLAMA_BASE_URL,
 } from "@oh-pen-testing/providers-ollama";
-
-const KEYTAR_SERVICE = "oh-pen-testing";
 
 /**
  * `opt connect` — the first-time AI bootstrap, run from the terminal
@@ -219,31 +218,6 @@ async function connectApiKeyProvider(providerId: ProviderId): Promise<string> {
       v.length >= 10 || "That doesn't look like a key (too short).",
   });
 
-  await keychainSet(accountName, secret);
-  return `saved to keychain (${accountName})`;
-}
-
-async function keychainSet(account: string, secret: string): Promise<void> {
-  try {
-    const dynamicImport = new Function(
-      "m",
-      "return import(m)",
-    ) as (m: string) => Promise<{
-      default: {
-        setPassword(
-          service: string,
-          account: string,
-          password: string,
-        ): Promise<void>;
-      };
-    }>;
-    const mod = await dynamicImport("keytar");
-    await mod.default.setPassword(KEYTAR_SERVICE, account, secret);
-  } catch (err) {
-    throw new Error(
-      `Could not write to OS keychain (${(err as Error).message}).\n` +
-        `  Workaround: export the key as an environment variable instead:\n` +
-        `    export ANTHROPIC_API_KEY=…  (or OPENAI_API_KEY / OPENROUTER_API_KEY)`,
-    );
-  }
+  const result = await setSecret(accountName, secret);
+  return result.detail;
 }

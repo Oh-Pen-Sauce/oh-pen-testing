@@ -6,6 +6,8 @@ import {
   ConfigSchema,
   writeConfig,
   buildDefaultConfig,
+  setSecret,
+  type SetSecretResult,
   type AutonomyMode,
   type ProviderId,
 } from "@oh-pen-testing/shared";
@@ -18,27 +20,6 @@ import {
   detectOllamaReachable,
   DEFAULT_OLLAMA_BASE_URL,
 } from "@oh-pen-testing/providers-ollama";
-
-const KEYCHAIN_SERVICE = "oh-pen-testing";
-
-async function keychainSet(account: string, secret: string): Promise<void> {
-  try {
-    const dynamicImport = new Function(
-      "m",
-      "return import(m)",
-    ) as (m: string) => Promise<{
-      default: {
-        setPassword(service: string, account: string, password: string): Promise<void>;
-      };
-    }>;
-    const mod = await dynamicImport("keytar");
-    await mod.default.setPassword(KEYCHAIN_SERVICE, account, secret);
-  } catch (err) {
-    throw new Error(
-      `Could not write to OS keychain: ${(err as Error).message}. Set env vars instead: ANTHROPIC_API_KEY / GITHUB_TOKEN.`,
-    );
-  }
-}
 
 export async function setProviderAction(provider: ProviderId, model?: string) {
   const cwd = getOhpenCwd();
@@ -86,7 +67,7 @@ export async function probeProviderAction(
 export async function saveApiKeyAction(
   providerId: ProviderId,
   secret: string,
-): Promise<void> {
+): Promise<SetSecretResult> {
   const account =
     providerId === "claude-api" || providerId === "claude-max"
       ? "anthropic-api-key"
@@ -101,16 +82,20 @@ export async function saveApiKeyAction(
   if (!secret || secret.length < 10) {
     throw new Error("API key looks invalid (too short).");
   }
-  await keychainSet(account, secret);
+  // setSecret walks the tiers — keychain first, local file fallback,
+  // never forces the user to open a terminal and `export`.
+  return await setSecret(account, secret);
 }
 
-export async function saveGitHubTokenAction(secret: string): Promise<void> {
+export async function saveGitHubTokenAction(
+  secret: string,
+): Promise<SetSecretResult> {
   if (!secret.startsWith("ghp_") && !secret.startsWith("github_pat_")) {
     throw new Error(
       "Token doesn't look like a GitHub PAT (expected ghp_* or github_pat_*).",
     );
   }
-  await keychainSet("github-token", secret);
+  return await setSecret("github-token", secret);
 }
 
 export async function setRepoAction(repo: string): Promise<void> {

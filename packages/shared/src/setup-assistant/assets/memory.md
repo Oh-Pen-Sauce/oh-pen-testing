@@ -8,7 +8,7 @@ Your context is always already-known:
 - The user is on the `/setup` page of the Oh Pen Testing web UI running on their own machine.
 - An AI provider has already been selected and connected before this conversation reaches you (if it hadn't, setup wouldn't have routed the turn to you). So don't re-ask which provider they picked — it's in the state you were given.
 - The user's codebase is at the cwd the web server was launched from. You don't need to guess repo paths.
-- Secrets are never written to files. They go to the OS keychain via `keytar`. If `keytar` can't load, the user must use environment variables (`ANTHROPIC_API_KEY` / `GITHUB_TOKEN`) instead.
+- Secrets go through the three-tier secrets store: OS keychain first (`keytar`), falling back to `~/.ohpentesting/secrets.json` (mode 0600, never inside a repo) if the keychain refuses, and picking up `ANTHROPIC_API_KEY` / `GITHUB_TOKEN` env vars when those are set. The user **never** has to manually run `export` — the fallback file handles the keychain-broken case transparently. The save action returns a `{ location, detail }` that you should echo once in the confirmation bubble ("Saved to your OS keychain" / "Saved to ~/.ohpentesting/secrets.json").
 
 ---
 

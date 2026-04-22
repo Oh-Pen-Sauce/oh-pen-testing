@@ -100,8 +100,8 @@ export async function executeAssistantActionAction(
       case "save_api_key": {
         const id = input.provider_id as ProviderId;
         const secret = input.secret as string;
-        await saveApiKeyAction(id, secret);
-        return { ok: true, detail: "Saved to keychain" };
+        const res = await saveApiKeyAction(id, secret);
+        return { ok: true, detail: res.detail };
       }
       case "detect_repo": {
         const res = await detectRepoFromGit();
@@ -118,10 +118,10 @@ export async function executeAssistantActionAction(
       }
       case "save_github_token": {
         const secret = input.secret as string;
-        await saveGitHubTokenAction(secret);
+        const res = await saveGitHubTokenAction(secret);
         return {
           ok: true,
-          detail: "Saved to keychain",
+          detail: res.detail,
           stateDelta: { tokenSaved: true },
         };
       }

@@ -36,27 +36,15 @@ export interface GitHubAdapter {
 
 export const KEYTAR_ACCOUNT_GITHUB = "github-token";
 
+/**
+ * Walks GITHUB_TOKEN env → OS keychain → ~/.ohpentesting/secrets.json
+ * via the shared secrets store. Same three-tier logic everywhere so
+ * users never have to know which tier their token ended up in.
+ */
 export async function resolveGitHubToken(): Promise<string | null> {
-  const fromEnv = process.env.GITHUB_TOKEN;
-  if (fromEnv) return fromEnv;
-  try {
-    // keytar is optional. Loaded via an indirect dynamic import so DTS
-    // generation doesn't try to resolve the module.
-    const dynamicImport = new Function(
-      "m",
-      "return import(m)",
-    ) as (m: string) => Promise<{
-      default: { getPassword(service: string, account: string): Promise<string | null> };
-    }>;
-    const mod = await dynamicImport("keytar");
-    const fromKeychain = await mod.default.getPassword(
-      "oh-pen-testing",
-      KEYTAR_ACCOUNT_GITHUB,
-    );
-    return fromKeychain ?? null;
-  } catch {
-    return null;
-  }
+  const { getSecret } = await import("@oh-pen-testing/shared");
+  const result = await getSecret(KEYTAR_ACCOUNT_GITHUB);
+  return result.value;
 }
 
 export function createGitHubAdapter(
