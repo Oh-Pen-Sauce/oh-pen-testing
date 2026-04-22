@@ -65,6 +65,14 @@ export interface RunScanResult {
   scanId: string;
   issues: Issue[];
   scan: ScanRun;
+  /**
+   * How many files the walker actually inspected after .gitignore +
+   * default-ignore pruning. Surfaced in the UI so users can see
+   * exactly what got scanned ("Scanned 247 files against 5 playbooks").
+   */
+  filesScanned: number;
+  /** Absolute path of the directory that was scanned. */
+  scannedPath: string;
 }
 
 export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
@@ -147,6 +155,17 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     logger.info("scan.files_walked", { count: files.length });
 
     const issues: Issue[] = [];
+
+    /*
+     * Dedup set for the scan. Keyed on
+     *   <playbookId>::<ruleId>::<file>::<startLine>-<endLine>
+     * so the same rule matching the same line twice (common when a
+     * multi-pattern rule hits overlapping substrings, or a file is
+     * walked via two symlinks) only produces one issue. Different
+     * playbooks / rules on the same line stay separate — those are
+     * legitimately distinct findings.
+     */
+    const dedupKeys = new Set<string>();
 
     for (const playbook of relevant) {
       // SCA playbooks shell out to external auditors (npm audit / pip-audit
@@ -315,6 +334,23 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
 
         if (!confirmed) continue;
 
+        // Dedup: skip if we've already emitted an issue for exactly
+        // this (playbook, rule, file, line-range). Keeps the board
+        // from being spammed when the same rule matches overlapping
+        // substrings on a single line, or when a file appears twice
+        // via symlinks.
+        const dedupKey = `${playbook.manifest.id}::${candidate.ruleId}::${candidate.file}::${candidate.lineRange[0]}-${candidate.lineRange[1]}`;
+        if (dedupKeys.has(dedupKey)) {
+          logger.info("issue.deduped", {
+            playbookId: playbook.manifest.id,
+            ruleId: candidate.ruleId,
+            file: candidate.file,
+            line: candidate.lineRange[0],
+          });
+          continue;
+        }
+        dedupKeys.add(dedupKey);
+
         const issueId = await allocateIssueId(cwd);
         const issue: Issue = {
           id: issueId,
@@ -446,7 +482,13 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
       }
     }
 
-    return { scanId, issues, scan };
+    return {
+      scanId,
+      issues,
+      scan,
+      filesScanned: files.length,
+      scannedPath: cwd,
+    };
   } catch (err) {
     scan.ended_at = new Date().toISOString();
     scan.status = "failed";

@@ -22,6 +22,17 @@ const DEFAULT_IGNORES = [
   "coverage",
   ".vitest-cache",
   ".pnpm-store",
+  // Playbook fixture directories — every playbook we ship has
+  // intentionally-vulnerable code under tests/positive/ (to exercise
+  // the regex rules) and intentionally-safe code under tests/negative/.
+  // Without this, running Oh Pen Testing against its own source repo
+  // (or any repo that adopts this convention for its own playbooks)
+  // produces dozens of spurious "findings" — the scanner correctly
+  // matching on code that was literally written to be caught.
+  // Matches both the bundled core set and any user-authored playbooks
+  // that follow the same tests/positive + tests/negative layout.
+  "playbooks/**/tests/positive",
+  "playbooks/**/tests/negative",
 ];
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2MB

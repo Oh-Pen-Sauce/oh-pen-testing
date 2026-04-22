@@ -19,7 +19,10 @@ import {
 } from "./assistant-actions";
 import { InlineTerminal } from "./inline-terminal";
 import { renderMiniMarkdown } from "./mini-markdown";
-import { runStarterScanAction } from "../scans/actions";
+import {
+  runStarterScanAction,
+  type StarterScanSummary,
+} from "../scans/actions";
 import { CookingMarinara } from "../scans/cooking-marinara";
 
 /**
@@ -1113,7 +1116,7 @@ function FinalActions({
   const [phase, setPhase] = useState<
     | { kind: "idle" }
     | { kind: "running"; startedAt: number }
-    | { kind: "done"; scanId: string; issuesFound: number }
+    | { kind: "done"; summary: StarterScanSummary }
     | { kind: "error"; message: string }
   >({ kind: "idle" });
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -1134,11 +1137,7 @@ function FinalActions({
     setPhase({ kind: "running", startedAt: Date.now() });
     try {
       const res = await runStarterScanAction();
-      setPhase({
-        kind: "done",
-        scanId: res.scanId,
-        issuesFound: res.issuesFound,
-      });
+      setPhase({ kind: "done", summary: res });
     } catch (err) {
       const message = (err as Error).message ?? "Unknown error";
       setPhase({ kind: "error", message });
@@ -1195,6 +1194,7 @@ function FinalActions({
   }
 
   if (phase.kind === "done") {
+    const s = phase.summary;
     return (
       <UserFormBubble>
         <div
@@ -1207,17 +1207,55 @@ function FinalActions({
           ✓ First scan complete
         </div>
         <div
-          className="font-black italic text-[20px] text-ink mb-1"
+          className="font-black italic text-[20px] text-ink mb-2"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          {phase.issuesFound === 0
+          {s.issuesFound === 0
             ? "Spotless."
-            : `Found ${phase.issuesFound} issue${phase.issuesFound === 1 ? "" : "s"}.`}
+            : `Found ${s.issuesFound} issue${s.issuesFound === 1 ? "" : "s"}.`}
         </div>
-        <div className="text-[12px] text-ink-soft mb-3">
-          Scan <code style={{ fontFamily: "var(--font-mono)" }}>{phase.scanId}</code>{" "}
-          is saved.
+        <div
+          className="text-[11.5px] text-ink-soft mb-3 leading-relaxed px-3 py-2 rounded"
+          style={{
+            background: "var(--cream)",
+            border: "1px solid var(--ink)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          <div>target: {s.scannedPath}</div>
+          <div>
+            scanned: {s.filesScanned} files · {s.playbooksRun} playbooks · scan {s.scanId}
+          </div>
+          {s.topFiles.length > 0 && (
+            <div className="mt-1 whitespace-pre-wrap break-words">
+              top: {s.topFiles.join(", ")}
+            </div>
+          )}
         </div>
+        {s.issuesFound > 0 && s.yoloMode && (
+          <div
+            className="text-[12px] mb-3 px-3 py-2 rounded leading-snug"
+            style={{
+              background: "var(--parmesan)",
+              border: "1.5px solid var(--ink)",
+            }}
+          >
+            🚀 You&rsquo;re in <strong>{s.autonomy}</strong> mode. Agents
+            can auto-open PRs for these — hit{" "}
+            <Link
+              href="/board"
+              className="underline"
+              style={{ color: "var(--sauce)" }}
+            >
+              the board
+            </Link>{" "}
+            and trigger remediation per issue, or run{" "}
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              opt remediate --all
+            </code>{" "}
+            in your terminal.
+          </div>
+        )}
         <div className="flex flex-wrap gap-2">
           <Link
             href="/board"

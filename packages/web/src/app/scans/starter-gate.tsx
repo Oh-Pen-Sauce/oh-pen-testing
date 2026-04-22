@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Btn } from "../../components/trattoria/button";
-import { runStarterScanAction, bypassStarterAction } from "./actions";
+import {
+  runStarterScanAction,
+  bypassStarterAction,
+  type StarterScanSummary,
+} from "./actions";
 import { CookingMarinara } from "./cooking-marinara";
 
 /**
@@ -31,7 +35,7 @@ export function StarterGate({
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<
     | null
-    | { ok: true; scanId: string; issuesFound: number }
+    | StarterScanSummary
     | { ok: false; error: string }
   >(null);
 
@@ -62,7 +66,7 @@ export function StarterGate({
   }
 
   if (result?.ok) {
-    return <DoneCard scanId={result.scanId} issuesFound={result.issuesFound} />;
+    return <DoneCard summary={result} />;
   }
 
   if (pending) {
@@ -355,13 +359,9 @@ function RunningCard({
 
 // ───────── Done ─────────
 
-function DoneCard({
-  scanId,
-  issuesFound,
-}: {
-  scanId: string;
-  issuesFound: number;
-}) {
+function DoneCard({ summary }: { summary: StarterScanSummary }) {
+  const { scanId, issuesFound, filesScanned, scannedPath, playbooksRun, topFiles, yoloMode } =
+    summary;
   return (
     <div
       className="rounded-xl p-6 mb-6"
@@ -388,10 +388,113 @@ function DoneCard({
           ? "Spotless."
           : `Found ${issuesFound} issue${issuesFound === 1 ? "" : "s"}.`}
       </h2>
+
+      {/* Scan summary — shows exactly what ran + what it scanned.
+          Putting the cwd front-and-centre kills the "did it scan
+          anything at all?" ambiguity. */}
+      <div
+        className="rounded-[10px] px-4 py-3 mb-4 text-[12.5px] leading-relaxed"
+        style={{
+          background: "var(--cream)",
+          border: "1.5px solid var(--ink)",
+        }}
+      >
+        <div className="flex gap-3 flex-wrap">
+          <div>
+            <span
+              className="text-[10px] font-bold tracking-[0.1em] uppercase block mb-0.5"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              target
+            </span>
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              {scannedPath}
+            </code>
+          </div>
+          <div>
+            <span
+              className="text-[10px] font-bold tracking-[0.1em] uppercase block mb-0.5"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              scanned
+            </span>
+            <span>
+              {filesScanned} files · {playbooksRun} playbooks
+            </span>
+          </div>
+          <div>
+            <span
+              className="text-[10px] font-bold tracking-[0.1em] uppercase block mb-0.5"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--ink-soft)",
+              }}
+            >
+              scan id
+            </span>
+            <code style={{ fontFamily: "var(--font-mono)" }}>{scanId}</code>
+          </div>
+        </div>
+        {topFiles.length > 0 && (
+          <div
+            className="mt-2 pt-2 text-[12px] text-ink-soft"
+            style={{ borderTop: "1px dashed rgba(34,26,20,0.18)" }}
+          >
+            <strong className="font-semibold">Top files:</strong>{" "}
+            {topFiles.map((f, i) => (
+              <code
+                key={f}
+                className="inline-block"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                {f}
+                {i < topFiles.length - 1 ? ", " : ""}
+              </code>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {issuesFound > 0 && yoloMode && (
+        <div
+          className="rounded-[10px] px-4 py-3 mb-4"
+          style={{
+            background: "var(--parmesan)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          <div
+            className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "var(--sauce-dark)",
+            }}
+          >
+            🚀 You&rsquo;re in {summary.autonomy} mode
+          </div>
+          <div className="text-[13px] text-ink mb-2">
+            Agents can auto-open PRs for these findings. I haven&rsquo;t
+            done that yet because starter scans are meant to be read-only
+            — head to the board to trigger remediation per issue, or run{" "}
+            <code
+              className="px-1 rounded"
+              style={{ background: "var(--cream)" }}
+            >
+              opt remediate --all
+            </code>{" "}
+            in your terminal to fix the whole batch at once.
+          </div>
+        </div>
+      )}
+
       <p className="text-[14px] text-ink-soft m-0 mb-4">
-        Scan{" "}
-        <code style={{ fontFamily: "var(--font-mono)" }}>{scanId}</code> is
-        saved. Head to the{" "}
+        Head to the{" "}
         <Link
           href="/board"
           className="underline"

@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { safeLoadConfig } from "../lib/repo";
 import { Sidebar } from "../components/trattoria/sidebar";
+import { ScanTargetBanner } from "../components/trattoria/scan-target-banner";
 
 export const metadata: Metadata = {
   title: "Oh Pen Testing",
@@ -54,8 +55,14 @@ export default async function RootLayout({
       >
         <div className="flex min-h-screen">
           <Sidebar projectName={projectName} version="web · v1.0.0" />
-          <main className="flex-1 overflow-x-hidden">
-            <div className="max-w-[1200px] mx-auto px-10 py-8">{children}</div>
+          <main className="flex-1 overflow-x-hidden flex flex-col">
+            {/* Scan-target banner — reminds the user what directory the
+                scanner walks, and warns loudly when that directory is
+                the Oh Pen Testing source repo itself. */}
+            <ScanTargetBanner />
+            <div className="max-w-[1200px] mx-auto px-10 py-8 w-full">
+              {children}
+            </div>
           </main>
         </div>
       </body>
