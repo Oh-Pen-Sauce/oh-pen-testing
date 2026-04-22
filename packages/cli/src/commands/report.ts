@@ -4,7 +4,6 @@ import type { Command } from "commander";
 import pc from "picocolors";
 import {
   buildCycloneDx,
-  buildPdfReport,
   buildSarifLog,
   buildSpdx,
   listIssues,
@@ -13,6 +12,7 @@ import {
   type Issue,
   type ScanRun,
 } from "@oh-pen-testing/shared";
+import { buildPdfReport } from "@oh-pen-testing/shared/pdf-report";
 import { CLI_VERSION } from "../index.js";
 
 export function registerReport(program: Command): void {
