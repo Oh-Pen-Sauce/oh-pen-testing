@@ -1,6 +1,8 @@
 import { listIssues } from "../../lib/repo";
 import { BoardClient } from "./board-client";
 import { BOARD_COLUMNS } from "./columns";
+import { PageHeader } from "../../components/trattoria/page-header";
+import { Btn } from "../../components/trattoria/button";
 
 export const dynamic = "force-dynamic";
 
@@ -12,11 +14,14 @@ export default async function BoardPage() {
   }));
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Board</h1>
-      <p className="text-slate-600 mb-6">
-        {issues.length} issue{issues.length === 1 ? "" : "s"} · click a card to
-        change status or view details.
-      </p>
+      <PageHeader
+        kicker="02 — La Lavagna"
+        title={<>Board</>}
+        sub={`${issues.length} issue${
+          issues.length === 1 ? "" : "s"
+        } across ${grouped.length} stations. Click any card to inspect or promote.`}
+        actions={<Btn variant="ghost" icon="🔽">Filter</Btn>}
+      />
       <BoardClient columns={grouped} />
     </div>
   );

@@ -3,6 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { PlaybookCatalogEntry } from "../../lib/playbooks";
+import type { Severity } from "@oh-pen-testing/shared";
+import { SeverityPill } from "../../components/trattoria/severity-pill";
+import { agentById } from "../../components/trattoria/agents";
 
 const OWASP_CATEGORIES = [
   "A01",
@@ -61,22 +64,40 @@ export function PlaybookCatalogClient({
 
   return (
     <div>
-      <div className="mb-4 space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-        <input
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search playbooks by ID, description, rule, CWE, language…"
-          className="block w-full rounded border border-slate-300 px-3 py-2 text-sm"
-        />
-        <div className="flex flex-wrap gap-2">
-          <FilterButton
+      {/* Filter panel */}
+      <div
+        className="mb-5 rounded-xl p-4 space-y-3"
+        style={{
+          background: "var(--cream-soft)",
+          border: "2px solid var(--ink)",
+        }}
+      >
+        <div
+          className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg"
+          style={{
+            background: "var(--cream)",
+            border: "1.5px solid var(--ink)",
+          }}
+        >
+          <span className="text-sm" aria-hidden>
+            🔎
+          </span>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search playbooks by ID, description, rule, CWE, language…"
+            className="flex-1 bg-transparent outline-none text-[13px] text-ink"
+          />
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          <Chip
             label="All OWASP"
             active={owasp === null}
             onClick={() => setOwasp(null)}
           />
           {OWASP_CATEGORIES.map((c) => (
-            <FilterButton
+            <Chip
               key={c}
               label={c}
               active={owasp === c}
@@ -84,14 +105,14 @@ export function PlaybookCatalogClient({
             />
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <FilterButton
+        <div className="flex flex-wrap gap-1.5">
+          <Chip
             label="Any severity"
             active={severity === null}
             onClick={() => setSeverity(null)}
           />
           {SEVERITIES.map((s) => (
-            <FilterButton
+            <Chip
               key={s}
               label={s}
               active={severity === s}
@@ -99,14 +120,14 @@ export function PlaybookCatalogClient({
             />
           ))}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <FilterButton
+        <div className="flex flex-wrap gap-1.5">
+          <Chip
             label="Any agent"
             active={agent === null}
             onClick={() => setAgent(null)}
           />
           {agentIds.map((a) => (
-            <FilterButton
+            <Chip
               key={a}
               label={a}
               active={agent === a}
@@ -114,57 +135,76 @@ export function PlaybookCatalogClient({
             />
           ))}
         </div>
-        <div className="text-xs text-slate-500">
+        <div
+          className="text-[11px] text-ink-soft italic"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
           {filtered.length} of {catalog.length} shown
         </div>
       </div>
 
+      {/* Playbook grid */}
       <div className="grid md:grid-cols-2 gap-3">
         {filtered.map((p) => (
           <Link
             key={p.id}
             href={`/playbooks/${encodeURIComponent(p.id)}`}
-            className="block rounded-lg border border-slate-200 bg-white p-4 hover:border-slate-400 transition-colors"
+            className="block rounded-[10px] p-4 transition-transform hover:-translate-y-[2px]"
+            style={{
+              background: "var(--cream-soft)",
+              border: "2px solid var(--ink)",
+            }}
           >
             <div className="flex items-start justify-between gap-2 mb-2">
-              <div className="text-sm font-mono text-slate-500 break-all">
+              <div
+                className="text-[11px] text-ink-soft break-all"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
                 {p.id}
               </div>
-              <SeverityPill severity={p.severity_default} />
+              <SeverityPill
+                severity={p.severity_default as Severity}
+                size="sm"
+              />
             </div>
-            <div className="font-semibold mb-1">{p.displayName}</div>
-            <div className="text-xs text-slate-600 mb-3 line-clamp-2">
+            <h4
+              className="m-0 mb-1.5 font-black text-[19px] text-ink leading-tight"
+              style={{ fontFamily: "var(--font-display)", letterSpacing: "-0.01em" }}
+            >
+              {p.displayName}
+            </h4>
+            <p className="text-[12.5px] leading-snug text-ink-soft m-0 mb-3 line-clamp-2">
               {p.description}
-            </div>
-            <div className="flex flex-wrap gap-1.5 text-xs">
-              {p.owasp_ref && (
-                <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                  {p.owasp_ref}
-                </span>
-              )}
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {p.owasp_ref && <Tag>{p.owasp_ref}</Tag>}
               {p.cwe.slice(0, 2).map((c) => (
-                <span
-                  key={c}
-                  className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700"
-                >
-                  {c}
-                </span>
+                <Tag key={c}>{c}</Tag>
               ))}
-              <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700">
-                {p.assignedAgent.emoji} {p.assignedAgent.displayName}
-              </span>
-              <span className="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700">
-                {p.type}
-              </span>
+              <Tag fill color={agentById(p.assignedAgent.id)?.color ?? "var(--sauce)"}>
+                {p.assignedAgent.emoji} {p.assignedAgent.id}
+              </Tag>
+              <Tag>{p.type}</Tag>
             </div>
           </Link>
         ))}
       </div>
+      {filtered.length === 0 && (
+        <div
+          className="rounded-xl py-10 px-6 text-center italic text-ink-soft mt-4"
+          style={{
+            background: "var(--cream-soft)",
+            border: "2px dashed var(--ink)",
+          }}
+        >
+          No playbooks match — try clearing a filter or widening the search.
+        </div>
+      )}
     </div>
   );
 }
 
-function FilterButton({
+function Chip({
   label,
   active,
   onClick,
@@ -176,30 +216,40 @@ function FilterButton({
   return (
     <button
       onClick={onClick}
-      className={`text-xs px-2.5 py-1 rounded border transition-colors ${
-        active
-          ? "bg-blue-600 border-blue-600 text-white"
-          : "bg-white border-slate-300 text-slate-700 hover:border-slate-500"
-      }`}
+      className="text-[11px] font-semibold px-3 py-1.5 rounded-full"
+      style={{
+        background: active ? "var(--sauce)" : "var(--cream)",
+        color: active ? "var(--cream)" : "var(--ink)",
+        border: "1.5px solid var(--ink)",
+        fontFamily: "var(--font-mono)",
+        cursor: "pointer",
+      }}
     >
       {label}
     </button>
   );
 }
 
-function SeverityPill({ severity }: { severity: string }) {
-  const map: Record<string, string> = {
-    critical: "bg-red-100 text-red-800 border-red-200",
-    high: "bg-orange-100 text-orange-800 border-orange-200",
-    medium: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    low: "bg-blue-100 text-blue-800 border-blue-200",
-    info: "bg-slate-100 text-slate-700 border-slate-200",
-  };
+function Tag({
+  children,
+  color,
+  fill,
+}: {
+  children: React.ReactNode;
+  color?: string;
+  fill?: boolean;
+}) {
   return (
     <span
-      className={`shrink-0 text-xs px-1.5 py-0.5 rounded border ${map[severity] ?? map.info}`}
+      className="text-[10px] font-bold px-2 py-[3px] rounded"
+      style={{
+        background: fill && color ? color : "var(--cream)",
+        color: fill ? "var(--cream)" : "var(--ink)",
+        border: `1px solid ${color ?? "var(--ink)"}`,
+        fontFamily: "var(--font-mono)",
+      }}
     >
-      {severity}
+      {children}
     </span>
   );
 }

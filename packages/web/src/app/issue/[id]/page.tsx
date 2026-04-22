@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getIssue, readSourceFileSlice, safeLoadConfig } from "../../../lib/repo";
-import { SeverityBadge } from "../../../components/severity-badge";
+import { SeverityPill } from "../../../components/trattoria/severity-pill";
 import { IssueActions } from "./issue-actions";
 
 export const dynamic = "force-dynamic";
@@ -32,36 +32,41 @@ export default async function IssueDetailPage({
 
   return (
     <div>
-      <div className="mb-6">
-        <Link href="/board" className="text-sm text-slate-500 hover:underline">
+      <div className="mb-5">
+        <Link
+          href="/board"
+          className="text-sm underline text-ink-soft"
+        >
           ← Back to board
         </Link>
       </div>
-      <div className="flex items-start justify-between mb-4">
+      <div className="flex items-start justify-between mb-3">
         <div>
-          <span className="text-xs font-mono text-slate-500">{issue.id}</span>
-          <h1 className="text-3xl font-bold mt-1">{issue.title}</h1>
+          <span
+            className="text-[11px] text-ink-soft"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            {issue.id}
+          </span>
+          <h1
+            className="font-black text-[36px] leading-[1.05] text-ink mt-1"
+            style={{
+              fontFamily: "var(--font-display)",
+              letterSpacing: "-0.02em",
+            }}
+          >
+            {issue.title}
+          </h1>
         </div>
-        <SeverityBadge severity={issue.severity} />
+        <SeverityPill severity={issue.severity} />
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6">
-        {issue.owasp_category && (
-          <span className="text-xs px-2 py-1 rounded bg-slate-100 border border-slate-200">
-            {issue.owasp_category}
-          </span>
-        )}
+        {issue.owasp_category && <Tag>{issue.owasp_category}</Tag>}
         {issue.cwe.map((c) => (
-          <span
-            key={c}
-            className="text-xs px-2 py-1 rounded bg-slate-100 border border-slate-200"
-          >
-            {c}
-          </span>
+          <Tag key={c}>{c}</Tag>
         ))}
-        <span className="text-xs px-2 py-1 rounded bg-slate-100 border border-slate-200">
-          Status: {issue.status}
-        </span>
+        <Tag>Status: {issue.status}</Tag>
       </div>
 
       {issue.blame?.oldest_commit_sha && (
@@ -72,48 +77,76 @@ export default async function IssueDetailPage({
           output on the left is machine-verifiable; AI analysis on the
           right is advisory. Never merged. */}
       <div className="grid md:grid-cols-2 gap-4 mb-6">
-        <section className="rounded-lg border border-slate-200 bg-white p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold text-sm">
-              <span className="inline-block w-2 h-2 rounded-full bg-slate-900 mr-2 align-middle" />
-              Scanner output
-            </h2>
-            <span className="text-xs text-slate-500">machine-verifiable</span>
+        <section
+          className="rounded-xl p-5"
+          style={{
+            background: "var(--cream-soft)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="kicker">● Scanner output</h2>
+            <span className="text-[10px] text-ink-soft">
+              machine-verifiable
+            </span>
           </div>
-          <dl className="text-xs text-slate-600 space-y-1 mb-3">
+          <dl className="text-[12px] text-ink-soft space-y-1 mb-3">
             {issue.evidence.rule_id && (
-              <div>
-                <dt className="inline">Rule:</dt>{" "}
-                <dd className="inline font-mono">{issue.evidence.rule_id}</dd>
-              </div>
+              <Row
+                k="Rule"
+                v={
+                  <code style={{ fontFamily: "var(--font-mono)" }}>
+                    {issue.evidence.rule_id}
+                  </code>
+                }
+              />
             )}
-            <div>
-              <dt className="inline">Location:</dt>{" "}
-              <dd className="inline font-mono">
-                {issue.location.file}:{issue.location.line_range[0]}
-                {issue.location.line_range[1] !== issue.location.line_range[0] &&
-                  `-${issue.location.line_range[1]}`}
-              </dd>
-            </div>
+            <Row
+              k="Location"
+              v={
+                <code style={{ fontFamily: "var(--font-mono)" }}>
+                  {issue.location.file}:{issue.location.line_range[0]}
+                  {issue.location.line_range[1] !==
+                    issue.location.line_range[0] &&
+                    `-${issue.location.line_range[1]}`}
+                </code>
+              }
+            />
             {issue.evidence.match_position && (
-              <div>
-                <dt className="inline">Match length:</dt>{" "}
-                <dd className="inline">
-                  {issue.evidence.match_position.length} chars
-                </dd>
-              </div>
+              <Row
+                k="Match length"
+                v={`${issue.evidence.match_position.length} chars`}
+              />
             )}
           </dl>
           {snippet ? (
-            <pre className="bg-slate-900 text-slate-100 text-xs rounded p-3 overflow-x-auto">
+            <pre
+              className="text-[12px] rounded-md p-3 overflow-x-auto"
+              style={{
+                background: "var(--ink)",
+                color: "var(--cream)",
+                fontFamily: "var(--font-mono)",
+                border: "2px solid var(--ink)",
+              }}
+            >
               {snippet.lines.map((line, i) => {
                 const lineNo = snippet.startLine + i;
                 const inRange =
                   lineNo >= issue.location.line_range[0] &&
                   lineNo <= issue.location.line_range[1];
                 return (
-                  <div key={i} className={inRange ? "bg-red-500/10" : ""}>
-                    <span className="text-slate-500 mr-3 select-none">
+                  <div
+                    key={i}
+                    style={{
+                      background: inRange
+                        ? "rgba(200,50,30,0.22)"
+                        : "transparent",
+                    }}
+                  >
+                    <span
+                      className="mr-3 select-none opacity-50"
+                      style={{ color: "var(--cream)" }}
+                    >
                       {String(lineNo).padStart(4, " ")}
                     </span>
                     {line}
@@ -122,39 +155,54 @@ export default async function IssueDetailPage({
               })}
             </pre>
           ) : (
-            <div className="text-sm text-slate-500">
+            <div className="text-sm text-ink-soft">
               Source file no longer available.
             </div>
           )}
         </section>
 
-        <section className="rounded-lg border border-blue-200 bg-blue-50/30 p-4">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="font-semibold text-sm">
-              <span className="inline-block w-2 h-2 rounded-full bg-blue-600 mr-2 align-middle" />
-              AI analysis
+        <section
+          className="rounded-xl p-5"
+          style={{
+            background: "var(--parmesan)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-2.5">
+            <h2
+              className="kicker"
+              style={{ color: "var(--sauce-dark)" }}
+            >
+              ● AI analysis
             </h2>
-            <span className="text-xs text-blue-700">advisory</span>
+            <span className="text-[10px] text-ink-soft">advisory</span>
           </div>
-          <p className="text-sm text-slate-700 mb-3">
+          <p className="text-[14px] text-ink mb-3">
             {issue.evidence.analysis}
           </p>
           {issue.evidence.ai_reasoning &&
             issue.evidence.ai_reasoning !== issue.evidence.analysis && (
-              <details className="text-xs text-slate-600 mb-3">
-                <summary className="cursor-pointer hover:text-slate-900">
+              <details className="text-[12px] text-ink-soft mb-3">
+                <summary
+                  className="cursor-pointer"
+                  style={{ color: "var(--sauce)" }}
+                >
                   Detailed reasoning
                 </summary>
-                <p className="mt-2 pl-3 border-l-2 border-blue-200">
+                <p
+                  className="mt-2 pl-3"
+                  style={{ borderLeft: "2px solid var(--ink)" }}
+                >
                   {issue.evidence.ai_reasoning}
                 </p>
               </details>
             )}
-          <details className="text-xs text-slate-500">
-            <summary className="cursor-pointer hover:text-slate-700">
-              Provenance
-            </summary>
-            <dl className="mt-2 space-y-1 font-mono">
+          <details className="text-[11px] text-ink-soft">
+            <summary className="cursor-pointer">Provenance</summary>
+            <dl
+              className="mt-2 space-y-1"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
               <div>Model: {issue.evidence.ai_model ?? "unknown"}</div>
               {issue.evidence.ai_confidence && (
                 <div>Confidence: {issue.evidence.ai_confidence}</div>
@@ -169,12 +217,13 @@ export default async function IssueDetailPage({
 
       {issue.linked_pr && (
         <section className="mb-6">
-          <h2 className="font-semibold mb-2">Linked PR</h2>
+          <h2 className="kicker mb-2">Linked PR</h2>
           <a
             href={issue.linked_pr}
             target="_blank"
             rel="noreferrer"
-            className="text-blue-600 hover:underline"
+            className="underline"
+            style={{ color: "var(--sauce)" }}
           >
             {issue.linked_pr}
           </a>
@@ -182,7 +231,7 @@ export default async function IssueDetailPage({
       )}
 
       <section className="mb-6">
-        <h2 className="font-semibold mb-2">Actions</h2>
+        <h2 className="kicker mb-2">Actions</h2>
         <IssueActions
           issueId={issue.id}
           canRemediate={canRemediate}
@@ -194,12 +243,34 @@ export default async function IssueDetailPage({
   );
 }
 
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="text-[10px] font-bold px-2 py-1 rounded"
+      style={{
+        background: "var(--cream)",
+        border: "1px solid var(--ink)",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="inline font-semibold text-ink">{k}:</dt>{" "}
+      <dd className="inline">{v}</dd>
+    </div>
+  );
+}
+
 function canRemediateNow(
   severity: string,
   autonomy: string,
 ): { allowed: boolean; reason?: string } {
-  // Critical + careful: still block from web UI. Everything else: trust the
-  // autonomy gate inside runAgent to make the call.
   if (autonomy === "careful") {
     return {
       allowed: false,
@@ -229,45 +300,45 @@ interface BlameProp {
 function BlameTimeline({ blame }: { blame: BlameProp }) {
   if (!blame.oldest_commit_sha) return null;
   const age = humanAge(blame.age_days);
-  const banner =
+  const { bg, border, fg } =
     blame.age_days !== null && blame.age_days > 365 * 2
-      ? "bg-red-50 border-red-200 text-red-900"
+      ? { bg: "#FBE4E0", border: "#C8321E", fg: "#8F1E10" }
       : blame.age_days !== null && blame.age_days > 180
-        ? "bg-amber-50 border-amber-200 text-amber-900"
-        : "bg-slate-50 border-slate-200 text-slate-700";
+        ? { bg: "#FBF4D9", border: "#D4A017", fg: "#8C6A05" }
+        : { bg: "var(--cream-soft)", border: "var(--ink)", fg: "var(--ink)" };
   return (
-    <section className={`mb-6 rounded-lg border p-4 ${banner}`}>
-      <h2 className="font-semibold text-sm mb-2">
-        <span className="mr-1">🕰️</span> This bug has been here {age}
+    <section
+      className="mb-6 rounded-xl p-4"
+      style={{ background: bg, border: `2px solid ${border}`, color: fg }}
+    >
+      <h2 className="font-bold text-[14px] mb-2">
+        <span className="mr-1.5" aria-hidden>
+          🕰️
+        </span>
+        This bug has been here {age}
       </h2>
-      <dl className="text-xs space-y-1">
-        <div>
-          <dt className="inline font-medium">Oldest commit:</dt>{" "}
-          <dd className="inline font-mono">
-            {blame.oldest_commit_sha?.slice(0, 10)}
-          </dd>
-        </div>
-        <div>
-          <dt className="inline font-medium">Introduced:</dt>{" "}
-          <dd className="inline">{blame.oldest_commit_iso?.slice(0, 10)}</dd>
-        </div>
-        <div>
-          <dt className="inline font-medium">Author:</dt>{" "}
-          <dd className="inline">{blame.oldest_commit_author}</dd>
-        </div>
+      <dl className="text-[12px] space-y-1">
+        <Row
+          k="Oldest commit"
+          v={
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              {blame.oldest_commit_sha?.slice(0, 10)}
+            </code>
+          }
+        />
+        <Row k="Introduced" v={blame.oldest_commit_iso?.slice(0, 10)} />
+        <Row k="Author" v={blame.oldest_commit_author} />
         {blame.oldest_commit_summary && (
-          <div>
-            <dt className="inline font-medium">Commit:</dt>{" "}
-            <dd className="inline italic">
-              "{blame.oldest_commit_summary}"
-            </dd>
-          </div>
+          <Row
+            k="Commit"
+            v={<em>“{blame.oldest_commit_summary}”</em>}
+          />
         )}
         {blame.contributors.length > 0 && (
-          <div>
-            <dt className="inline font-medium">Contributors to range:</dt>{" "}
-            <dd className="inline">{blame.contributors.join(", ")}</dd>
-          </div>
+          <Row
+            k="Contributors to range"
+            v={blame.contributors.join(", ")}
+          />
         )}
       </dl>
     </section>
@@ -283,7 +354,8 @@ function humanAge(days: number | null): string {
   if (months < 12) return `for ${months} month${months === 1 ? "" : "s"}`;
   const years = Math.floor(days / 365);
   const remMonths = Math.floor((days - years * 365) / 30);
-  if (remMonths === 0)
-    return `for ${years} year${years === 1 ? "" : "s"}`;
-  return `for ${years} year${years === 1 ? "" : "s"}, ${remMonths} month${remMonths === 1 ? "" : "s"}`;
+  if (remMonths === 0) return `for ${years} year${years === 1 ? "" : "s"}`;
+  return `for ${years} year${years === 1 ? "" : "s"}, ${remMonths} month${
+    remMonths === 1 ? "" : "s"
+  }`;
 }

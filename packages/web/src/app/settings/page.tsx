@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { safeLoadConfig } from "../../lib/repo";
 import { SettingsForm } from "./settings-form";
+import { PageHeader } from "../../components/trattoria/page-header";
 
 export const dynamic = "force-dynamic";
 
@@ -7,15 +9,41 @@ export default async function SettingsPage() {
   const config = await safeLoadConfig();
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-2">Settings</h1>
-      <p className="text-slate-600 mb-6">
-        Edits persist to <code className="text-xs">.ohpentesting/config.yml</code>.
-      </p>
+      <PageHeader
+        kicker="06 — La Cucina (backstage)"
+        title={<>Settings</>}
+        sub={
+          <>
+            Edits persist to{" "}
+            <code
+              className="px-1.5 py-0.5 rounded"
+              style={{ background: "var(--parmesan)" }}
+            >
+              .ohpentesting/config.yml
+            </code>
+            .
+          </>
+        }
+      />
       {config ? (
         <SettingsForm initial={config} />
       ) : (
-        <div className="rounded border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          No config found. Run the setup wizard first.
+        <div
+          className="rounded-xl px-5 py-4 text-[14px]"
+          style={{
+            background: "var(--parmesan)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          <strong>No config found.</strong>{" "}
+          <Link
+            href="/setup"
+            className="underline"
+            style={{ color: "var(--sauce)" }}
+          >
+            Run the setup wizard
+          </Link>{" "}
+          first.
         </div>
       )}
     </div>

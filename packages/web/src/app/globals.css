@@ -1,13 +1,113 @@
 @import "tailwindcss";
 
-@theme {
-  --color-ohpen-critical: oklch(0.55 0.21 28);
-  --color-ohpen-high: oklch(0.62 0.18 40);
-  --color-ohpen-medium: oklch(0.75 0.16 85);
-  --color-ohpen-low: oklch(0.65 0.15 235);
-  --color-ohpen-info: oklch(0.7 0.02 260);
+/*
+ * Oh Pen Testing — retro trattoria visual system.
+ *
+ * Design tokens ported from the Oh Pen Sauce redesign handoff. These are
+ * available both as CSS variables (`var(--sauce)`) and as Tailwind colour
+ * utilities (`bg-sauce`, `text-ink`, etc.) via the @theme block below.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Playfair+Display:ital,wght@0,700;0,900;1,700;1,900&display=swap");
+
+:root {
+  --sauce: #c8321e;
+  --sauce-dark: #8f1e10;
+  --sauce-soft: #e64a32;
+  --cream: #f4e9d4;
+  --cream-soft: #fbf4e4;
+  --basil: #3f7a3a;
+  --basil-dark: #2b5a27;
+  --ink: #221a14;
+  --ink-soft: #3e3128;
+  --pen-blue: #1e3a8a;
+  --parmesan: #f3e5b3;
+
+  /* severity palette */
+  --sev-critical-fg: #c8321e;
+  --sev-critical-bg: #fbe4e0;
+  --sev-high-fg: #e07a2b;
+  --sev-high-bg: #fbebdd;
+  --sev-medium-fg: #d4a017;
+  --sev-medium-bg: #fbf4d9;
+  --sev-low-fg: #3f7a3a;
+  --sev-low-bg: #e4f0df;
+  --sev-info-fg: #1e3a8a;
+  --sev-info-bg: #dee4f5;
+
+  /* typography */
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    monospace;
 }
 
+@theme {
+  --color-sauce: #c8321e;
+  --color-sauce-dark: #8f1e10;
+  --color-sauce-soft: #e64a32;
+  --color-cream: #f4e9d4;
+  --color-cream-soft: #fbf4e4;
+  --color-basil: #3f7a3a;
+  --color-basil-dark: #2b5a27;
+  --color-ink: #221a14;
+  --color-ink-soft: #3e3128;
+  --color-pen-blue: #1e3a8a;
+  --color-parmesan: #f3e5b3;
+
+  --color-sev-critical: #c8321e;
+  --color-sev-high: #e07a2b;
+  --color-sev-medium: #d4a017;
+  --color-sev-low: #3f7a3a;
+  --color-sev-info: #1e3a8a;
+
+  --font-display: "Playfair Display", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo,
+    Consolas, monospace;
+}
+
+html,
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+}
+
+/* Scoped base so headings inside .trattoria use the serif family */
+.trattoria h1,
+.trattoria h2,
+.trattoria h3,
+.trattoria .display {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Kicker / eyebrow used on every PageHeader */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--sauce);
+}
+
+/* Hard retro shadows — never use blur */
+.shadow-ink {
+  box-shadow: 3px 3px 0 var(--ink);
+}
+.shadow-ink-lg {
+  box-shadow: 6px 6px 0 var(--sauce);
+}
+.shadow-sauce {
+  box-shadow: 4px 4px 0 var(--sauce);
+}
+.shadow-sauce-dark {
+  box-shadow: 8px 8px 0 var(--sauce-dark);
+}
+
+/* Dashed ink border-bottom used under page headers + roster dividers */
+.dashed-ink {
+  border-bottom: 2px dashed var(--ink);
 }

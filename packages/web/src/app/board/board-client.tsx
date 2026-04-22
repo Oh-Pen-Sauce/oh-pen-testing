@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import type { Issue, IssueStatus, Severity } from "@oh-pen-testing/shared";
+import type { Issue, IssueStatus } from "@oh-pen-testing/shared";
 import { changeIssueStatusAction } from "./actions";
 import { BOARD_COLUMNS } from "./columns";
-import { SeverityBadge } from "../../components/severity-badge";
-export { SeverityBadge };
+import { SeverityPill } from "../../components/trattoria/severity-pill";
+import { SEVERITY_STYLE, agentById } from "../../components/trattoria/agents";
 
 interface Column {
   status: IssueStatus;
@@ -14,48 +14,67 @@ interface Column {
   issues: Issue[];
 }
 
+// Italian kitchen subtitles per column — copy lifted from the handoff.
+const COLUMN_NOTE: Record<string, string> = {
+  backlog: "fresh from the oven",
+  ready: "plated, waiting",
+  in_progress: "simmering",
+  pending_approval: "tasting",
+  in_review: "second opinion",
+  verified: "chef's kiss",
+  done: "buon appetito",
+  wont_fix: "off the menu",
+};
+
 export function BoardClient({ columns }: { columns: Column[] }) {
   const [selected, setSelected] = useState<Issue | null>(null);
 
   return (
     <>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
         {columns.map((col) => (
           <div
             key={col.status}
-            className="rounded-lg bg-slate-100 p-3 min-h-[400px]"
+            className="rounded-xl p-3 min-h-[220px]"
+            style={{
+              background: "var(--cream-soft)",
+              border: "2px solid var(--ink)",
+              boxShadow:
+                col.issues.length > 0 ? "3px 3px 0 var(--sauce)" : undefined,
+            }}
           >
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-semibold text-sm text-slate-700">
+            <div className="flex items-baseline justify-between mb-1">
+              <h4
+                className="m-0 text-base font-black italic text-ink"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
                 {col.label}
-              </h3>
-              <span className="text-xs text-slate-500">
+              </h4>
+              <span
+                className="text-[11px] font-bold px-2 py-[2px] rounded-full"
+                style={{ background: "var(--ink)", color: "var(--cream)" }}
+              >
                 {col.issues.length}
               </span>
             </div>
-            <div className="space-y-2">
+            <div
+              className="text-[10px] italic text-ink-soft mb-2.5"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {COLUMN_NOTE[col.status] ?? ""}
+            </div>
+            <div className="flex flex-col gap-2">
               {col.issues.map((issue) => (
-                <button
+                <BoardCard
                   key={issue.id}
-                  onClick={() => setSelected(issue)}
-                  className="w-full text-left rounded-md bg-white border border-slate-200 p-3 hover:border-slate-400 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <SeverityBadge severity={issue.severity} />
-                    <span className="text-xs font-mono text-slate-500">
-                      {issue.id}
-                    </span>
-                  </div>
-                  <div className="text-sm font-medium line-clamp-2">
-                    {issue.title}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1 truncate">
-                    {issue.location.file}
-                  </div>
-                </button>
+                  issue={issue}
+                  onSelect={() => setSelected(issue)}
+                />
               ))}
               {col.issues.length === 0 && (
-                <div className="text-xs text-slate-400 italic">empty</div>
+                <div className="text-[11px] text-center italic text-ink-soft py-4">
+                  {col.status === "wont_fix" ? "🙅 niente" : "empty plate"}
+                </div>
               )}
             </div>
           </div>
@@ -76,6 +95,58 @@ export function BoardClient({ columns }: { columns: Column[] }) {
   );
 }
 
+function BoardCard({
+  issue,
+  onSelect,
+}: {
+  issue: Issue;
+  onSelect: () => void;
+}) {
+  const sev = SEVERITY_STYLE[issue.severity];
+  const agent = agentFromIssue(issue);
+  return (
+    <button
+      onClick={onSelect}
+      className="w-full text-left rounded-md p-2.5 transition-transform hover:-translate-y-px"
+      style={{
+        background: "var(--cream)",
+        border: "1.5px solid var(--ink)",
+        borderLeft: `4px solid ${sev.border}`,
+      }}
+    >
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <SeverityPill severity={issue.severity} size="sm" />
+        <span
+          className="text-[10px] text-ink-soft"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {issue.id}
+        </span>
+      </div>
+      <div className="text-[12.5px] font-semibold leading-tight text-ink line-clamp-2">
+        {issue.title}
+      </div>
+      <div className="flex justify-between items-center mt-1.5">
+        <code
+          className="text-[10px] text-ink-soft bg-transparent truncate max-w-[160px]"
+          style={{ fontFamily: "var(--font-mono)" }}
+        >
+          {issue.location.file}
+        </code>
+        {agent && (
+          <span
+            className="text-[12px]"
+            aria-label={agent.name}
+            title={agent.name}
+          >
+            {agent.emoji}
+          </span>
+        )}
+      </div>
+    </button>
+  );
+}
+
 function IssuePanel({
   issue,
   onClose,
@@ -87,21 +158,36 @@ function IssuePanel({
 }) {
   return (
     <div
-      className="fixed inset-0 bg-black/20 flex justify-end z-50"
+      className="fixed inset-0 flex justify-end z-50"
+      style={{ background: "rgba(34,26,20,0.35)" }}
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-lg h-full overflow-y-auto p-6 border-l border-slate-200 shadow-xl"
+        className="w-full max-w-lg h-full overflow-y-auto p-6"
+        style={{
+          background: "var(--cream-soft)",
+          borderLeft: "2.5px solid var(--ink)",
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between mb-3">
-          <div>
-            <span className="text-xs font-mono text-slate-500">{issue.id}</span>
-            <h2 className="text-xl font-bold mt-1">{issue.title}</h2>
+          <div className="min-w-0">
+            <span
+              className="text-[11px] text-ink-soft"
+              style={{ fontFamily: "var(--font-mono)" }}
+            >
+              {issue.id}
+            </span>
+            <h2
+              className="text-xl font-black italic mt-1 text-ink"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {issue.title}
+            </h2>
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600"
+            className="text-ink-soft hover:text-ink shrink-0 ml-4 text-lg"
             aria-label="close"
           >
             ✕
@@ -109,64 +195,63 @@ function IssuePanel({
         </div>
 
         <div className="flex flex-wrap gap-2 mb-4">
-          <SeverityBadge severity={issue.severity} />
-          {issue.owasp_category && (
-            <span className="text-xs px-1.5 py-0.5 rounded border bg-slate-100 border-slate-200">
-              {issue.owasp_category}
-            </span>
-          )}
+          <SeverityPill severity={issue.severity} />
+          {issue.owasp_category && <Tag>{issue.owasp_category}</Tag>}
           {issue.cwe.map((c) => (
-            <span
-              key={c}
-              className="text-xs px-1.5 py-0.5 rounded border bg-slate-100 border-slate-200"
-            >
-              {c}
-            </span>
+            <Tag key={c}>{c}</Tag>
           ))}
         </div>
 
         <dl className="text-sm space-y-1 mb-4">
-          <div>
-            <dt className="inline text-slate-500">Location:</dt>{" "}
-            <dd className="inline font-mono">
-              {issue.location.file}:{issue.location.line_range[0]}
-            </dd>
-          </div>
-          <div>
-            <dt className="inline text-slate-500">Status:</dt>{" "}
-            <dd className="inline">{issue.status}</dd>
-          </div>
+          <Row
+            k="Location"
+            v={
+              <code style={{ fontFamily: "var(--font-mono)" }}>
+                {issue.location.file}:{issue.location.line_range[0]}
+              </code>
+            }
+          />
+          <Row k="Status" v={issue.status} />
           {issue.linked_pr && (
-            <div>
-              <dt className="inline text-slate-500">PR:</dt>{" "}
-              <dd className="inline">
+            <Row
+              k="PR"
+              v={
                 <a
                   href={issue.linked_pr}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-blue-600 hover:underline"
+                  className="underline"
+                  style={{ color: "var(--sauce)" }}
                 >
                   {issue.linked_pr}
                 </a>
-              </dd>
-            </div>
+              }
+            />
           )}
         </dl>
 
         <div className="mb-4">
-          <h3 className="font-semibold text-sm mb-1">Analysis</h3>
-          <p className="text-sm text-slate-700">{issue.evidence.analysis}</p>
+          <div className="kicker mb-1">Analysis</div>
+          <p className="text-sm text-ink">{issue.evidence.analysis}</p>
         </div>
 
         <div className="mb-4">
-          <h3 className="font-semibold text-sm mb-1">Change status</h3>
+          <div className="kicker mb-2">Change status</div>
           <div className="flex flex-wrap gap-2">
             {BOARD_COLUMNS.map((col) => (
               <button
                 key={col.status}
                 disabled={col.status === issue.status}
                 onClick={() => onChange(col.status)}
-                className="text-xs px-2 py-1 rounded border border-slate-300 hover:border-slate-500 disabled:opacity-40 disabled:cursor-not-allowed"
+                className="text-xs px-2.5 py-1 rounded disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{
+                  background:
+                    col.status === issue.status
+                      ? "var(--cream)"
+                      : "var(--cream)",
+                  border: "1.5px solid var(--ink)",
+                  fontFamily: "var(--font-mono)",
+                }}
               >
                 {col.label}
               </button>
@@ -176,11 +261,47 @@ function IssuePanel({
 
         <Link
           href={`/issue/${issue.id}`}
-          className="inline-block text-sm text-blue-600 hover:underline"
+          className="inline-block text-sm underline"
+          style={{ color: "var(--sauce)" }}
         >
           Full detail →
         </Link>
       </div>
     </div>
   );
+}
+
+function Tag({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="text-[10px] font-bold px-2 py-[3px] rounded"
+      style={{
+        background: "var(--cream)",
+        border: "1px solid var(--ink)",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function Row({ k, v }: { k: string; v: React.ReactNode }) {
+  return (
+    <div>
+      <dt className="inline text-ink-soft">{k}:</dt>{" "}
+      <dd className="inline">{v}</dd>
+    </div>
+  );
+}
+
+function agentFromIssue(issue: Issue) {
+  const id = (issue.discovered_by ?? "")
+    .replace(/^playbook:/, "")
+    .split("/")[0] ?? "";
+  if (/(secret|inject|upload|redirect)/i.test(id)) return agentById("marinara");
+  if (/(crypto|tls|jwt|cookie)/i.test(id)) return agentById("carbonara");
+  if (/(auth|access|session|broken)/i.test(id)) return agentById("alfredo");
+  if (/(sca|deps|cve|depend)/i.test(id)) return agentById("pesto");
+  return agentById("marinara");
 }
