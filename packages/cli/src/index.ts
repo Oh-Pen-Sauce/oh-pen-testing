@@ -6,6 +6,7 @@ import { registerRemediate } from "./commands/remediate.js";
 import { registerVerify } from "./commands/verify.js";
 import { registerApprove } from "./commands/approve.js";
 import { registerSetup } from "./commands/setup.js";
+import { registerConnect } from "./commands/connect.js";
 import { registerReport } from "./commands/report.js";
 import { registerSchedule } from "./commands/schedule.js";
 import { registerShare } from "./commands/share.js";
@@ -35,6 +36,7 @@ export function buildCli(): Command {
   registerVerify(program);
   registerApprove(program);
   registerSetup(program);
+  registerConnect(program);
   registerReport(program);
   registerSchedule(program);
   registerShare(program);

@@ -110,13 +110,80 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns]);
 
-  // Seed opener + kick straight to provider picker.
+  // Seed opener. If the config already has a provider set (via
+  // `opt connect` in the terminal, or a previous session), try to pick
+  // up where we left off rather than showing the picker again.
   useEffect(() => {
-    if (turns.length === 0) {
+    if (turns.length > 0) return;
+    const preselected = initial?.ai.primary_provider;
+    if (preselected && !initial?.scope?.authorisation_acknowledged) {
       pushBot(
         <>
-          Ciao, <em>chef</em>! 🍅 I&rsquo;m <strong>Marinara</strong>. Pick an
-          AI first and I&rsquo;ll walk you through the rest conversationally.
+          Ciao 🍅 — I see you&rsquo;ve already connected{" "}
+          <strong>{preselected}</strong> from the terminal. Let me verify it
+          quickly…
+        </>,
+      );
+      (async () => {
+        setBusy(true);
+        try {
+          const probe = await probeProviderAction(preselected);
+          if (probe.ok) {
+            setState((s) => ({
+              ...s,
+              providerId: preselected,
+              providerProbeOk: true,
+              currentStep: preselected.endsWith("-cli") ||
+                preselected === "ollama"
+                ? "github"
+                : "credentials",
+            }));
+            pushBot(
+              <>
+                <span style={{ color: "var(--basil)", fontWeight: 700 }}>
+                  ✓ connected
+                </span>
+                . Type what you want to do next — or say &ldquo;detect my
+                repo&rdquo; to get rolling.
+              </>,
+              `Provider ${preselected} probed ok. Ready for next step.`,
+            );
+            pushSystemNote(
+              `User pre-connected ${preselected} via CLI. Probe ok. Drive them toward github/autonomy/auth.`,
+            );
+          } else {
+            pushBot(
+              <>
+                Hmm — {probe.detail}. Run{" "}
+                <code
+                  className="px-1 rounded"
+                  style={{ background: "var(--parmesan)" }}
+                >
+                  opt connect
+                </code>{" "}
+                in your terminal to fix that, or pick a different provider
+                below.
+              </>,
+            );
+          }
+        } finally {
+          setBusy(false);
+        }
+      })();
+    } else {
+      pushBot(
+        <>
+          Ciao, <em>chef</em>! 🍅 I&rsquo;m <strong>Marinara</strong>. For the
+          smoothest ride, close this tab and run{" "}
+          <code
+            className="px-1 rounded"
+            style={{ background: "var(--parmesan)" }}
+          >
+            opt connect
+          </code>{" "}
+          in your terminal first — it sees your PATH so Claude CLI /
+          Ollama / API keys connect cleanly. Or pick one below and I&rsquo;ll
+          try from here.
         </>,
       );
     }
@@ -200,11 +267,28 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           },
         );
       } else {
+        const isPathIssue = /ENOENT|not found on PATH/i.test(probe.detail);
         pushBot(
           <>
-            Hmm — <em>{probe.detail}</em>. Type &ldquo;help&rdquo; and
-            I&rsquo;ll walk you through fixing it, or just pick a different
-            provider.
+            Hmm — <em>{probe.detail}</em>.{" "}
+            {isPathIssue ? (
+              <>
+                Easiest fix: run{" "}
+                <code
+                  className="px-1 rounded"
+                  style={{ background: "var(--parmesan)" }}
+                >
+                  opt connect
+                </code>{" "}
+                in your terminal — it can see your PATH. Then reload this
+                page.
+              </>
+            ) : (
+              <>
+                Try a different provider below, or check the troubleshooting
+                notes for your provider.
+              </>
+            )}
           </>,
           `Probe failed: ${probe.detail}`,
         );

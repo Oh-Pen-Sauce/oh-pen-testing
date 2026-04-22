@@ -12,6 +12,7 @@ import {
 } from "@oh-pen-testing/shared";
 import { resolveProvider } from "@oh-pen-testing/core";
 import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { ensureProvidersRegistered } from "../../lib/providers-bootstrap";
 import {
   probeProviderAction,
   saveApiKeyAction,
@@ -42,6 +43,7 @@ export async function assistantTurnAction(args: {
   actionValid: boolean;
   actionError?: string;
 }> {
+  ensureProvidersRegistered();
   const cwd = getOhpenCwd();
   const config = await loadConfig(cwd);
   const provider = await resolveProvider({ config });

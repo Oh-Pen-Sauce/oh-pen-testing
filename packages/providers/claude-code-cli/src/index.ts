@@ -11,10 +11,11 @@ import {
 import {
   detectClaudeCliFlags,
   detectClaudeCliInstalled,
+  findClaudeBin,
   type ClaudeCliFlags,
 } from "./detect.js";
 
-export { detectClaudeCliFlags, detectClaudeCliInstalled };
+export { detectClaudeCliFlags, detectClaudeCliInstalled, findClaudeBin };
 export type { ClaudeCliDetection, ClaudeCliFlags } from "./detect.js";
 
 export const DEFAULT_CLAUDE_CLI_BIN = "claude";
@@ -45,9 +46,23 @@ interface ClaudeCliJsonResponse {
 export function createClaudeCodeCliProvider(
   options: ClaudeCodeCliProviderOptions = {},
 ): AIProvider {
-  const bin = options.bin ?? DEFAULT_CLAUDE_CLI_BIN;
   const spawnFn = options.spawnImpl ?? spawn;
   let cachedFlags: ClaudeCliFlags | undefined = options.flags;
+  // Resolve the binary lazily: if the caller didn't pin a path we search
+  // PATH + the common install locations once and cache the winner. This
+  // is what makes `claude` work inside `next dev`-spawned children where
+  // PATH is otherwise minimal.
+  let resolvedBin: string | null = options.bin ?? null;
+
+  async function getBin(): Promise<string> {
+    if (resolvedBin) return resolvedBin;
+    const found = await findClaudeBin();
+    if (!found.ok) {
+      throw new ProviderError(found.error);
+    }
+    resolvedBin = found.bin;
+    return resolvedBin;
+  }
 
   async function getFlags(): Promise<ClaudeCliFlags> {
     if (!cachedFlags) cachedFlags = await detectClaudeCliFlags();
@@ -76,6 +91,7 @@ export function createClaudeCodeCliProvider(
 
     async complete(request: CompletionRequest): Promise<CompletionResult> {
       const flags = await getFlags();
+      const bin = await getBin();
       const args = [
         flags.promptFlag,
         ...flags.jsonFormat,
@@ -105,6 +121,7 @@ export function createClaudeCodeCliProvider(
       request: CompletionRequest,
     ): AsyncIterable<CompletionChunk> {
       const flags = await getFlags();
+      const bin = await getBin();
       const args = [flags.promptFlag, ...flags.streamFormat];
       const prompt = composePrompt(request);
       const child = spawnFn(bin, args, { stdio: ["pipe", "pipe", "pipe"] });
