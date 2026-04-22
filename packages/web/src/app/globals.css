@@ -149,3 +149,108 @@ body {
     transform: translateY(-3px);
   }
 }
+
+/*
+ * CookingMarinara animation set. Used on /scans during the starter
+ * scan — the chef (Marinara) bobs gently, her spoon arm stirs in a
+ * loop, bubbles pop in the sauce, and steam rises from the pot.
+ *
+ * Timings are deliberately slow and gentle — a frenetic animation
+ * would make a progress indicator feel anxious. 3s+ loops.
+ */
+.chef-bob {
+  animation: chef-bob 2.8s ease-in-out infinite;
+  transform-origin: 90px 110px;
+}
+
+@keyframes chef-bob {
+  0%, 100% {
+    transform: translateY(0) rotate(-1deg);
+  }
+  50% {
+    transform: translateY(-3px) rotate(1deg);
+  }
+}
+
+.stirring-arm {
+  animation: stir 2s linear infinite;
+}
+
+@keyframes stir {
+  0% {
+    transform: rotate(-12deg);
+  }
+  50% {
+    transform: rotate(14deg);
+  }
+  100% {
+    transform: rotate(-12deg);
+  }
+}
+
+.sauce-bubble {
+  opacity: 0;
+  animation: bubble 2.4s ease-in-out infinite;
+  transform-origin: center;
+}
+.bubble-a { animation-delay: 0s; }
+.bubble-b { animation-delay: 0.6s; }
+.bubble-c { animation-delay: 1.2s; }
+.bubble-d { animation-delay: 1.8s; }
+
+@keyframes bubble {
+  0%, 100% {
+    opacity: 0;
+    transform: translateY(3px) scale(0.6);
+  }
+  40% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1);
+  }
+  70% {
+    opacity: 0.7;
+    transform: translateY(-5px) scale(1.05);
+  }
+}
+
+.steam-puff {
+  opacity: 0;
+  animation: steam 3.6s ease-in-out infinite;
+}
+.steam-a { animation-delay: 0s; }
+.steam-b { animation-delay: 1.2s; }
+.steam-c { animation-delay: 2.4s; }
+
+@keyframes steam {
+  0% {
+    opacity: 0;
+    transform: translateY(10px) scale(0.7);
+  }
+  30% {
+    opacity: 0.85;
+    transform: translateY(0) scale(1);
+  }
+  70% {
+    opacity: 0.6;
+    transform: translateY(-12px) scale(1.1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-22px) scale(1.3);
+  }
+}
+
+/* Respect users who opted out of motion. Freeze everything at a sane pose. */
+@media (prefers-reduced-motion: reduce) {
+  .chef-bob,
+  .stirring-arm,
+  .sauce-bubble,
+  .steam-puff,
+  .typing-dot {
+    animation: none !important;
+  }
+  .sauce-bubble,
+  .steam-puff {
+    opacity: 0.7;
+  }
+}
