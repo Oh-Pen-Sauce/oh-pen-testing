@@ -19,6 +19,8 @@ import {
 } from "./assistant-actions";
 import { InlineTerminal } from "./inline-terminal";
 import { renderMiniMarkdown } from "./mini-markdown";
+import { runStarterScanAction } from "../scans/actions";
+import { CookingMarinara } from "../scans/cooking-marinara";
 
 /**
  * Chat-style setup with Marinara.
@@ -84,20 +86,23 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   const [turns, setTurns] = useState<ChatTurn[]>([]);
   // Persistent message log the AI sees — we don't send React nodes to it.
   const [history, setHistory] = useState<Turn[]>([]);
-  const [state, setState] = useState<SetupState>(() => ({
-    currentStep: initial?.scope?.authorisation_acknowledged
-      ? "done"
-      : "provider",
-    providerId: initial?.ai.primary_provider ?? null,
-    providerProbeOk: null,
-    repoSet: Boolean(
-      initial?.git.repo && initial.git.repo !== "owner/name",
-    ),
-    tokenSaved: false,
-    autonomy: initial?.agents.autonomy ?? null,
-    authAcknowledged:
-      initial?.scope?.authorisation_acknowledged ?? false,
-  }));
+  const [state, setState] = useState<SetupState>(() => {
+    const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
+    return {
+      currentStep: alreadyDone ? "done" : "provider",
+      providerId: initial?.ai.primary_provider ?? null,
+      // If the user has already finished setup, trust the config —
+      // probe result is effectively "yes it was ok when I saved".
+      // Otherwise null and we'll run a real probe below.
+      providerProbeOk: alreadyDone ? true : null,
+      repoSet: Boolean(
+        initial?.git.repo && initial.git.repo !== "owner/name",
+      ),
+      tokenSaved: alreadyDone,
+      autonomy: initial?.agents.autonomy ?? null,
+      authAcknowledged: alreadyDone,
+    };
+  });
   const [busy, setBusy] = useState(false);
   // Which provider the inline-terminal's pre-typed command targets.
   // Defaults to claude-code-cli — the best first-run experience.
@@ -121,14 +126,34 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns, busy]);
 
-  // Seed opener. If the config already has a provider set (via
-  // `opt connect` in the terminal, or a previous session), try to pick
-  // up where we left off rather than showing the picker again.
+  // Seed opener. Three branches:
+  //   (a) setup already fully complete (authorisation_acknowledged) →
+  //       show a "welcome back" summary, don't replay the onboarding
+  //   (b) provider is set but setup isn't finished → auto-probe and
+  //       pick up where we left off
+  //   (c) fresh state → show the inline-terminal provider picker
   useEffect(() => {
     if (didBootstrapRef.current) return;
     didBootstrapRef.current = true;
     const preselected = initial?.ai.primary_provider;
-    if (preselected && !initial?.scope?.authorisation_acknowledged) {
+    const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
+
+    if (alreadyDone) {
+      // Branch (a) — setup already complete. Bring them straight to
+      // the summary + "run first scan" CTAs, no replay.
+      pushBot(
+        <>
+          Welcome back, <em>chef</em> 🍅. Everything&rsquo;s already set up —{" "}
+          <strong>{preselected ?? "your AI"}</strong> is connected,{" "}
+          repo is <code>{initial?.git.repo ?? "—"}</code>, autonomy is{" "}
+          <strong>{initial?.agents.autonomy ?? "recommended"}</strong>.
+          Ready to scan?
+        </>,
+      );
+      return;
+    }
+
+    if (preselected) {
       pushBot(
         <>
           Ciao 🍅 — I see you&rsquo;ve already connected{" "}
@@ -589,35 +614,15 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             </div>
           )}
 
-          {/* Final CTAs once setup is done */}
+          {/*
+            Final CTA once setup is done — runs the starter scan inline
+            (same server action the /scans gate uses) so the user sees
+            the cooking animation and result right here, without
+            bouncing to another page that looks "empty". If they prefer
+            to jump to the full scans dashboard they can.
+          */}
           {state.currentStep === "done" && (
-            <UserFormBubble>
-              <div className="flex flex-wrap gap-2 items-center">
-                <Link
-                  href="/scans"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-                  style={{
-                    background: "var(--sauce)",
-                    color: "var(--cream)",
-                    border: "2px solid var(--ink)",
-                    boxShadow: "3px 3px 0 var(--ink)",
-                  }}
-                >
-                  🔎 Run first scan →
-                </Link>
-                <Link
-                  href="/"
-                  className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-                  style={{
-                    background: "var(--cream)",
-                    color: "var(--ink)",
-                    border: "2px solid var(--ink)",
-                  }}
-                >
-                  Go to dashboard
-                </Link>
-              </div>
-            </UserFormBubble>
+            <FinalActions onError={(e) => setError(e)} />
           )}
 
           {error && (
@@ -1083,6 +1088,297 @@ function SidebarPanels({
         </Link>
       </div>
     </div>
+  );
+}
+
+/**
+ * Setup-done state. Lets the user trigger the starter scan inline
+ * (same server action as /scans), watch the cooking animation
+ * happen, and see a real success or failure without navigating away.
+ *
+ * Three sub-states:
+ *   idle    — a card with "Run starter scan" + "Go to dashboard"
+ *   running — CookingMarinara + elapsed timer + slow-scan hint
+ *   done    — ✓ with issue count + links to board + scans
+ *
+ * Errors (rate limit, provider failure, scanner crash) get a visible
+ * red panel with the message verbatim — no more "I clicked and
+ * nothing happened".
+ */
+function FinalActions({
+  onError,
+}: {
+  onError: (message: string | null) => void;
+}) {
+  const [phase, setPhase] = useState<
+    | { kind: "idle" }
+    | { kind: "running"; startedAt: number }
+    | { kind: "done"; scanId: string; issuesFound: number }
+    | { kind: "error"; message: string }
+  >({ kind: "idle" });
+  const [elapsedMs, setElapsedMs] = useState(0);
+
+  // Tick elapsed time while running.
+  useEffect(() => {
+    if (phase.kind !== "running") return;
+    const startedAt = phase.startedAt;
+    const t = window.setInterval(() => {
+      setElapsedMs(Date.now() - startedAt);
+    }, 100);
+    return () => window.clearInterval(t);
+  }, [phase]);
+
+  async function start() {
+    onError(null);
+    setElapsedMs(0);
+    setPhase({ kind: "running", startedAt: Date.now() });
+    try {
+      const res = await runStarterScanAction();
+      setPhase({
+        kind: "done",
+        scanId: res.scanId,
+        issuesFound: res.issuesFound,
+      });
+    } catch (err) {
+      const message = (err as Error).message ?? "Unknown error";
+      setPhase({ kind: "error", message });
+      onError(message);
+    }
+  }
+
+  if (phase.kind === "running") {
+    const seconds = (elapsedMs / 1000).toFixed(1);
+    const slow = elapsedMs > 30_000;
+    return (
+      <UserFormBubble>
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="shrink-0">
+            <CookingMarinara size={130} />
+          </div>
+          <div className="flex-1 min-w-[180px]">
+            <div
+              className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--sauce-soft)",
+              }}
+            >
+              ● Scanning · {seconds}s
+            </div>
+            <div
+              className="font-black italic text-[18px] text-ink mb-1.5"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Running your first scan.
+            </div>
+            <div className="text-[12px] text-ink-soft leading-snug">
+              5 static playbooks, no network, no AI cost. Usually under
+              30 seconds.
+            </div>
+            {slow && (
+              <div
+                className="mt-2 text-[11px] px-2.5 py-1.5 rounded"
+                style={{
+                  background: "var(--parmesan)",
+                  border: "1px solid var(--ink)",
+                  color: "var(--ink)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                ⏳ Taking longer than usual — large repos can. Hang tight.
+              </div>
+            )}
+          </div>
+        </div>
+      </UserFormBubble>
+    );
+  }
+
+  if (phase.kind === "done") {
+    return (
+      <UserFormBubble>
+        <div
+          className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1"
+          style={{
+            fontFamily: "var(--font-mono)",
+            color: "var(--basil-dark)",
+          }}
+        >
+          ✓ First scan complete
+        </div>
+        <div
+          className="font-black italic text-[20px] text-ink mb-1"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {phase.issuesFound === 0
+            ? "Spotless."
+            : `Found ${phase.issuesFound} issue${phase.issuesFound === 1 ? "" : "s"}.`}
+        </div>
+        <div className="text-[12px] text-ink-soft mb-3">
+          Scan <code style={{ fontFamily: "var(--font-mono)" }}>{phase.scanId}</code>{" "}
+          is saved.
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/board"
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+            style={{
+              background: "var(--sauce)",
+              color: "var(--cream)",
+              border: "2px solid var(--ink)",
+              boxShadow: "3px 3px 0 var(--ink)",
+            }}
+          >
+            Open the board →
+          </Link>
+          <Link
+            href="/scans"
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+            style={{
+              background: "var(--cream)",
+              color: "var(--ink)",
+              border: "2px solid var(--ink)",
+            }}
+          >
+            All scans
+          </Link>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+            style={{
+              background: "var(--cream)",
+              color: "var(--ink)",
+              border: "2px solid var(--ink)",
+            }}
+          >
+            Go to dashboard
+          </Link>
+        </div>
+      </UserFormBubble>
+    );
+  }
+
+  if (phase.kind === "error") {
+    return (
+      <UserFormBubble>
+        <div
+          className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1"
+          style={{
+            fontFamily: "var(--font-mono)",
+            color: "var(--sauce-dark)",
+          }}
+        >
+          ✖ Starter scan failed
+        </div>
+        <div
+          className="font-black italic text-[18px] text-ink mb-1"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Something went wrong mid-scan.
+        </div>
+        <pre
+          className="mt-2 mb-3 px-3 py-2 rounded text-[11px] whitespace-pre-wrap break-words"
+          style={{
+            background: "#FBE4E0",
+            border: "1.5px solid var(--sauce)",
+            color: "var(--sauce-dark)",
+            fontFamily: "var(--font-mono)",
+            margin: 0,
+          }}
+        >
+          {phase.message}
+        </pre>
+        <div className="text-[12px] text-ink-soft mb-3 leading-snug">
+          Common causes: provider rate-limit hit, network blip, or the
+          repo contains files the scanner can&rsquo;t read. Try again,
+          or run{" "}
+          <code
+            className="px-1 rounded"
+            style={{ background: "var(--parmesan)" }}
+          >
+            opt scan --starter
+          </code>{" "}
+          in your terminal for the full stack trace.
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={start}
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+            style={{
+              background: "var(--sauce)",
+              color: "var(--cream)",
+              border: "2px solid var(--ink)",
+              boxShadow: "3px 3px 0 var(--ink)",
+              cursor: "pointer",
+            }}
+          >
+            ↻ Retry
+          </button>
+          <Link
+            href="/scans"
+            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+            style={{
+              background: "var(--cream)",
+              color: "var(--ink)",
+              border: "2px solid var(--ink)",
+            }}
+          >
+            Skip to scans
+          </Link>
+        </div>
+      </UserFormBubble>
+    );
+  }
+
+  // idle
+  return (
+    <UserFormBubble>
+      <div
+        className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1"
+        style={{ fontFamily: "var(--font-mono)", color: "var(--sauce)" }}
+      >
+        ✓ Setup complete
+      </div>
+      <div
+        className="font-black italic text-[18px] text-ink mb-2"
+        style={{ fontFamily: "var(--font-display)" }}
+      >
+        Let&rsquo;s cook your first scan.
+      </div>
+      <div className="text-[12.5px] text-ink-soft mb-3 leading-snug">
+        I&rsquo;ll run 5 static playbooks right here — no network, no
+        AI calls, takes seconds. You&rsquo;ll see what a finding looks
+        like before we turn on the full catalogue.
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={start}
+          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+          style={{
+            background: "var(--sauce)",
+            color: "var(--cream)",
+            border: "2px solid var(--ink)",
+            boxShadow: "3px 3px 0 var(--ink)",
+            cursor: "pointer",
+          }}
+        >
+          🔎 Run first scan
+        </button>
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+          style={{
+            background: "var(--cream)",
+            color: "var(--ink)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          Go to dashboard
+        </Link>
+      </div>
+    </UserFormBubble>
   );
 }
 
