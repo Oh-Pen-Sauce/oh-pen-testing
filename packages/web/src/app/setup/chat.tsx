@@ -18,6 +18,7 @@ import {
   executeAssistantActionAction,
 } from "./assistant-actions";
 import { InlineTerminal } from "./inline-terminal";
+import { renderMiniMarkdown } from "./mini-markdown";
 
 /**
  * Chat-style setup with Marinara.
@@ -338,7 +339,9 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         {
           id: randomId("bot"),
           from: "bot",
-          content: <>{res.say}</>,
+          // AI-authored text — render with the mini-markdown parser so
+          // **bold**, `code`, [links](url) and newlines come out right.
+          content: <>{renderMiniMarkdown(res.say)}</>,
           pendingAction:
             res.action && res.actionValid
               ? {
@@ -764,6 +767,10 @@ function BotBubble({
             border: "2px solid var(--ink)",
             borderRadius: "14px 14px 14px 2px",
             color: "var(--ink)",
+            // Teacher-mode replies can be multi-line numbered lists —
+            // preserve whatever vertical layout the markdown renderer
+            // emitted.
+            wordBreak: "break-word",
           }}
         >
           {content}

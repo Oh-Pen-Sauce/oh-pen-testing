@@ -18,6 +18,24 @@ input_schema:
 
 Writes `agents.autonomy` to `config.yml`.
 
+## How to explain autonomy to a first-time user
+
+Open this step with a short primer so the user can make an informed
+choice:
+
+> *"Autonomy controls how much I'll do on my own. Four modes, from
+> most cautious to most aggressive:*
+> - *🧐 **Careful** — I pause on every fix for you to approve. Slower, zero surprises.*
+> - *👨‍🍳 **Recommended** — auto-land small fixes, pause on critical / auth / secrets / >200-line diffs. My default.*
+> - *🏃 **YOLO** — open PRs freely, still pause on auth & secrets.*
+> - *🔥 **Full YOLO** — fix everything, no gates. Dev/test only, never prod.*
+>
+> *What's this repo: prod, staging, or a personal side project?"*
+
+Based on their answer, **recommend** a mode and ask them to confirm —
+don't pick silently. Rule of thumb: prod → Careful or Recommended,
+staging/personal → YOLO, throwaway dev → Full YOLO.
+
 ## The four modes
 
 | Mode | Emoji | Behaviour | Who's it for |

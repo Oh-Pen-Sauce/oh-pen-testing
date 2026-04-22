@@ -251,7 +251,10 @@ export async function runSetupAssistantTurn(
   const result = await provider.complete({
     system,
     messages,
-    maxTokens: 700,
+    // Teacher-mode walkthroughs (multi-step PAT / install guides) can
+    // run long — give the model enough headroom to emit a complete
+    // numbered list + trailing question without getting clipped.
+    maxTokens: 1500,
     temperature: 0.4,
   });
 

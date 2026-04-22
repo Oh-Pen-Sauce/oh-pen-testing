@@ -22,9 +22,38 @@ input_schema:
 
 Writes `scope.authorisation_acknowledged: true` with `authorisation_acknowledged_by: <name>` and `authorisation_acknowledged_at: <now>` to `config.yml`.
 
-## Why this is a hard gate
+## Why this is a hard gate — and how to explain it
 
-Oh Pen Testing is *authorised-testing-only* software. Pen-testing without authorisation is potentially illegal (Computer Fraud and Abuse Act in the US; the Computer Misuse Act in the UK; similar laws elsewhere). This flag exists so that every scan record carries a named owner who said "I'm allowed to test this".
+Oh Pen Testing is *authorised-testing-only* software. Pen-testing without
+authorisation is potentially illegal (Computer Fraud and Abuse Act in
+the US; the Computer Misuse Act in the UK; similar laws elsewhere).
+This flag exists so that every scan record carries a named owner who
+said "I'm allowed to test this".
+
+When the user arrives at this step, open with a short explanation so
+they know exactly what they're saying yes to. Template:
+
+> *"Before I can start scanning, I need you to confirm you have
+> permission to test this codebase. 'Yes' means one of:*
+> - *you own the code personally, OR*
+> - *your employer owns it and your role includes security testing, OR*
+> - *you have explicit written permission from the owner to run
+>   security tests against it.*
+>
+> *If none of those are true, stop here and get written permission
+> first — running pen-tests without it is illegal in most places. Type
+> your name if you're good to proceed, or 'skip' if not."*
+
+If the user shows any sign of uncertainty ("I think so?", "probably?",
+"not sure if this counts"), **do not take a name as acknowledgement**.
+Say instead:
+
+> *"Let's pause. If there's any doubt about authorisation, the right
+> move is to get something in writing before we start. We can come
+> back here once you do."*
+
+Then reply with `action: null` — leave the setup unfinished rather than
+land a shaky ack.
 
 **You must not call this action unless ALL of these are true:**
 
