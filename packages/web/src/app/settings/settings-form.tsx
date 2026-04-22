@@ -2,8 +2,39 @@
 
 import { useState, useTransition } from "react";
 import type { Config, AutonomyMode, ProviderId } from "@oh-pen-testing/shared";
-import { saveSettingsAction } from "./actions";
+import { saveSettingsAction, saveRiskyAction } from "./actions";
 import { Btn } from "../../components/trattoria/button";
+
+/**
+ * Risky test toggles — all off by default. These live behind the
+ * "Advanced" collapsible so new users don't accidentally flip on
+ * state-mutating probes.
+ */
+const RISKY_TESTS: Array<{
+  id: string;
+  label: string;
+  risk: "amber" | "red";
+  desc: string;
+}> = [
+  {
+    id: "test_reset_password_flow",
+    label: "Test reset-password flow",
+    risk: "amber",
+    desc: "Attempts password-reset enumeration. Sends real emails if your app has SMTP configured.",
+  },
+  {
+    id: "attempt_privilege_escalation",
+    label: "Attempt privilege escalation",
+    risk: "red",
+    desc: "Makes state-mutating requests to your API. Dev / staging only.",
+  },
+  {
+    id: "test_file_upload_malicious",
+    label: "Test malicious file uploads",
+    risk: "amber",
+    desc: "Uploads EICAR + oversized files. May leave artefacts in your storage bucket.",
+  },
+];
 
 const AUTONOMY_CHOICES: Array<{
   value: AutonomyMode;
@@ -47,6 +78,10 @@ export function SettingsForm({ initial }: { initial: Config }) {
   );
   const [model, setModel] = useState(initial.ai.model);
   const [budget, setBudget] = useState(initial.ai.rate_limit.budget_usd);
+  const [risky, setRisky] = useState<Record<string, boolean>>(
+    initial.scans.risky ?? {},
+  );
+  const [advancedUnlocked, setAdvancedUnlocked] = useState(false);
   const [pending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
 
@@ -60,6 +95,12 @@ export function SettingsForm({ initial }: { initial: Config }) {
         model,
         budgetUsd: budget,
       });
+      // Persist risky toggles only if the user has actually unlocked
+      // the advanced panel — prevents a default-off form from clobbering
+      // a flag someone set via config.yml directly.
+      if (advancedUnlocked) {
+        await saveRiskyAction(risky);
+      }
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     });
@@ -156,6 +197,104 @@ export function SettingsForm({ initial }: { initial: Config }) {
             mono
           />
         </Card>
+      </div>
+
+      {/* Advanced — risky scan toggles, locked by default */}
+      <div className="mt-5">
+        <div
+          className="rounded-xl overflow-hidden"
+          style={{
+            background: advancedUnlocked
+              ? "var(--cream-soft)"
+              : "var(--parmesan)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => setAdvancedUnlocked((v) => !v)}
+            className="w-full flex items-center gap-3 px-5 py-3.5 text-left"
+            style={{
+              background: "transparent",
+              cursor: "pointer",
+            }}
+          >
+            <span
+              className="text-[18px]"
+              aria-hidden
+              style={{
+                transform: advancedUnlocked
+                  ? "rotate(90deg)"
+                  : "rotate(0deg)",
+                transition: "transform 0.15s",
+              }}
+            >
+              ▶
+            </span>
+            <div className="flex-1 min-w-0">
+              <div
+                className="font-black italic text-[18px] text-ink"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {advancedUnlocked ? "Advanced" : "🔒 Advanced"}
+              </div>
+              <div className="text-[12px] text-ink-soft mt-0.5">
+                Risky tests — state-mutating probes. All off by default.
+                Only flip these on after you&rsquo;ve read what each one
+                does.
+              </div>
+            </div>
+            <span
+              className="text-[10px] font-bold tracking-[0.15em] uppercase shrink-0"
+              style={{
+                color: advancedUnlocked
+                  ? "var(--basil)"
+                  : "var(--sauce-dark)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {advancedUnlocked ? "unlocked" : "click to unlock"}
+            </span>
+          </button>
+
+          {advancedUnlocked && (
+            <div
+              className="px-5 pb-5"
+              style={{
+                borderTop: "1px dashed rgba(34,26,20,0.25)",
+              }}
+            >
+              <div
+                className="mt-4 mb-3 px-3 py-2.5 rounded-lg text-[12px] leading-snug"
+                style={{
+                  background: "#FBE4E0",
+                  border: "1.5px solid var(--sauce)",
+                  color: "var(--sauce-dark)",
+                }}
+              >
+                <strong>⚠ Dev / staging only.</strong> These probes make
+                real requests — they can send emails, upload files, and
+                mutate state. Never point them at production unless you
+                have explicit authorisation and rollback.
+              </div>
+              <div className="flex flex-col gap-2.5">
+                {RISKY_TESTS.map((t) => (
+                  <RiskyToggle
+                    key={t.id}
+                    id={t.id}
+                    label={t.label}
+                    desc={t.desc}
+                    risk={t.risk}
+                    on={!!risky[t.id]}
+                    onChange={(v) =>
+                      setRisky({ ...risky, [t.id]: v })
+                    }
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="flex justify-between items-center mt-6">
@@ -322,6 +461,80 @@ function SelectField({
           </option>
         ))}
       </select>
+    </div>
+  );
+}
+
+function RiskyToggle({
+  id,
+  label,
+  desc,
+  risk,
+  on,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  desc: string;
+  risk: "amber" | "red";
+  on: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  const riskColor = risk === "red" ? "var(--sauce)" : "#D4A017";
+  return (
+    <div
+      className="flex items-start gap-3 px-3 py-2.5 rounded-md"
+      style={{
+        background: "var(--cream)",
+        border: "1.5px solid var(--ink)",
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => onChange(!on)}
+        className="w-[38px] h-[22px] rounded-full relative shrink-0 mt-0.5"
+        style={{
+          background: on ? "var(--basil)" : "#ccc",
+          border: "2px solid var(--ink)",
+          cursor: "pointer",
+        }}
+        aria-pressed={on}
+        aria-label={`Toggle ${label}`}
+      >
+        <span
+          className="absolute top-[1px] w-[14px] h-[14px] rounded-full transition-all"
+          style={{
+            left: on ? "18px" : "1px",
+            background: "var(--cream)",
+            border: "1.5px solid var(--ink)",
+          }}
+          aria-hidden
+        />
+      </button>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-[13px] font-semibold text-ink">{label}</span>
+          <span
+            className="text-[9px] font-bold tracking-[0.15em] uppercase px-1.5 py-[2px] rounded"
+            style={{
+              background: riskColor,
+              color: "var(--cream)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {risk}
+          </span>
+          <code
+            className="text-[10px] text-ink-soft"
+            style={{ fontFamily: "var(--font-mono)" }}
+          >
+            scans.risky.{id}
+          </code>
+        </div>
+        <div className="text-[11.5px] text-ink-soft mt-1 leading-snug">
+          {desc}
+        </div>
+      </div>
     </div>
   );
 }

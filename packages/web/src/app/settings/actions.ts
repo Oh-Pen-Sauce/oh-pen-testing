@@ -31,3 +31,20 @@ export async function saveSettingsAction(patch: SettingsPatch): Promise<void> {
   revalidatePath("/settings");
   revalidatePath("/");
 }
+
+/**
+ * Persist the risky-test toggle map. Lives in `scans.risky`. These are
+ * state-mutating / side-effect-inducing tests so they're off by default
+ * and gated behind an Advanced toggle in the UI.
+ */
+export async function saveRiskyAction(
+  risky: Record<string, boolean>,
+): Promise<void> {
+  const cwd = getOhpenCwd();
+  const current = await loadConfig(cwd);
+  current.scans.risky = risky;
+  const validated = ConfigSchema.parse(current);
+  await writeConfig(cwd, validated);
+  revalidatePath("/settings");
+  revalidatePath("/");
+}

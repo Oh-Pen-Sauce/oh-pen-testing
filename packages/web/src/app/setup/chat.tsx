@@ -17,6 +17,7 @@ import {
   assistantTurnAction,
   executeAssistantActionAction,
 } from "./assistant-actions";
+import { InlineTerminal } from "./inline-terminal";
 
 /**
  * Chat-style setup with Marinara.
@@ -97,9 +98,18 @@ export function SetupChat({ initial }: { initial: Config | null }) {
       initial?.scope?.authorisation_acknowledged ?? false,
   }));
   const [busy, setBusy] = useState(false);
+  // Which provider the inline-terminal's pre-typed command targets.
+  // Defaults to claude-code-cli — the best first-run experience.
+  const [terminalProviderId, setTerminalProviderId] = useState<ProviderId>(
+    initial?.ai.primary_provider ?? "claude-code-cli",
+  );
   const [composerValue, setComposerValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
+  // React strict-mode mounts effects twice in dev — guard the opener
+  // effect so we only seed one welcome bubble (and only one auto-probe
+  // round-trip).
+  const didBootstrapRef = useRef(false);
 
   const aiReady =
     state.providerId !== null &&
@@ -114,7 +124,8 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   // `opt connect` in the terminal, or a previous session), try to pick
   // up where we left off rather than showing the picker again.
   useEffect(() => {
-    if (turns.length > 0) return;
+    if (didBootstrapRef.current) return;
+    didBootstrapRef.current = true;
     const preselected = initial?.ai.primary_provider;
     if (preselected && !initial?.scope?.authorisation_acknowledged) {
       pushBot(
@@ -423,34 +434,140 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             ),
           )}
 
-          {/* Scripted provider picker shows until a provider is connected. */}
+          {/*
+            Pre-connect surface. For first-time users we lead with the
+            inline terminal — one click runs the same `opt connect` the
+            CLI ships, so they don't have to leave the browser. The
+            manual picker stays one click away for anyone who wants
+            something other than Claude CLI.
+          */}
           {state.providerProbeOk !== true && (
-            <UserFormBubble>
-              <div className="mb-2 text-[10px] font-bold tracking-[0.1em] uppercase text-ink-soft">
-                Pick one
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {PROVIDER_CHOICES.map((p) => (
-                  <button
-                    key={p.value}
-                    disabled={busy}
-                    onClick={() => pickProvider(p)}
-                    className="text-left p-2.5 rounded-md transition-transform hover:-translate-y-px disabled:opacity-50"
-                    style={{
-                      background: "var(--cream-soft)",
-                      border: "1.5px solid var(--ink)",
-                    }}
+            <div className="mb-4">
+              <InlineTerminal
+                providerId={terminalProviderId}
+                label={
+                  PROVIDER_CHOICES.find((p) => p.value === terminalProviderId)
+                    ?.label ?? terminalProviderId
+                }
+                onDone={async ({ ok, providerId }) => {
+                  if (!ok) return;
+                  // Kick the same post-connect path the button picker ran.
+                  const probe = await probeProviderAction(providerId);
+                  setState((s) => ({
+                    ...s,
+                    providerId,
+                    providerProbeOk: probe.ok,
+                    currentStep: probe.ok
+                      ? providerNeedsKey(providerId)
+                        ? "credentials"
+                        : "github"
+                      : s.currentStep,
+                  }));
+                  if (probe.ok) {
+                    pushBot(
+                      <>
+                        <strong>
+                          {PROVIDER_CHOICES.find((p) => p.value === providerId)
+                            ?.label ?? providerId}
+                        </strong>{" "}
+                        is{" "}
+                        <span
+                          style={{
+                            color: "var(--basil)",
+                            fontWeight: 700,
+                          }}
+                        >
+                          ✓ connected
+                        </span>
+                        . Next we&rsquo;ll wire GitHub so I can open PRs with
+                        my fixes.
+                      </>,
+                      `Provider ${providerId} connected.`,
+                    );
+                    pushSystemNote(
+                      `User ran inline 'opt connect' for ${providerId}. Probe ok. Now open the GitHub step — explain clearly what we need (repo owner/name + a PAT with repo + pull_requests scopes), why (so I can open PRs), and offer to 'detect my repo' using the detect_repo skill.`,
+                    );
+                    await runAssistantTurn(
+                      [
+                        ...history,
+                        {
+                          from: "system_note",
+                          text: `Provider ${providerId} connected. Open the GitHub step.`,
+                        },
+                      ],
+                      {
+                        ...state,
+                        providerId,
+                        providerProbeOk: true,
+                        currentStep: providerNeedsKey(providerId)
+                          ? "credentials"
+                          : "github",
+                      },
+                    );
+                  }
+                }}
+              />
+              <details className="mt-3">
+                <summary
+                  className="cursor-pointer text-[12px] underline"
+                  style={{ color: "var(--sauce)" }}
+                >
+                  Or pick a different provider →
+                </summary>
+                <div
+                  className="mt-3 p-3.5 rounded-xl"
+                  style={{
+                    background: "var(--cream-soft)",
+                    border: "1.5px solid var(--ink)",
+                  }}
+                >
+                  <div className="grid grid-cols-2 gap-2">
+                    {PROVIDER_CHOICES.map((p) => (
+                      <button
+                        key={p.value}
+                        disabled={busy}
+                        onClick={() =>
+                          p.needsKey
+                            ? pickProvider(p)
+                            : setTerminalProviderId(p.value)
+                        }
+                        className="text-left p-2.5 rounded-md transition-transform hover:-translate-y-px disabled:opacity-50"
+                        style={{
+                          background:
+                            terminalProviderId === p.value
+                              ? "var(--parmesan)"
+                              : "var(--cream)",
+                          border: "1.5px solid var(--ink)",
+                        }}
+                      >
+                        <div className="text-[12px] font-bold text-ink">
+                          {p.label}
+                          {p.needsKey ? (
+                            <span
+                              className="ml-1.5 text-[9px] font-semibold uppercase tracking-[0.1em]"
+                              style={{ color: "var(--sauce-dark)" }}
+                            >
+                              needs key
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="text-[10px] text-ink-soft mt-0.5 leading-tight">
+                          {p.tag}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                  <div
+                    className="text-[11px] mt-2.5 text-ink-soft leading-snug"
+                    style={{ fontFamily: "var(--font-mono)" }}
                   >
-                    <div className="text-[12px] font-bold text-ink">
-                      {p.label}
-                    </div>
-                    <div className="text-[10px] text-ink-soft mt-0.5 leading-tight">
-                      {p.tag}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </UserFormBubble>
+                    Clicking a no-key provider updates the terminal command
+                    above. Clicking an API-key provider runs the classic
+                    keychain flow.
+                  </div>
+                </div>
+              </details>
+            </div>
           )}
 
           {/* Final CTAs once setup is done */}
@@ -904,4 +1021,8 @@ function describeAction(
 
 function randomId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function providerNeedsKey(id: ProviderId): boolean {
+  return id === "claude-api" || id === "claude-max" || id === "openai" || id === "openrouter";
 }

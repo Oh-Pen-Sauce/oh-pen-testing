@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { listIssues, listScans, safeLoadConfig } from "../lib/repo";
 import type { Severity } from "@oh-pen-testing/shared";
 import { PageHeader } from "../components/trattoria/page-header";
@@ -6,6 +7,22 @@ import { Btn, BtnLink } from "../components/trattoria/button";
 import { SEVERITY_STYLE, agentById } from "../components/trattoria/agents";
 
 export const dynamic = "force-dynamic";
+
+/**
+ * First-run: if the user hasn't finished setup, send them to /setup
+ * straight away. The dashboard presumes a working config + an authorised
+ * scope; rendering it with "No config yet" was confusing for first-time
+ * users.
+ */
+async function isOnboarded(): Promise<boolean> {
+  const cfg = await safeLoadConfig();
+  if (!cfg) return false;
+  if (!cfg.scope?.authorisation_acknowledged) return false;
+  // A default-scaffolded config still has `owner/name` as the repo — treat
+  // that as not-yet-onboarded.
+  if (!cfg.git.repo || cfg.git.repo === "owner/name") return false;
+  return true;
+}
 
 const SEVERITY_ORDER: Severity[] = [
   "critical",
@@ -16,6 +33,10 @@ const SEVERITY_ORDER: Severity[] = [
 ];
 
 export default async function Home() {
+  if (!(await isOnboarded())) {
+    redirect("/setup");
+  }
+
   const [config, issues, scans] = await Promise.all([
     safeLoadConfig(),
     listIssues(),
