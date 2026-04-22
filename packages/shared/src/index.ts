@@ -17,3 +17,4 @@ export * from "./sbom.js";
 export * from "./compliance/frameworks.js";
 export * from "./compliance/mapping.js";
 export * from "./learning/events.js";
+export * from "./setup-assistant/index.js";
