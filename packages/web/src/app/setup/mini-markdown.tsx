@@ -36,8 +36,13 @@ export function renderMiniMarkdown(source: string): ReactNode {
 
 /**
  * Inline pass. Walks the string once, emitting spans for each matched
- * formatter. This is the most readable version I could make without a
- * full tokenizer — bold > code > link, in order of "outer" markup.
+ * formatter. Bold > code > link in order of "outer" markup.
+ *
+ * The captured content of bold and link-label is recursed through this
+ * same function so nesting works. The AI very commonly emits
+ * `**[label](url)**` — a link inside bold — and both the link and the
+ * bold need to render. Code spans are NOT recursed; their content is
+ * literal by design.
  */
 function renderInline(line: string): ReactNode[] {
   const parts: ReactNode[] = [];
@@ -52,12 +57,12 @@ function renderInline(line: string): ReactNode[] {
 
   // Combined regex — whichever formatter matches first wins, and the
   // outer loop keeps going on the remainder.
-  //   group 1: **bold**
+  //   group 1: **bold** — non-greedy so consecutive **a** **b** don't merge
   //   group 2: `code`
   //   group 3: [text](url)
   //   group 4: url (capture inside group 3)
   const re =
-    /\*\*([^*\n][^*\n]*)\*\*|`([^`\n]+)`|\[([^\]\n]+)\]\(([^)\s]+)\)/;
+    /\*\*([^\n]+?)\*\*|`([^`\n]+)`|\[([^\]\n]+)\]\(([^)\s]+)\)/;
 
   while (rest.length > 0) {
     const m = re.exec(rest);
@@ -65,11 +70,12 @@ function renderInline(line: string): ReactNode[] {
       pushPlain(rest);
       break;
     }
-    // Text before the match
     pushPlain(rest.slice(0, m.index));
     if (m[1] !== undefined) {
       pushNode(
-        <strong style={{ fontWeight: 700, color: "inherit" }}>{m[1]}</strong>,
+        <strong style={{ fontWeight: 700, color: "inherit" }}>
+          {renderInline(m[1])}
+        </strong>,
       );
     } else if (m[2] !== undefined) {
       pushNode(
@@ -99,7 +105,7 @@ function renderInline(line: string): ReactNode[] {
               textUnderlineOffset: 2,
             }}
           >
-            {m[3]}
+            {renderInline(m[3])}
           </a>,
         );
       } else {

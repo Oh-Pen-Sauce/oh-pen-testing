@@ -53,4 +53,27 @@ describe("renderMiniMarkdown", () => {
     expect(out).toContain("<code");
     expect(out).toContain("<a href");
   });
+
+  it("renders a link inside bold (**[label](url)**)", () => {
+    const out = html(
+      "Open **[github.com/settings](https://github.com/settings)** and create a token.",
+    );
+    // <strong> wraps the <a>, and the <a> is a real anchor with the url.
+    expect(out).toMatch(
+      /<strong[^>]*>.*<a href="https:\/\/github\.com\/settings"/,
+    );
+    // The raw markdown source must NOT leak through as literal text.
+    expect(out).not.toContain("](https://github.com/settings)");
+  });
+
+  it("renders code inside bold (**`cmd`**)", () => {
+    const out = html("run **`opt connect`** in your terminal");
+    expect(out).toMatch(/<strong[^>]*>.*<code/);
+  });
+
+  it("renders two consecutive bolds without merging them", () => {
+    const out = html("**one** and **two**");
+    const strongs = out.match(/<strong/g);
+    expect(strongs?.length).toBe(2);
+  });
 });

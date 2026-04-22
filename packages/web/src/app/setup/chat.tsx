@@ -316,7 +316,23 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     const text = composerValue.trim();
     if (!text || busy) return;
     setComposerValue("");
-    pushUser(text, text);
+    // Visual masking for anything that looks like a credential the user
+    // just pasted — keeps it out of chat-log screenshots. The raw
+    // string still goes to the AI so it can route the secret to the
+    // right skill (save_github_token / save_api_key); that channel is
+    // the user's own provider session and isn't persisted by us.
+    const secret = detectSecret(text);
+    const display: React.ReactNode = secret
+      ? (
+          <>
+            <span className="opacity-70">{secret.label}: </span>
+            <code style={{ fontFamily: "var(--font-mono)" }}>
+              {secret.masked}
+            </code>
+          </>
+        )
+      : text;
+    pushUser(display, text);
     await runAssistantTurn(
       [...history, { from: "user", text }],
       state,
@@ -1032,4 +1048,46 @@ function randomId(prefix: string): string {
 
 function providerNeedsKey(id: ProviderId): boolean {
   return id === "claude-api" || id === "claude-max" || id === "openai" || id === "openrouter";
+}
+
+/**
+ * If `text` looks like a credential the user just pasted, return
+ * { label, masked } describing what kind it is and a safe visual
+ * representation. Returns null otherwise.
+ *
+ * Recognised shapes:
+ *   - GitHub classic PAT:   ghp_[A-Za-z0-9]{36,}
+ *   - GitHub fine-grained:  github_pat_[A-Za-z0-9_]+
+ *   - Anthropic API key:    sk-ant-[A-Za-z0-9_-]+
+ *   - OpenRouter API key:   sk-or-[A-Za-z0-9_-]+
+ *   - Generic OpenAI-ish:   sk-[A-Za-z0-9_-]{20,}
+ */
+function detectSecret(
+  text: string,
+): { label: string; masked: string } | null {
+  const compact = text.trim();
+  // Reject if there's whitespace — these are single tokens.
+  if (/\s/.test(compact)) return null;
+
+  if (/^github_pat_[A-Za-z0-9_]{20,}$/.test(compact)) {
+    return { label: "GitHub PAT", masked: maskSecret(compact) };
+  }
+  if (/^ghp_[A-Za-z0-9]{30,}$/.test(compact)) {
+    return { label: "GitHub PAT", masked: maskSecret(compact) };
+  }
+  if (/^sk-ant-[A-Za-z0-9_-]{20,}$/.test(compact)) {
+    return { label: "Anthropic key", masked: maskSecret(compact) };
+  }
+  if (/^sk-or-[A-Za-z0-9_-]{20,}$/.test(compact)) {
+    return { label: "OpenRouter key", masked: maskSecret(compact) };
+  }
+  if (/^sk-[A-Za-z0-9_-]{30,}$/.test(compact)) {
+    return { label: "API key", masked: maskSecret(compact) };
+  }
+  return null;
+}
+
+function maskSecret(s: string): string {
+  if (s.length <= 12) return "•".repeat(s.length);
+  return `${s.slice(0, 10)}${"•".repeat(16)}${s.slice(-4)}`;
 }
