@@ -1,6 +1,7 @@
 "use server";
 
 import { spawn } from "node:child_process";
+import { revalidatePath } from "next/cache";
 import {
   loadConfig,
   loadSetupAssistantBundle,
@@ -176,6 +177,60 @@ export async function executeAssistantActionAction(
     }
   } catch (err) {
     return { ok: false, detail: (err as Error).message };
+  }
+}
+
+/**
+ * Public wrapper around `detectRepoFromGit` usable from the banner.
+ * Returns null if the cwd isn't a git repo or the remote doesn't
+ * parse as GitHub. Non-throwing — callers can render conditionally.
+ */
+export async function detectScanTargetOriginAction(): Promise<{
+  ok: boolean;
+  repo?: string;
+  detail: string;
+}> {
+  const res = await detectRepoFromGit();
+  return { ok: res.ok, repo: res.repo, detail: res.detail };
+}
+
+/**
+ * One-click "align PR target with scan target" — reads the scan
+ * target's git origin and rewrites `git.repo` in config to match.
+ * This is the fix for the "user filled in the wrong repo in the
+ * wizard" case: banner offers it when it detects an origin mismatch.
+ *
+ * Refuses silently if no GitHub origin is detectable (cwd not a git
+ * repo, or remote is GitLab/Bitbucket) so the caller can show a
+ * different message.
+ */
+export async function alignRepoWithScanTargetAction(): Promise<{
+  ok: boolean;
+  repo?: string;
+  detail: string;
+}> {
+  const detected = await detectRepoFromGit();
+  if (!detected.ok || !detected.repo) {
+    return {
+      ok: false,
+      detail: detected.detail,
+    };
+  }
+  try {
+    await setRepoAction(detected.repo);
+    // Revalidate every surface the banner appears on — layout.tsx
+    // renders it on every page so we need to blow the cache broadly.
+    revalidatePath("/", "layout");
+    return {
+      ok: true,
+      repo: detected.repo,
+      detail: `PR target set to ${detected.repo} (matches scan folder origin).`,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      detail: (err as Error).message,
+    };
   }
 }
 

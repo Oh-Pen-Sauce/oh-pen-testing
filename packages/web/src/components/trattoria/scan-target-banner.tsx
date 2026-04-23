@@ -4,6 +4,7 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import { getOhpenCwd } from "../../lib/ohpen-cwd";
 import { safeLoadConfig } from "../../lib/repo";
+import { AlignRepoButton } from "./align-repo-button";
 
 const execAsync = promisify(exec);
 
@@ -153,13 +154,14 @@ async function renderBanner() {
       )}
       {!isOhpenSource && originMismatch && (
         <span
-          className="text-[11.5px] font-semibold"
+          className="text-[11.5px] font-semibold flex items-center flex-wrap gap-y-1"
           style={{ color: "var(--sauce-dark)" }}
         >
-          ⚠ PR target <code>{gitRepo}</code> doesn&rsquo;t match the scan
-          folder&rsquo;s git origin (<code>{cwdOrigin}</code>). PRs would
-          land on the wrong repo. Ask Marinara to fix this, or update{" "}
-          <code>git.repo</code> in Settings.
+          ⚠ PR target <code className="mx-1">{gitRepo}</code> doesn&rsquo;t
+          match the scan folder&rsquo;s git origin (
+          <code className="mx-1">{cwdOrigin}</code>
+          ). PRs would land on the wrong repo.
+          {cwdOrigin && <AlignRepoButton detectedRepo={cwdOrigin} />}
         </span>
       )}
       {!isOhpenSource && !originMismatch && nameMismatch && (

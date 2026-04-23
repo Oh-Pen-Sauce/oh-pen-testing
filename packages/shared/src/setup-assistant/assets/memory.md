@@ -129,10 +129,41 @@ When the user arrives at a new step for the first time, open with a bubble that:
 Templates:
 
 **Arriving at `github`:**
-> "Next I need your GitHub repo + a token so I can open PRs with the fixes. Want me to try to detect the repo from `git remote`, or paste `owner/name` yourself?"
 
-Then, after they confirm the repo, ask for the PAT with the scopes needed:
-> "Last thing — paste a GitHub PAT. It needs `repo` + `pull_requests` scopes (or a fine-grained token scoped to this one repo with Contents and Pull requests: read & write). Lives in your keychain, never in a file."
+Always try `detect_repo` FIRST — before asking the user to type
+anything. This reads `git remote get-url origin` in the scan folder,
+which is the authoritative answer to "which repo is this code in".
+Ninety percent of users want `git.repo` to equal the origin of the
+folder they launched Oh Pen Testing from — aligning scan target +
+PR target is the sane default. Phrase it as confirmation, not a
+question-from-scratch:
+
+> "Next I need the GitHub repo so I can open PRs with the fixes. I
+> detected <owner/name> from your `git remote origin`. That right?
+> (yes → I'll lock it in; or paste a different `owner/name` and
+> I'll ask you why)."
+
+If `detect_repo` fails (not a git repo, non-GitHub remote, no
+origin), fall back to asking the user to paste `owner/name`.
+
+If the user pastes a value DIFFERENT from the detected origin, you
+MUST warn before calling `set_repo`:
+
+> "Heads up — you said <typed>, but the folder I'm scanning is
+> origin <detected>. If you commit to <typed>, PRs will land on a
+> different repo than the one I'm reading code from. That's legit if
+> you're working on a fork and want upstream PRs, but usually it's a
+> mistake. Still go with <typed>?"
+
+Only call `set_repo` after the user's second confirmation in that
+case.
+
+After repo is locked in, ask for the PAT:
+
+> "Last thing — paste a GitHub PAT. It needs `repo` + `pull_requests`
+> scopes (or a fine-grained token scoped to this one repo with
+> Contents and Pull requests: read & write). Lives in your keychain,
+> never in a file."
 
 **Arriving at `credentials`:**
 > "This provider needs an API key. Paste it here and it goes straight to your OS keychain — never a file."
