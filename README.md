@@ -94,27 +94,65 @@ See [PRD.md](./PRD.md) for the full spec and [FUTURE_FEATURES.md](./FUTURE_FEATU
 
 ## Install
 
-```bash
-# npm (cross-platform)
-npm install -g @oh-pen-testing/cli
-# or just
-npx oh-pen-testing@latest init
+**Prerequisites:** Node.js 22+ (use [nodejs.org](https://nodejs.org) or `brew install node@22`). That's it.
 
-# Homebrew (tap published alongside v1.0.0)
+### npm — one-liner
+
+```bash
+npm install -g @oh-pen-testing/cli
+```
+
+That gives you `opt` and `oh-pen-testing` on your PATH. Verify:
+
+```bash
+opt --version   # 1.0.0
+```
+
+### npx — try without installing
+
+```bash
+cd /path/to/your/project
+npx @oh-pen-testing/cli@latest setup
+```
+
+Downloads on first run, caches for subsequent invocations.
+
+### Homebrew *(coming soon — tap pending publish)*
+
+```bash
 brew tap oh-pen-sauce/tap
 brew install oh-pen-testing
+```
 
-# Docker
-docker pull ghcr.io/oh-pen-sauce/oh-pen-testing:1.0.0
+### Docker *(coming soon — image pending push to GHCR)*
+
+```bash
 docker run --rm -v "$PWD":/workspace -w /workspace \
-  ghcr.io/oh-pen-sauce/oh-pen-testing:1.0.0 opt init
+  ghcr.io/oh-pen-sauce/oh-pen-testing:1.0.0 opt setup
+```
 
-# From source
+### From source (for contributors)
+
+```bash
 git clone https://github.com/Oh-Pen-Sauce/oh-pen-testing.git
 cd oh-pen-testing
 pnpm install
 pnpm turbo run build
+# `opt` is at packages/cli/dist/index.js; link globally:
+cd packages/cli && npm link
 ```
+
+## First run
+
+Oh Pen Testing is a local tool. **The scan target is whatever directory you launch it from** — not something it clones remotely. So `cd` into the project you want to scan first:
+
+```bash
+cd ~/path/to/your/project
+opt connect    # picks an AI backend (Claude CLI / Anthropic / OpenAI / Ollama)
+opt setup      # opens the web wizard at http://127.0.0.1:7676
+```
+
+Marinara (our tomato mascot) walks you through the rest: GitHub wiring, autonomy mode, authorisation ack, then a quick starter scan so you can see it work before turning on the full catalogue.
 
 ## Documentation
 

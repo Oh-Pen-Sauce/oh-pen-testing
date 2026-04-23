@@ -1,7 +1,6 @@
 {
   "name": "@oh-pen-testing/core",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -12,7 +11,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -35,5 +36,23 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Oh-Pen-Sauce/oh-pen-testing.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/Oh-Pen-Sauce/oh-pen-testing#readme",
+  "bugs": {
+    "url": "https://github.com/Oh-Pen-Sauce/oh-pen-testing/issues"
+  },
+  "author": "Oh Pen Sauce",
+  "engines": {
+    "node": ">=22"
+  },
+  "description": "Scanner + agent + provider-router core for Oh Pen Testing."
 }

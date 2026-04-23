@@ -1,14 +1,28 @@
 {
   "name": "@oh-pen-testing/cli",
   "version": "1.0.0",
-  "private": true,
+  "description": "Local opensource pen-testing suite. Your code. Your AI. Your terms. `opt` is the CLI entry point.",
+  "keywords": [
+    "security",
+    "pentesting",
+    "penetration-testing",
+    "sast",
+    "owasp",
+    "cwe",
+    "sca",
+    "ai",
+    "claude",
+    "vulnerability-scanner"
+  ],
   "type": "module",
   "bin": {
     "oh-pen-testing": "./dist/index.js",
     "opt": "./dist/index.js"
   },
   "main": "./dist/index.js",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -33,5 +47,22 @@
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
     "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Oh-Pen-Sauce/oh-pen-testing.git",
+    "directory": "packages/cli"
+  },
+  "homepage": "https://github.com/Oh-Pen-Sauce/oh-pen-testing#readme",
+  "bugs": {
+    "url": "https://github.com/Oh-Pen-Sauce/oh-pen-testing/issues"
+  },
+  "author": "Oh Pen Sauce",
+  "engines": {
+    "node": ">=22"
   }
 }

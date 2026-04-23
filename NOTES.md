@@ -50,14 +50,44 @@ GitHub repo that homebrew fetches formulae from.
 4. Tag the tap repo `v1.0.0` and the install command becomes
    `brew install oh-pen-sauce/tap/oh-pen-testing`.
 
-### npm publish
+### npm publish — packages prepped, waiting on `npm login`
 
-The monorepo uses workspaces. Each package under `packages/` has its own
-name and version. For the first v1.0.0 release:
+Every public workspace package is publish-ready:
+
+- `private: true` removed from the 11 publishable packages
+  (kept on `@oh-pen-testing/web` — it's a Next app, not a lib)
+- `publishConfig: { access: "public" }` + MIT license + repo /
+  homepage / bugs / engines fields on each
+- CLI tarball verified to include the `#!/usr/bin/env node` shebang
+- `@oh-pen-testing/playbooks-core` `files` includes every playbook
+  dir (secrets, owasp, sca, wstg, cwe-top-25, iac, asvs)
+- Local smoke test passed: pack → install → `opt --version` → `opt
+  connect` → config.yml written. End-to-end green.
+
+**Full publish runbook now lives in [`PUBLISHING.md`](./PUBLISHING.md)** — follow that top-to-bottom for every release. It covers:
+
+- one-time npm login / 2FA / scope-claiming
+- version bump via `pnpm -r`
+- packed-tarball smoke test before upload
+- the exact publish order (dependency graph matters — shared first,
+  then leaf libs, then core, then CLI)
+- registry verification + GitHub release tag
+
+Quick summary for first release:
 
 ```bash
-pnpm --filter '@oh-pen-testing/*' exec npm publish --access public
+npm login --scope=@oh-pen-testing --registry=https://registry.npmjs.org/
+# Then follow PUBLISHING.md steps 2–8.
 ```
+
+After first publish, users can run the real one-liner:
+
+```bash
+npm install -g @oh-pen-testing/cli
+opt setup
+```
+
+Or `npx @oh-pen-testing/cli@latest setup` with zero install.
 
 Confirm these packages publish successfully (others are private):
 - `@oh-pen-testing/shared`

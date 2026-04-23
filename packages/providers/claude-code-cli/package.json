@@ -1,7 +1,6 @@
 {
   "name": "@oh-pen-testing/providers-claude-code-cli",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -12,7 +11,9 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsup",
     "typecheck": "tsc --noEmit",
@@ -25,5 +26,23 @@
     "@types/node": "^22.10.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Oh-Pen-Sauce/oh-pen-testing.git",
+    "directory": "packages/providers/claude-code-cli"
+  },
+  "homepage": "https://github.com/Oh-Pen-Sauce/oh-pen-testing#readme",
+  "bugs": {
+    "url": "https://github.com/Oh-Pen-Sauce/oh-pen-testing/issues"
+  },
+  "author": "Oh Pen Sauce",
+  "engines": {
+    "node": ">=22"
+  },
+  "description": "Claude Code CLI provider for Oh Pen Testing — rides your local `claude` session."
 }
