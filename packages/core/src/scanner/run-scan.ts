@@ -6,6 +6,7 @@ import {
   type Issue,
   type Severity,
   type ScanRun,
+  listIssues,
   writeIssue,
   writeScan,
   writeConfig,
@@ -157,15 +158,46 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     const issues: Issue[] = [];
 
     /*
-     * Dedup set for the scan. Keyed on
-     *   <playbookId>::<ruleId>::<file>::<startLine>-<endLine>
-     * so the same rule matching the same line twice (common when a
-     * multi-pattern rule hits overlapping substrings, or a file is
-     * walked via two symlinks) only produces one issue. Different
-     * playbooks / rules on the same line stay separate — those are
-     * legitimately distinct findings.
+     * Dedup set — now spans BOTH the current scan AND every prior
+     * scan whose issues still sit in .ohpentesting/issues/.
+     *
+     * Key format: <playbookId>::<ruleId>::<file>::<startLine>-<endLine>
+     *
+     * Within-scan dedup catches the same rule firing twice on a line
+     * (overlapping substrings, symlinks). Cross-scan dedup is the
+     * bigger win: re-running a scan no longer creates a second
+     * ticket for a finding that's already on the board. If the user
+     * actually fixed it, `opt verify` confirms + flips status to
+     * `verified`. If they haven't, the existing ticket stays as-is.
      */
     const dedupKeys = new Set<string>();
+    try {
+      const existingIssues = await listIssues(cwd);
+      for (const existing of existingIssues) {
+        // Extract playbook id from "playbook:<id>/<rule>" — playbook
+        // ids themselves contain slashes (e.g. owasp-top-10/a03-…)
+        // so we strip only the final segment which is the rule id.
+        let playbookId = existing.discovered_by;
+        if (playbookId?.startsWith("playbook:")) {
+          const body = playbookId.slice("playbook:".length);
+          const lastSlash = body.lastIndexOf("/");
+          playbookId = lastSlash > 0 ? body.slice(0, lastSlash) : body;
+        }
+        const ruleId = existing.evidence.rule_id ?? "";
+        const [s, e] = existing.location.line_range;
+        const key = `${playbookId}::${ruleId}::${existing.location.file}::${s}-${e}`;
+        dedupKeys.add(key);
+      }
+      logger.info("scan.cross_scan_dedup_seeded", {
+        existingIssues: existingIssues.length,
+      });
+    } catch (err) {
+      // Malformed issues dir shouldn't break the scan — just log and
+      // proceed with empty dedup set.
+      logger.warn("scan.cross_scan_dedup_failed", {
+        error: (err as Error).message,
+      });
+    }
 
     for (const playbook of relevant) {
       // SCA playbooks shell out to external auditors (npm audit / pip-audit

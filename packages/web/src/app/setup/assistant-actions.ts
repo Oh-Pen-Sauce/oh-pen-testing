@@ -160,6 +160,14 @@ export async function executeAssistantActionAction(
           stateDelta: { authAcknowledged: true, currentStep: "done" },
         };
       }
+      case "explain_scan_target":
+        // Informational only — no state change. Confirmation is in the
+        // `say` field of the assistant's reply; we just acknowledge.
+        return {
+          ok: true,
+          detail:
+            "Scan target = cwd (read at server startup). Not changeable at runtime.",
+        };
       case "troubleshoot_claude_cli":
         // Pure informational skill — nothing to execute.
         return { ok: true, detail: "Reference material only" };

@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import type { Issue, IssueStatus } from "@oh-pen-testing/shared";
-import { changeIssueStatusAction } from "./actions";
+import {
+  changeIssueStatusAction,
+  deleteIssueAction,
+  deleteAllIssuesAction,
+} from "./actions";
 import { BOARD_COLUMNS } from "./columns";
 import { SeverityPill } from "../../components/trattoria/severity-pill";
 import { SEVERITY_STYLE, agentById } from "../../components/trattoria/agents";
@@ -28,9 +32,46 @@ const COLUMN_NOTE: Record<string, string> = {
 
 export function BoardClient({ columns }: { columns: Column[] }) {
   const [selected, setSelected] = useState<Issue | null>(null);
+  const [pending, startTransition] = useTransition();
+  const totalIssues = columns.reduce((sum, c) => sum + c.issues.length, 0);
+
+  function clearAll() {
+    if (
+      !confirm(
+        `Delete ALL ${totalIssues} issues? This is irreversible (there's no trash). Usually only makes sense during beta testing when you want to re-run scans from a clean slate.`,
+      )
+    )
+      return;
+    startTransition(async () => {
+      const res = await deleteAllIssuesAction();
+      alert(`Cleared ${res.deleted} issue${res.deleted === 1 ? "" : "s"}.`);
+    });
+  }
 
   return (
     <>
+      {/* Bulk clear — only shown when there's actually something to clear.
+          Most useful during beta testing when re-running scans keeps
+          creating "ghost" duplicates the cross-scan dedup hasn't caught
+          (new playbook, schema change, etc.). */}
+      {totalIssues > 0 && (
+        <div className="flex justify-end mb-3">
+          <button
+            type="button"
+            onClick={clearAll}
+            disabled={pending}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-md disabled:opacity-40"
+            style={{
+              background: "transparent",
+              color: "var(--sauce-dark)",
+              border: "1.5px solid var(--sauce)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            {pending ? "clearing…" : `🗑 clear all ${totalIssues}`}
+          </button>
+        </div>
+      )}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3.5">
         {columns.map((col) => (
           <div
@@ -87,6 +128,16 @@ export function BoardClient({ columns }: { columns: Column[] }) {
           onClose={() => setSelected(null)}
           onChange={async (status) => {
             await changeIssueStatusAction(selected.id, status);
+            setSelected(null);
+          }}
+          onDelete={async () => {
+            if (
+              !confirm(
+                `Delete ${selected.id}? This removes the issue file from .ohpentesting/issues/ — no trash, no undo. Use "Won't fix" status if you just want to hide it.`,
+              )
+            )
+              return;
+            await deleteIssueAction(selected.id);
             setSelected(null);
           }}
         />
@@ -151,10 +202,12 @@ function IssuePanel({
   issue,
   onClose,
   onChange,
+  onDelete,
 }: {
   issue: Issue;
   onClose: () => void;
   onChange: (status: IssueStatus) => void;
+  onDelete: () => void;
 }) {
   return (
     <div
@@ -259,13 +312,29 @@ function IssuePanel({
           </div>
         </div>
 
-        <Link
-          href={`/issue/${issue.id}`}
-          className="inline-block text-sm underline"
-          style={{ color: "var(--sauce)" }}
-        >
-          Full detail →
-        </Link>
+        <div className="flex items-center justify-between gap-4 mt-4 pt-3" style={{ borderTop: "1px dashed rgba(34,26,20,0.2)" }}>
+          <Link
+            href={`/issue/${issue.id}`}
+            className="text-sm underline"
+            style={{ color: "var(--sauce)" }}
+          >
+            Full detail →
+          </Link>
+          <button
+            type="button"
+            onClick={onDelete}
+            className="text-[11px] font-semibold px-2.5 py-1 rounded-md"
+            style={{
+              background: "transparent",
+              color: "var(--sauce-dark)",
+              border: "1.5px solid var(--sauce)",
+              fontFamily: "var(--font-mono)",
+            }}
+            title="Deletes the issue file from disk. Use 'Won't fix' if you only want to hide it."
+          >
+            🗑 delete issue
+          </button>
+        </div>
       </div>
     </div>
   );

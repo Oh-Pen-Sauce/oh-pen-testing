@@ -45,12 +45,74 @@ interface ChatTurn {
   id: string;
   from: "bot" | "user";
   content: React.ReactNode;
+  /**
+   * Plain-text version of `content`. React nodes can't be serialized
+   * to sessionStorage; this string is what we persist and re-render
+   * through the markdown renderer on restore. Scripted bubbles set
+   * this to their text equivalent when they're pushed; AI replies
+   * are already text (we feed raw model output to the renderer).
+   */
+  text?: string;
   /** Attached action the user can confirm (only on bot turns). */
   pendingAction?: {
     id: string;
     input: Record<string, unknown>;
     description: string;
   };
+}
+
+/**
+ * sessionStorage key for the chat snapshot. Session-scoped so it
+ * persists across navigation within the tab but clears when the tab
+ * closes — which is the right default (next browser session starts
+ * fresh so stale state can't leak across Oh Pen Testing restarts).
+ */
+const CHAT_STORAGE_KEY = "oh-pen-testing:setup-chat-v1";
+
+/** Shape written to sessionStorage. Nothing React-node, everything
+ *  round-trips through JSON.stringify. */
+interface ChatSnapshot {
+  version: 1;
+  turns: Array<{
+    id: string;
+    from: "bot" | "user";
+    text: string;
+    pendingAction?: ChatTurn["pendingAction"];
+  }>;
+  history: Turn[];
+  state: SetupState;
+  terminalProviderId: ProviderId;
+}
+
+function loadChatSnapshot(): ChatSnapshot | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(CHAT_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as ChatSnapshot;
+    if (parsed.version !== 1) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function saveChatSnapshot(snap: ChatSnapshot): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(snap));
+  } catch {
+    /* storage quota exhausted — non-fatal, chat still works */
+  }
+}
+
+function clearChatSnapshot(): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.removeItem(CHAT_STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
 }
 
 const PROVIDER_CHOICES: Array<{
@@ -86,10 +148,31 @@ const PROVIDER_CHOICES: Array<{
 ];
 
 export function SetupChat({ initial }: { initial: Config | null }) {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  // Attempt to rehydrate from sessionStorage — so navigating to
+  // another page and back doesn't nuke a conversation mid-flight.
+  // If a snapshot exists and is valid, use it; otherwise build
+  // initial state from the server-sent config.
+  const snapshot = typeof window !== "undefined" ? loadChatSnapshot() : null;
+
+  const [turns, setTurns] = useState<ChatTurn[]>(() => {
+    if (!snapshot) return [];
+    return snapshot.turns.map((t) => ({
+      id: t.id,
+      from: t.from,
+      // Re-render the text through the markdown renderer so links /
+      // bold / code come back visually. Falls back to plain text if
+      // the renderer is unhappy with something.
+      content: renderMiniMarkdown(t.text),
+      text: t.text,
+      pendingAction: t.pendingAction,
+    }));
+  });
   // Persistent message log the AI sees — we don't send React nodes to it.
-  const [history, setHistory] = useState<Turn[]>([]);
+  const [history, setHistory] = useState<Turn[]>(() =>
+    snapshot ? snapshot.history : [],
+  );
   const [state, setState] = useState<SetupState>(() => {
+    if (snapshot) return snapshot.state;
     const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
     return {
       currentStep: alreadyDone ? "done" : "provider",
@@ -110,8 +193,33 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   // Which provider the inline-terminal's pre-typed command targets.
   // Defaults to claude-code-cli — the best first-run experience.
   const [terminalProviderId, setTerminalProviderId] = useState<ProviderId>(
-    initial?.ai.primary_provider ?? "claude-code-cli",
+    () =>
+      snapshot?.terminalProviderId ??
+      initial?.ai.primary_provider ??
+      "claude-code-cli",
   );
+
+  // Persist to sessionStorage whenever something interesting changes.
+  // This is the durable fix for "chat disappears when I navigate away".
+  useEffect(() => {
+    // Only persist once we have SOMETHING — skip the bare initial render.
+    if (turns.length === 0 && history.length === 0) return;
+    const snap: ChatSnapshot = {
+      version: 1,
+      turns: turns.map((t) => ({
+        id: t.id,
+        from: t.from,
+        // Fall back to extracting text from React nodes if we didn't
+        // record a text version. Imperfect but beats losing the bubble.
+        text: t.text ?? stringifyReactNode(t.content),
+        pendingAction: t.pendingAction,
+      })),
+      history,
+      state,
+      terminalProviderId,
+    };
+    saveChatSnapshot(snap);
+  }, [turns, history, state, terminalProviderId]);
   const [composerValue, setComposerValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -141,6 +249,11 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   useEffect(() => {
     if (didBootstrapRef.current) return;
     didBootstrapRef.current = true;
+
+    // If we restored a snapshot with turns, skip the welcome/probe
+    // sequence entirely — the user's picking up where they left off.
+    if (snapshot && snapshot.turns.length > 0) return;
+
     const preselected = initial?.ai.primary_provider;
     const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
 
@@ -236,7 +349,16 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   function pushBot(content: React.ReactNode, asText?: string) {
     setTurns((t) => [
       ...t,
-      { id: randomId("bot"), from: "bot", content },
+      {
+        id: randomId("bot"),
+        from: "bot",
+        content,
+        // Capture the string form so sessionStorage can round-trip
+        // this bubble across navigation. Falls back to an extracted
+        // stringification of the React tree for scripted bubbles
+        // that don't pass a text arg.
+        text: asText ?? stringifyReactNode(content),
+      },
     ]);
     if (asText) {
       setHistory((h) => [...h, { from: "assistant", text: asText }]);
@@ -245,7 +367,12 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   function pushUser(content: React.ReactNode, asText?: string) {
     setTurns((t) => [
       ...t,
-      { id: randomId("user"), from: "user", content },
+      {
+        id: randomId("user"),
+        from: "user",
+        content,
+        text: asText ?? stringifyReactNode(content),
+      },
     ]);
     if (asText) {
       setHistory((h) => [...h, { from: "user", text: asText }]);
@@ -389,6 +516,9 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           // AI-authored text — render with the mini-markdown parser so
           // **bold**, `code`, [links](url) and newlines come out right.
           content: <>{renderMiniMarkdown(res.say)}</>,
+          // Keep the raw text so sessionStorage can rehydrate the bubble
+          // after a navigation round-trip without losing the markdown.
+          text: res.say,
           pendingAction:
             res.action && res.actionValid
               ? {
@@ -725,6 +855,20 @@ function ChatHeader({
     done: "done",
   };
   const aiLive = state.providerProbeOk === true;
+
+  function startFresh() {
+    if (
+      !confirm(
+        "Clear this conversation and start a new one? Your config stays untouched — only the chat transcript is cleared.",
+      )
+    )
+      return;
+    clearChatSnapshot();
+    // Reload so the component rebuilds from config, not the stale
+    // snapshot.
+    window.location.reload();
+  }
+
   return (
     <div
       className="px-5 py-3.5 flex items-center gap-3"
@@ -740,7 +884,7 @@ function ChatHeader({
       >
         🍅
       </div>
-      <div>
+      <div className="flex-1">
         <div
           className="font-black italic text-[18px]"
           style={{ fontFamily: "var(--font-display)" }}
@@ -783,6 +927,23 @@ function ChatHeader({
           <span className="opacity-60">· {stepLabels[state.currentStep]}</span>
         </div>
       </div>
+      {/* Start-fresh button — clears sessionStorage and reloads, so
+          users who got themselves tangled mid-conversation can reset
+          the transcript without losing their config. */}
+      <button
+        type="button"
+        onClick={startFresh}
+        className="text-[10px] font-bold tracking-[0.1em] uppercase px-2 py-1 rounded-md opacity-60 hover:opacity-100 transition-opacity"
+        style={{
+          fontFamily: "var(--font-mono)",
+          color: "var(--cream)",
+          background: "transparent",
+          border: "1px solid rgba(244,233,212,0.3)",
+        }}
+        title="Clear this transcript and start a fresh conversation. Config untouched."
+      >
+        ↻ fresh chat
+      </button>
     </div>
   );
 }
@@ -1438,7 +1599,9 @@ function describeAction(
     case "detect_repo":
       return "Read `git remote get-url origin` to detect the repo";
     case "set_repo":
-      return `Set git.repo to ${input.repo}`;
+      // Spell out PR-target vs scan-target explicitly in the action
+      // confirmation so users can't confuse the two.
+      return `Set PR target repo to ${input.repo} (where fixes will land — not the scan target)`;
     case "save_github_token":
       return "Save GitHub PAT to keychain";
     case "set_model":
@@ -1447,6 +1610,8 @@ function describeAction(
       return `Set autonomy to ${input.mode}`;
     case "acknowledge_authorisation":
       return `Acknowledge authorisation as ${input.actor_name}`;
+    case "explain_scan_target":
+      return "Show how to change the scan target (it's cwd-bound)";
     case "troubleshoot_claude_cli":
       return "Show Claude CLI troubleshooting notes";
     default:
@@ -1460,6 +1625,28 @@ function randomId(prefix: string): string {
 
 function providerNeedsKey(id: ProviderId): boolean {
   return id === "claude-api" || id === "claude-max" || id === "openai" || id === "openrouter";
+}
+
+/**
+ * Best-effort flattening of a React node to a plain string. Used so
+ * scripted bubbles (which carry JSX rather than a text source) still
+ * round-trip through sessionStorage — the string loses tags but keeps
+ * the visible copy, which is better than showing nothing on restore.
+ */
+function stringifyReactNode(node: React.ReactNode): string {
+  if (node == null || typeof node === "boolean") return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(stringifyReactNode).join("");
+  if (
+    typeof node === "object" &&
+    node !== null &&
+    "props" in node &&
+    (node as { props?: { children?: React.ReactNode } }).props
+  ) {
+    const props = (node as { props?: { children?: React.ReactNode } }).props!;
+    return stringifyReactNode(props.children);
+  }
+  return "";
 }
 
 /**
