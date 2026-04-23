@@ -1,0 +1,8 @@
+playbooks:
+  - owasp/a01-broken-access-control/cors-wildcard
+  - owasp/a01-broken-access-control/missing-authorisation-check
+  - owasp/a07-auth-failures/weak-password-policy
+  - owasp/a07-auth-failures/session-fixation
+  - dynamic/no-rate-limit-login
+  - dynamic/security-headers
+  - dynamic/open-redirect-probe

@@ -1,0 +1,15 @@
+# Playbooks Marinara owns — injection, input-validation, secrets-in-code.
+# The scanner routes findings from these playbooks to Marinara by default.
+# User overrides in .ohpentesting/agents/marinara/playbooks.yml can extend or
+# replace this list.
+
+playbooks:
+  - secrets/hardcoded-secrets-scanner
+  - owasp/a03-injection/sql-injection-raw
+  - owasp/a03-injection/command-injection
+  - owasp/a03-injection/xss-innerhtml
+  - owasp/a03-injection/xxe-vulnerable-parser
+  - cwe-top-25/path-traversal
+  - cwe-top-25/open-redirect
+  - cwe-top-25/unrestricted-upload
+  - iac/compose-plaintext-secrets

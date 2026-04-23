@@ -97,44 +97,51 @@ export function Sidebar({
         >
           Agent roster
         </div>
-        {AGENTS.map((a) => (
-          <div
-            key={a.id}
-            className="flex items-center gap-2 px-2 py-[7px] rounded-md mb-1"
-            style={{
-              background: "var(--cream)",
-              border: "1.5px solid var(--ink)",
-            }}
-          >
-            <div
-              className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[12px] shrink-0"
+        {AGENTS.map((a) => {
+          const active = pathname === `/agents/${a.id}`;
+          return (
+            <Link
+              key={a.id}
+              href={`/agents/${a.id}`}
+              className="flex items-center gap-2 px-2 py-[7px] rounded-md mb-1 transition-transform hover:-translate-y-px"
               style={{
-                background: a.color,
-                color: "var(--cream)",
-                border: "1.5px solid var(--ink)",
+                background: active ? "var(--parmesan)" : "var(--cream)",
+                border: `1.5px solid var(--ink)`,
+                boxShadow: active ? "2px 2px 0 var(--ink)" : undefined,
+                textDecoration: "none",
               }}
-              aria-hidden
+              title={`Open ${a.name}'s profile — memory, assigned playbooks, custom skills`}
             >
-              {a.emoji}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[12px] font-bold text-ink truncate">
-                {a.name}
-              </div>
               <div
-                className="text-[9.5px] text-ink-soft truncate"
-                title={a.tag}
+                className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[12px] shrink-0"
+                style={{
+                  background: a.color,
+                  color: "var(--cream)",
+                  border: "1.5px solid var(--ink)",
+                }}
+                aria-hidden
               >
-                {a.tag}
+                {a.emoji}
               </div>
-            </div>
-            <span
-              className="w-[6px] h-[6px] rounded-full shrink-0"
-              style={{ background: a.color }}
-              aria-hidden
-            />
-          </div>
-        ))}
+              <div className="flex-1 min-w-0">
+                <div className="text-[12px] font-bold text-ink truncate">
+                  {a.name}
+                </div>
+                <div
+                  className="text-[9.5px] text-ink-soft truncate"
+                  title={a.tag}
+                >
+                  {a.tag}
+                </div>
+              </div>
+              <span
+                className="w-[6px] h-[6px] rounded-full shrink-0"
+                style={{ background: a.color }}
+                aria-hidden
+              />
+            </Link>
+          );
+        })}
       </div>
     </aside>
   );

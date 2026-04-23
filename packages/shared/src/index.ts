@@ -22,3 +22,4 @@ export * from "./starter-scan.js";
 export * from "./secrets-store.js";
 export * from "./model-catalog.js";
 export * from "./managed-projects.js";
+export * from "./agents/loader.js";

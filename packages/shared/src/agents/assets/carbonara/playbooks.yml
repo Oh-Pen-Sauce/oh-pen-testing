@@ -1,0 +1,6 @@
+playbooks:
+  - owasp/a02-cryptographic-failures/hardcoded-jwt-secret
+  - owasp/a02-cryptographic-failures/insecure-tls-version
+  - owasp/a02-cryptographic-failures/weak-hash-for-passwords
+  - wstg/jwt-weak-secret
+  - wstg/clickjacking-no-frame-options

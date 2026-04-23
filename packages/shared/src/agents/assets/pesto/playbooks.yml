@@ -1,0 +1,7 @@
+playbooks:
+  - sca/npm-audit
+  - sca/pip-audit
+  - sca/bundler-audit
+  - iac/terraform-public-s3
+  - iac/dockerfile-root-user
+  - iac/k8s-no-resource-limits

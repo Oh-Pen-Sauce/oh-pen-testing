@@ -17,10 +17,23 @@ export default defineConfig({
   // tree (memory.md + skills/*.md) into dist/assets/ after build. The
   // loader looks for `./assets` relative to the compiled entry first.
   async onSuccess() {
-    const srcRoot = path.resolve("src/setup-assistant/assets");
-    const destRoot = path.resolve("dist/assets");
-    if (!fs.existsSync(srcRoot)) return;
-    fs.rmSync(destRoot, { recursive: true, force: true });
-    fs.cpSync(srcRoot, destRoot, { recursive: true });
+    // Mirror the setup-assistant bundle (memory.md + skills/*.md) into
+    // dist/assets/ — the setup loader walks candidate paths including
+    // ./assets relative to the compiled entry.
+    const setupSrc = path.resolve("src/setup-assistant/assets");
+    const setupDest = path.resolve("dist/assets");
+    if (fs.existsSync(setupSrc)) {
+      fs.rmSync(setupDest, { recursive: true, force: true });
+      fs.cpSync(setupSrc, setupDest, { recursive: true });
+    }
+    // Same trick for the agent profiles (memory.md + playbooks.yml per
+    // agent). The agent loader looks for ./agents-assets next to the
+    // compiled entry, falling back to source paths in dev.
+    const agentsSrc = path.resolve("src/agents/assets");
+    const agentsDest = path.resolve("dist/agents-assets");
+    if (fs.existsSync(agentsSrc)) {
+      fs.rmSync(agentsDest, { recursive: true, force: true });
+      fs.cpSync(agentsSrc, agentsDest, { recursive: true });
+    }
   },
 });
