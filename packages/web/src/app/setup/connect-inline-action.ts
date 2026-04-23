@@ -15,7 +15,7 @@ import {
   detectOllamaReachable,
   DEFAULT_OLLAMA_BASE_URL,
 } from "@oh-pen-testing/providers-ollama";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 
 /**
  * In-browser equivalent of `opt connect` — collects the output lines
@@ -42,7 +42,7 @@ export async function connectInlineAction(
   providerId: ProviderId,
   opts: { model?: string } = {},
 ): Promise<ConnectResult> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const lines: ConnectLine[] = [];
 
   lines.push({

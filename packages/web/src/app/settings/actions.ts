@@ -8,7 +8,7 @@ import {
   type AutonomyMode,
   type ProviderId,
 } from "@oh-pen-testing/shared";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 
 export interface SettingsPatch {
   autonomy: AutonomyMode;
@@ -19,7 +19,7 @@ export interface SettingsPatch {
 }
 
 export async function saveSettingsAction(patch: SettingsPatch): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.agents.autonomy = patch.autonomy;
   current.agents.parallelism = patch.parallelism;
@@ -40,7 +40,7 @@ export async function saveSettingsAction(patch: SettingsPatch): Promise<void> {
 export async function saveRiskyAction(
   risky: Record<string, boolean>,
 ): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.scans.risky = risky;
   const validated = ConfigSchema.parse(current);

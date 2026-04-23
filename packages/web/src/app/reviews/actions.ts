@@ -3,10 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { approveGatedIssue } from "@oh-pen-testing/core";
 import { getIssue, updateIssue } from "../../lib/repo";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 
 export async function approveAction(issueId: string): Promise<void> {
-  await approveGatedIssue(getOhpenCwd(), issueId, "web-reviewer");
+  await approveGatedIssue(await resolveScanTargetPath(), issueId, "web-reviewer");
   revalidatePath("/reviews");
   revalidatePath("/board");
   revalidatePath(`/issue/${issueId}`);

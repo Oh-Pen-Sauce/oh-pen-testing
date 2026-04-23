@@ -19,3 +19,4 @@ export * from "./dynamic/runner.js";
 export * from "./dynamic/playbooks.js";
 export * from "./registry/types.js";
 export * from "./registry/client.js";
+export * from "./managed-projects/clone.js";

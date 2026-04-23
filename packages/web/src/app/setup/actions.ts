@@ -11,7 +11,7 @@ import {
   type AutonomyMode,
   type ProviderId,
 } from "@oh-pen-testing/shared";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 import {
   detectClaudeCliInstalled,
   type ClaudeCliDetection,
@@ -22,7 +22,7 @@ import {
 } from "@oh-pen-testing/providers-ollama";
 
 export async function setProviderAction(provider: ProviderId, model?: string) {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   let current;
   try {
     current = await loadConfig(cwd);
@@ -102,7 +102,7 @@ export async function setRepoAction(repo: string): Promise<void> {
   if (!/^[\w.-]+\/[\w.-]+$/.test(repo)) {
     throw new Error("Expected owner/name format.");
   }
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.git.repo = repo;
   const validated = ConfigSchema.parse(current);
@@ -113,7 +113,7 @@ export async function setRepoAction(repo: string): Promise<void> {
 export async function setAutonomyAction(
   autonomy: AutonomyMode,
 ): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.agents.autonomy = autonomy;
   const validated = ConfigSchema.parse(current);
@@ -124,7 +124,7 @@ export async function setAutonomyAction(
 export async function setRiskyAction(
   risky: Record<string, boolean>,
 ): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.scans.risky = risky;
   const validated = ConfigSchema.parse(current);
@@ -136,7 +136,7 @@ export async function setAuthorisationAckAction(
   acknowledged: boolean,
   actor?: string,
 ): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.scope.authorisation_acknowledged = acknowledged;
   if (acknowledged) {

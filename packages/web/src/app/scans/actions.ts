@@ -9,7 +9,7 @@ import {
 } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import { resolveProvider, runScan } from "@oh-pen-testing/core";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 import { ensureProvidersRegistered } from "../../lib/providers-bootstrap";
 
 /**
@@ -33,7 +33,7 @@ export interface StarterScanSummary {
 
 export async function runStarterScanAction(): Promise<StarterScanSummary> {
   ensureProvidersRegistered();
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const config = await loadConfig(cwd);
   const provider = await resolveProvider({ config });
 
@@ -84,7 +84,7 @@ export async function runStarterScanAction(): Promise<StarterScanSummary> {
  * without actually running a scan.
  */
 export async function bypassStarterAction(): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.scans.starter_complete = true;
   const validated = ConfigSchema.parse(current);

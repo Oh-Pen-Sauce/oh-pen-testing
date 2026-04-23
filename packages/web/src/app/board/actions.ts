@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import type { IssueStatus } from "@oh-pen-testing/shared";
 import { ohpenPaths } from "@oh-pen-testing/shared";
 import { getIssue, updateIssue } from "../../lib/repo";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 
 export async function changeIssueStatusAction(
   id: string,
@@ -35,7 +35,7 @@ export async function deleteIssueAction(id: string): Promise<void> {
   if (!/^ISSUE-\d+$/.test(id)) {
     throw new Error(`Invalid issue id: ${id}`);
   }
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const { issues: issuesDir } = ohpenPaths(cwd);
   const filePath = path.join(issuesDir, `${id}.json`);
   try {
@@ -61,7 +61,7 @@ export async function deleteIssueAction(id: string): Promise<void> {
  * the UI can show "cleared N issues".
  */
 export async function deleteAllIssuesAction(): Promise<{ deleted: number }> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const { issues: issuesDir } = ohpenPaths(cwd);
   let deleted = 0;
   try {

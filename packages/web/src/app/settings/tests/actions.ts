@@ -6,7 +6,7 @@ import {
   loadConfig,
   writeConfig,
 } from "@oh-pen-testing/shared";
-import { getOhpenCwd } from "../../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../../lib/ohpen-cwd";
 
 /**
  * Save the set of disabled playbook ids. The Tests catalog UI calls
@@ -17,7 +17,7 @@ import { getOhpenCwd } from "../../../lib/ohpen-cwd";
 export async function saveDisabledPlaybooksAction(
   disabled: string[],
 ): Promise<void> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const current = await loadConfig(cwd);
   current.scans.disabled_playbooks = Array.from(new Set(disabled)).sort();
   const validated = ConfigSchema.parse(current);

@@ -13,7 +13,7 @@ import {
   createGitHubAdapter,
   resolveGitHubToken,
 } from "@oh-pen-testing/git-github";
-import { getOhpenCwd } from "../../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../../lib/ohpen-cwd";
 import { getIssue } from "../../../lib/repo";
 import { ensureProvidersRegistered } from "../../../lib/providers-bootstrap";
 import path from "node:path";
@@ -22,7 +22,7 @@ export async function remediateAction(
   issueId: string,
 ): Promise<{ prUrl: string; prNumber: number }> {
   ensureProvidersRegistered();
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const config = await loadConfig(cwd);
   const issue = await getIssue(issueId);
   if (!issue) throw new Error(`Issue ${issueId} not found`);
@@ -59,7 +59,7 @@ export async function verifyAction(
   issueId: string,
 ): Promise<{ verified: boolean; hitsRemaining: number }> {
   ensureProvidersRegistered();
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const config = await loadConfig(cwd);
   const provider = await resolveProvider({ config });
   const result = await runVerify({

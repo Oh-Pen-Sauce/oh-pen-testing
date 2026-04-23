@@ -7,6 +7,7 @@ import { TinyLogo } from "./tiny-logo";
 
 const NAV: Array<{ href: string; label: string; icon: string }> = [
   { href: "/", label: "Home", icon: "🏠" },
+  { href: "/projects", label: "Projects", icon: "📦" },
   { href: "/board", label: "Board", icon: "🗂️" },
   { href: "/reviews", label: "Reviews", icon: "👀" },
   { href: "/playbooks", label: "Playbooks", icon: "📖" },

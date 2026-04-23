@@ -12,7 +12,7 @@ import {
   type Turn,
 } from "@oh-pen-testing/shared";
 import { resolveProvider } from "@oh-pen-testing/core";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 import { ensureProvidersRegistered } from "../../lib/providers-bootstrap";
 import {
   probeProviderAction,
@@ -45,7 +45,7 @@ export async function assistantTurnAction(args: {
   actionError?: string;
 }> {
   ensureProvidersRegistered();
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const config = await loadConfig(cwd);
   const provider = await resolveProvider({ config });
   const bundle = loadSetupAssistantBundle();
@@ -107,7 +107,7 @@ export async function executeAssistantActionAction(
         if (!model || typeof model !== "string") {
           return { ok: false, detail: "set_model: missing 'model' input" };
         }
-        const cwd = getOhpenCwd();
+        const cwd = await resolveScanTargetPath();
         const config = await loadConfig(cwd);
         await setProviderAction(config.ai.primary_provider, model);
         return {
@@ -239,7 +239,7 @@ async function detectRepoFromGit(): Promise<{
   detail: string;
   repo?: string;
 }> {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   return new Promise((resolve) => {
     const child = spawn("git", ["remote", "get-url", "origin"], {
       cwd,

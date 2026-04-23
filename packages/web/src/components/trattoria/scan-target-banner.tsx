@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
-import { getOhpenCwd } from "../../lib/ohpen-cwd";
+import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 import { safeLoadConfig } from "../../lib/repo";
 import { AlignRepoButton } from "./align-repo-button";
 
@@ -56,14 +56,14 @@ export async function ScanTargetBanner() {
           color: "var(--ink-soft)",
         }}
       >
-        <code>{getOhpenCwd()}</code>
+        <code>{process.env.OHPEN_CWD ?? process.cwd()}</code>
       </div>
     );
   }
 }
 
 async function renderBanner() {
-  const cwd = getOhpenCwd();
+  const cwd = await resolveScanTargetPath();
   const config = await safeLoadConfig();
   const gitRepo = config?.git.repo ?? null;
 
