@@ -1647,6 +1647,10 @@ function describeAction(
       // Spell out PR-target vs scan-target explicitly in the action
       // confirmation so users can't confuse the two.
       return `Set PR target repo to ${input.repo} (where fixes will land — not the scan target)`;
+    case "clone_and_activate_project":
+      return input.existing_local_path
+        ? `Register existing clone at ${input.existing_local_path} as the active project (${input.slug})`
+        : `Clone ${input.slug} locally + make it the active scan target`;
     case "save_github_token":
       return "Save GitHub PAT to keychain";
     case "set_model":

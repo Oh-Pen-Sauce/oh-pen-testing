@@ -130,40 +130,77 @@ Templates:
 
 **Arriving at `github`:**
 
-Always try `detect_repo` FIRST — before asking the user to type
-anything. This reads `git remote get-url origin` in the scan folder,
-which is the authoritative answer to "which repo is this code in".
-Ninety percent of users want `git.repo` to equal the origin of the
-folder they launched Oh Pen Testing from — aligning scan target +
-PR target is the sane default. Phrase it as confirmation, not a
-question-from-scratch:
+The happy path uses the **managed-projects** flow — you clone
+(or register an existing local checkout of) the GitHub repo and
+make it the active scan target. From that point on, the rest of
+setup (autonomy, auth, future scans) binds to that specific
+project's `.ohpentesting/` directory. Use
+`clone_and_activate_project` for this path. The older `set_repo`
+skill still exists for users who explicitly opt out of managed
+projects, but you should NOT lead with it.
 
-> "Next I need the GitHub repo so I can open PRs with the fixes. I
-> detected <owner/name> from your `git remote origin`. That right?
-> (yes → I'll lock it in; or paste a different `owner/name` and
-> I'll ask you why)."
+Three turns in sequence:
 
-If `detect_repo` fails (not a git repo, non-GitHub remote, no
-origin), fall back to asking the user to paste `owner/name`.
+**Turn 1 — confirm the slug.**
 
-If the user pastes a value DIFFERENT from the detected origin, you
-MUST warn before calling `set_repo`:
+Call `detect_repo` first. If the user's cwd has a GitHub origin,
+propose it as the default:
 
-> "Heads up — you said <typed>, but the folder I'm scanning is
-> origin <detected>. If you commit to <typed>, PRs will land on a
-> different repo than the one I'm reading code from. That's legit if
-> you're working on a fork and want upstream PRs, but usually it's a
-> mistake. Still go with <typed>?"
+> "Next, let's wire up a GitHub project — I'll clone a copy locally
+> and work out of that. I detected <owner/name> from your
+> `git remote origin`. Is that the repo you want to scan?"
 
-Only call `set_repo` after the user's second confirmation in that
-case.
+If `detect_repo` comes back empty (non-git cwd, non-GitHub remote,
+or no origin), ask the user to paste `owner/name`:
 
-After repo is locked in, ask for the PAT:
+> "Paste the GitHub repo slug you want me to work with (e.g.
+> `oh-pen-sauce/oh-pen-testing`)."
 
-> "Last thing — paste a GitHub PAT. It needs `repo` + `pull_requests`
-> scopes (or a fine-grained token scoped to this one repo with
-> Contents and Pull requests: read & write). Lives in your keychain,
-> never in a file."
+If the user pastes a slug that DIFFERS from what `detect_repo`
+returned, apply the warn-before-confirm rule in the `set_repo`
+skill body — it applies to `clone_and_activate_project` too.
+
+**Turn 2 — ask how to get the code.**
+
+Once the slug is settled, offer the two modes:
+
+> "Two ways to wire this up:
+>
+> 1. **Clone it fresh** — I'll make a shallow clone at
+>    `~/.ohpentesting/projects/<owner>/<name>/` using your GitHub
+>    PAT. Takes about 30 seconds depending on repo size. Pick this
+>    if you don't already have this repo on your machine.
+>
+> 2. **Use an existing local clone** — if you already have the repo
+>    checked out somewhere, paste the absolute path and I'll point
+>    at that. No network call.
+>
+> Which one?"
+
+If they pick (1), call `clone_and_activate_project` with just
+`{ slug }`. If (2), call it with
+`{ slug, existing_local_path: "<path>" }`.
+
+**Turn 3 — ask for the PAT.**
+
+After the project is cloned + active (the runtime will echo
+"Cloned … — active project is now …" back to you), ask for the
+token:
+
+> "Locked in. <owner/name> is the active project — everything from
+> here lands on its clone. Last thing — paste a GitHub PAT so I can
+> open PRs there? It needs Contents + Pull-requests: read/write
+> (fine-grained), or classic `repo` scope."
+
+Then call `save_github_token` after they paste.
+
+**Why this order matters.** If you call `save_github_token` before
+`clone_and_activate_project`, the token gets saved to whatever
+directory the server was launched from — not the new project's
+keychain namespace. The PAT lives per-user (not per-project) in our
+secrets store so this is actually fine, but the order above is
+still the cleanest because users see "project active" → "here's
+the token" in a natural sequence.
 
 **Arriving at `credentials`:**
 > "This provider needs an API key. Paste it here and it goes straight to your OS keychain — never a file."

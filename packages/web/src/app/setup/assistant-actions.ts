@@ -3,7 +3,9 @@
 import { spawn } from "node:child_process";
 import { revalidatePath } from "next/cache";
 import {
+  ConfigSchema,
   loadConfig,
+  writeConfig,
   loadSetupAssistantBundle,
   runSetupAssistantTurn,
   type AutonomyMode,
@@ -23,6 +25,7 @@ import {
   setProviderAction,
   setRepoAction,
 } from "./actions";
+import { addProjectAction } from "../projects/actions";
 
 /**
  * Server-side bridge between the chat UI and the setup-assistant bundle.
@@ -131,6 +134,93 @@ export async function executeAssistantActionAction(
         return {
           ok: true,
           detail: `Repo set to ${repo}`,
+          stateDelta: { repoSet: true },
+        };
+      }
+      case "clone_and_activate_project": {
+        const slug = input.slug as string;
+        const existingLocalPath =
+          typeof input.existing_local_path === "string" &&
+          input.existing_local_path.trim().length > 0
+            ? input.existing_local_path.trim()
+            : undefined;
+
+        // Snapshot the in-progress config from the CURRENT scan target
+        // BEFORE activation flips it to the new project. The user may
+        // have already picked a provider / model / autonomy; we don't
+        // want those to silently reset to defaults.
+        let carryOver: Partial<{
+          primary_provider: ProviderId;
+          model: string;
+          budget_usd: number;
+          autonomy: AutonomyMode;
+          telemetry_enabled: boolean;
+        }> = {};
+        try {
+          const currentPath = await resolveScanTargetPath();
+          const current = await loadConfig(currentPath);
+          carryOver = {
+            primary_provider: current.ai.primary_provider,
+            model: current.ai.model,
+            budget_usd: current.ai.rate_limit.budget_usd,
+            autonomy: current.agents.autonomy,
+            telemetry_enabled: current.telemetry.enabled,
+          };
+        } catch {
+          /* no prior config — that's fine, new project starts at defaults */
+        }
+
+        // Clone (or register existing path) + scaffold + add to
+        // registry + mark active. addProjectAction handles all of
+        // it, including calling scaffold() inside the new clone.
+        const res = await addProjectAction({
+          slug,
+          existingLocalPath,
+          setActive: true,
+        });
+        if (!res.ok || !res.project) {
+          return { ok: false, detail: res.detail };
+        }
+
+        // Apply the carry-over + write git.repo to the new project's
+        // config. From this turn forward, resolveScanTargetPath() returns
+        // the new clone, so setRepoAction etc. will target that.
+        try {
+          const newCwd = res.project.localPath;
+          const newConfig = await loadConfig(newCwd);
+          newConfig.git.repo = slug;
+          if (carryOver.primary_provider) {
+            newConfig.ai.primary_provider = carryOver.primary_provider;
+          }
+          if (carryOver.model) newConfig.ai.model = carryOver.model;
+          if (typeof carryOver.budget_usd === "number") {
+            newConfig.ai.rate_limit.budget_usd = carryOver.budget_usd;
+          }
+          if (carryOver.autonomy) {
+            newConfig.agents.autonomy = carryOver.autonomy;
+          }
+          if (typeof carryOver.telemetry_enabled === "boolean") {
+            newConfig.telemetry.enabled = carryOver.telemetry_enabled;
+          }
+          await writeConfig(newCwd, ConfigSchema.parse(newConfig));
+        } catch (err) {
+          // Project was cloned + registered but carry-over failed.
+          // Not fatal — user can re-pick provider/autonomy on the new
+          // project. Surface a partial-success message.
+          return {
+            ok: true,
+            detail: `${res.detail}\n\nNote: couldn't carry over prior settings (${(err as Error).message}). You may need to re-select provider / autonomy.`,
+            stateDelta: { repoSet: true },
+          };
+        }
+
+        // Broad revalidation — banner, sidebar, every cached fetch
+        // reads from the new scan target after this.
+        revalidatePath("/", "layout");
+
+        return {
+          ok: true,
+          detail: `${res.detail} — active project is now ${slug}.`,
           stateDelta: { repoSet: true },
         };
       }

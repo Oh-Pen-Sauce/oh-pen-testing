@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { safeLoadConfig } from "../../lib/repo";
 import { SettingsForm } from "./settings-form";
+import { ResetDangerZone } from "./reset-danger-zone";
 import { PageHeader } from "../../components/trattoria/page-header";
 import { BtnLink } from "../../components/trattoria/button";
 
@@ -52,6 +53,10 @@ export default async function SettingsPage() {
           first.
         </div>
       )}
+      {/* Beta-only reset affordance — removed before v1.0 public release.
+          Lets testers wipe state so they can re-run the whole setup flow
+          without hand-editing config files or deleting directories. */}
+      <ResetDangerZone />
     </div>
   );
 }
