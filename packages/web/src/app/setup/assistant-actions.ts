@@ -97,6 +97,23 @@ export async function executeAssistantActionAction(
           stateDelta: { providerId: id, providerProbeOk: null },
         };
       }
+      case "set_model": {
+        // Use the existing setProviderAction with only the model field —
+        // it keeps the provider unchanged but updates ai.model. We read
+        // the current provider from the action input optionally; if
+        // missing we load it from config.
+        const model = input.model as string;
+        if (!model || typeof model !== "string") {
+          return { ok: false, detail: "set_model: missing 'model' input" };
+        }
+        const cwd = getOhpenCwd();
+        const config = await loadConfig(cwd);
+        await setProviderAction(config.ai.primary_provider, model);
+        return {
+          ok: true,
+          detail: `Model set to ${model}`,
+        };
+      }
       case "save_api_key": {
         const id = input.provider_id as ProviderId;
         const secret = input.secret as string;

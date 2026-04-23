@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 export default defineConfig({
-  entry: ["src/index.ts", "src/pdf-report.ts"],
+  entry: ["src/index.ts", "src/pdf-report.ts", "src/model-catalog.ts"],
   format: ["esm"],
   dts: true,
   clean: true,

@@ -120,10 +120,13 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   // round-trip).
   const didBootstrapRef = useRef(false);
 
+  // The composer is live whenever a provider is connected, including
+  // after setup completes — users should be able to say "change my
+  // model to opus" or "switch autonomy to careful" in natural
+  // language rather than bouncing over to the settings form. Marinara's
+  // memory has a "post-setup maintenance mode" section for this.
   const aiReady =
-    state.providerId !== null &&
-    state.providerProbeOk === true &&
-    state.currentStep !== "done";
+    state.providerId !== null && state.providerProbeOk === true;
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -667,10 +670,12 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             }}
             placeholder={
               aiReady
-                ? "Type anything — e.g. 'detect my repo', 'I'll use Recommended', 'I'm Sam'"
+                ? state.currentStep === "done"
+                  ? "Tweak anything — e.g. 'change model to opus', 'switch autonomy to careful'"
+                  : "Type anything — e.g. 'detect my repo', 'I'll use Recommended', 'I'm Sam'"
                 : "Pick a provider above first…"
             }
-            disabled={!aiReady || busy || state.currentStep === "done"}
+            disabled={!aiReady || busy}
             className="flex-1 px-3.5 py-2.5 rounded-full text-[13px] outline-none disabled:opacity-60"
             style={{
               background: "var(--cream-soft)",
@@ -680,12 +685,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           />
           <button
             onClick={sendComposer}
-            disabled={
-              !aiReady ||
-              busy ||
-              !composerValue.trim() ||
-              state.currentStep === "done"
-            }
+            disabled={!aiReady || busy || !composerValue.trim()}
             className="w-10 h-10 rounded-full font-bold disabled:opacity-40"
             style={{
               background: "var(--sauce)",
@@ -775,7 +775,9 @@ function ChatHeader({
             {busy
               ? "Marinara is thinking…"
               : aiLive
-                ? "smart mode"
+                ? state.currentStep === "done"
+                  ? "maintenance mode"
+                  : "smart mode"
                 : "picking a kitchen"}
           </span>
           <span className="opacity-60">· {stepLabels[state.currentStep]}</span>
@@ -1439,6 +1441,8 @@ function describeAction(
       return `Set git.repo to ${input.repo}`;
     case "save_github_token":
       return "Save GitHub PAT to keychain";
+    case "set_model":
+      return `Switch model to ${input.model}`;
     case "set_autonomy":
       return `Set autonomy to ${input.mode}`;
     case "acknowledge_authorisation":

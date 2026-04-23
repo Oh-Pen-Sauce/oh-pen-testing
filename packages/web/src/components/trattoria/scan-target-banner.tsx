@@ -1,7 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import { getOhpenCwd } from "../../lib/ohpen-cwd";
 import { safeLoadConfig } from "../../lib/repo";
+
+const execAsync = promisify(exec);
 
 /**
  * Server component banner — sits under the sidebar's brand block and
@@ -64,16 +68,36 @@ async function renderBanner() {
 
   const isOhpenSource = await detectOhpenSource(cwd);
   const cwdTail = path.basename(cwd);
+
+  // Look at the cwd's real git origin. This is what `git remote
+  // get-url origin` reports — parse it into owner/name so we can
+  // compare directly against config.git.repo. A mismatch here is
+  // worse than a folder-name mismatch (which is just a heuristic)
+  // because it's authoritative: "the repo you're in is NOT the
+  // repo PRs will open against".
+  const cwdOrigin = await detectCwdOrigin(cwd);
+
+  const originMismatch =
+    gitRepo &&
+    gitRepo !== "owner/name" &&
+    cwdOrigin &&
+    cwdOrigin.toLowerCase() !== gitRepo.toLowerCase();
+
   const repoName = gitRepo ? gitRepo.split("/")[1] : null;
   const nameMismatch =
-    gitRepo && repoName && repoName !== "name" && !cwdMatchesRepo(cwdTail, repoName);
+    gitRepo &&
+    repoName &&
+    repoName !== "name" &&
+    !cwdMatchesRepo(cwdTail, repoName);
 
   // Tier the banner colour by severity.
   const level: "neutral" | "warn" | "danger" = isOhpenSource
     ? "danger"
-    : nameMismatch
-      ? "warn"
-      : "neutral";
+    : originMismatch
+      ? "danger"
+      : nameMismatch
+        ? "warn"
+        : "neutral";
 
   const bg =
     level === "danger"
@@ -117,7 +141,7 @@ async function renderBanner() {
           <code>{gitRepo}</code>
         </span>
       )}
-      {level === "danger" && (
+      {isOhpenSource && (
         <span
           className="text-[11.5px] font-semibold flex items-center gap-1.5"
           style={{ color: "var(--sauce-dark)" }}
@@ -127,7 +151,18 @@ async function renderBanner() {
           project, relaunch from that project&rsquo;s directory.
         </span>
       )}
-      {level === "warn" && !isOhpenSource && (
+      {!isOhpenSource && originMismatch && (
+        <span
+          className="text-[11.5px] font-semibold"
+          style={{ color: "var(--sauce-dark)" }}
+        >
+          ⚠ PR target <code>{gitRepo}</code> doesn&rsquo;t match the scan
+          folder&rsquo;s git origin (<code>{cwdOrigin}</code>). PRs would
+          land on the wrong repo. Ask Marinara to fix this, or update{" "}
+          <code>git.repo</code> in Settings.
+        </span>
+      )}
+      {!isOhpenSource && !originMismatch && nameMismatch && (
         <span
           className="text-[11.5px]"
           style={{ color: "var(--ink)" }}
@@ -139,6 +174,37 @@ async function renderBanner() {
       )}
     </div>
   );
+}
+
+/**
+ * Read `git remote get-url origin` in the scan target and parse it into
+ * owner/name. Returns null if the dir isn't a git repo, has no origin,
+ * or the remote URL doesn't parse as a GitHub-style slug.
+ */
+async function detectCwdOrigin(cwd: string): Promise<string | null> {
+  try {
+    const { stdout } = await execAsync(
+      `git -C "${cwd}" remote get-url origin`,
+      { timeout: 3000 },
+    );
+    const url = stdout.trim();
+    if (!url) return null;
+    // https://github.com/owner/name(.git)?
+    const https =
+      /^https?:\/\/[^/]+\/([\w.-]+\/[\w.-]+?)(?:\.git)?\/?$/.exec(url);
+    if (https) return https[1]!;
+    // git@github.com:owner/name(.git)?
+    const ssh = /^git@[^:]+:([\w.-]+\/[\w.-]+?)(?:\.git)?$/.exec(url);
+    if (ssh) return ssh[1]!;
+    // ssh://git@host/owner/name(.git)?
+    const sshUrl = /^ssh:\/\/git@[^/]+\/([\w.-]+\/[\w.-]+?)(?:\.git)?$/.exec(
+      url,
+    );
+    if (sshUrl) return sshUrl[1]!;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**

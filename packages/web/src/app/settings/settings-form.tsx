@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import type { Config, AutonomyMode, ProviderId } from "@oh-pen-testing/shared";
+// Use the subpath export so this client component doesn't drag in the
+// Node-only fs/promises imports from secrets-store.js via the main
+// shared bundle. The model-catalog module is pure data + types.
+import {
+  MODEL_CATALOG,
+  defaultModelFor,
+} from "@oh-pen-testing/shared/model-catalog";
 import { saveSettingsAction, saveRiskyAction } from "./actions";
 import { Btn } from "../../components/trattoria/button";
 
@@ -182,11 +189,10 @@ export function SettingsForm({ initial }: { initial: Config }) {
               { value: "ollama", label: "Ollama (local)" },
             ]}
           />
-          <Field
-            label="Model"
-            value={model}
+          <ModelPicker
+            provider={provider}
+            model={model}
             onChange={setModel}
-            mono
           />
           <Field
             label="Budget USD (API providers)"
@@ -535,6 +541,101 @@ function RiskyToggle({
           {desc}
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * Provider-aware model picker.
+ *
+ * Shows a native <select> populated from MODEL_CATALOG for the current
+ * provider, plus a final "Custom…" option that reveals a free-text
+ * input for edge cases (Ollama users running community models, users
+ * on OpenRouter slugs we haven't catalogued yet).
+ *
+ * When the user switches providers, if their current model isn't valid
+ * for the new provider we auto-select the new provider's default so
+ * they don't end up in a broken state like "provider: openai, model:
+ * claude-sonnet-4-6".
+ */
+function ModelPicker({
+  provider,
+  model,
+  onChange,
+}: {
+  provider: ProviderId;
+  model: string;
+  onChange: (m: string) => void;
+}) {
+  const catalog = MODEL_CATALOG[provider] ?? [];
+  const catalogIds = new Set(catalog.map((c) => c.id));
+  const isCustom = model.length > 0 && !catalogIds.has(model);
+  const [showCustom, setShowCustom] = useState(isCustom);
+
+  // When the provider changes, auto-switch to that provider's default
+  // model unless the current model is already valid for the new one.
+  useEffect(() => {
+    if (catalogIds.has(model)) return;
+    if (isCustom) return; // respect an explicit custom entry
+    const fallback = defaultModelFor(provider);
+    if (fallback && fallback !== model) onChange(fallback);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provider]);
+
+  const current = catalog.find((c) => c.id === model);
+
+  return (
+    <div>
+      <Label>Model</Label>
+      <select
+        value={showCustom ? "__custom__" : model}
+        onChange={(e) => {
+          const v = e.target.value;
+          if (v === "__custom__") {
+            setShowCustom(true);
+            return;
+          }
+          setShowCustom(false);
+          onChange(v);
+        }}
+        className="w-full px-3 py-2 text-[13px] rounded-md outline-none"
+        style={{
+          background: "var(--cream-soft)",
+          border: "1.5px solid var(--ink)",
+          color: "var(--ink)",
+          fontFamily: "var(--font-mono)",
+        }}
+      >
+        {catalog.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.label}
+          </option>
+        ))}
+        <option value="__custom__">Custom — type a model id…</option>
+      </select>
+      {current?.note && !showCustom && (
+        <div
+          className="mt-1 text-[11px] text-ink-soft leading-snug"
+          style={{ fontFamily: "var(--font-body)" }}
+        >
+          {current.note}
+        </div>
+      )}
+      {showCustom && (
+        <input
+          type="text"
+          value={model}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder="e.g. my-custom-finetune:latest"
+          className="w-full mt-2 px-3 py-2 text-[13px] rounded-md outline-none"
+          style={{
+            background: "var(--cream-soft)",
+            border: "1.5px solid var(--ink)",
+            color: "var(--ink)",
+            fontFamily: "var(--font-mono)",
+          }}
+        />
+      )}
     </div>
   );
 }

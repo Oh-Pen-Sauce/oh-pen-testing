@@ -83,3 +83,17 @@ suite stays passing as an automatic invariant.
 versions, use `pnpm -r` so all published packages move together —
 see [PUBLISHING.md](./PUBLISHING.md) for the full release runbook
 including dependency-order publish.
+
+### Publish state — PAUSED
+
+As of commit `45d8256`, every package is prepped for npm publish
+(`private: true` removed from the 11 publishable packages,
+`publishConfig.access: public` set, pack-and-install smoke test green).
+**Sam has explicitly paused publishing to keep iterating on UX during
+beta.** Do not run `pnpm publish` until he says "publish now". When
+he does:
+
+- Default to `--tag beta` on version `1.0.0-beta.0` (discussed with Sam;
+  right track for an iterating project)
+- Follow [PUBLISHING.md](./PUBLISHING.md) end-to-end — don't shortcut
+  the pack + install smoke test (§ 4), that's the durable backstop
