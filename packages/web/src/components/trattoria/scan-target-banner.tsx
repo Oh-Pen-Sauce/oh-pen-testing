@@ -28,6 +28,36 @@ import { safeLoadConfig } from "../../lib/repo";
  *     make sure you launched from the right project")
  */
 export async function ScanTargetBanner() {
+  // This component is rendered in the root layout — anything it throws
+  // would 500 every page, including /setup, making the tool unopenable.
+  // Wrap in try/catch and degrade to a minimal neutral banner on any
+  // failure. Worst case: we lose the warning nuance; never worse than
+  // a white-screen-of-death.
+  try {
+    return await renderBanner();
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "[scan-target-banner] render failed, showing minimal fallback:",
+      (err as Error).message,
+    );
+    return (
+      <div
+        className="px-5 py-2.5 text-[11.5px]"
+        style={{
+          background: "var(--cream-soft)",
+          borderBottom: "2px solid var(--ink)",
+          fontFamily: "var(--font-mono)",
+          color: "var(--ink-soft)",
+        }}
+      >
+        <code>{getOhpenCwd()}</code>
+      </div>
+    );
+  }
+}
+
+async function renderBanner() {
   const cwd = getOhpenCwd();
   const config = await safeLoadConfig();
   const gitRepo = config?.git.repo ?? null;
