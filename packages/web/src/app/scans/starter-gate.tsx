@@ -5,9 +5,11 @@ import Link from "next/link";
 import { Btn } from "../../components/trattoria/button";
 import {
   runStarterScanAction,
+  runFullScanAction,
   bypassStarterAction,
   type StarterScanSummary,
 } from "./actions";
+import { runAutoRemediateAction, type AutoRemediateResult } from "./remediate-actions";
 import { CookingMarinara } from "./cooking-marinara";
 
 /**
@@ -360,8 +362,96 @@ function RunningCard({
 // ───────── Done ─────────
 
 function DoneCard({ summary }: { summary: StarterScanSummary }) {
-  const { scanId, issuesFound, filesScanned, scannedPath, playbooksRun, topFiles, yoloMode } =
-    summary;
+  const [fullScanRunning, setFullScanRunning] = useState(false);
+  const [fullScanResult, setFullScanResult] = useState<StarterScanSummary | null>(
+    null,
+  );
+  const [remediating, setRemediating] = useState(false);
+  const [remediateResult, setRemediateResult] = useState<AutoRemediateResult | null>(
+    null,
+  );
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  // If the full scan completed in this session, display its results.
+  // Otherwise keep the starter scan result. Structured identically so
+  // every field below just reads `s.whatever`.
+  const s = fullScanResult ?? summary;
+  const showingFullScan = fullScanResult !== null;
+
+  async function runFullScan() {
+    setActionError(null);
+    setFullScanRunning(true);
+    try {
+      const res = await runFullScanAction();
+      setFullScanResult(res);
+      // Full scan found issues → leave page; user may want to
+      // either remediate (yolo/full-yolo) or triage (board).
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setFullScanRunning(false);
+    }
+  }
+
+  async function autoRemediate() {
+    setActionError(null);
+    setRemediating(true);
+    try {
+      const res = await runAutoRemediateAction();
+      setRemediateResult(res);
+    } catch (err) {
+      setActionError((err as Error).message);
+    } finally {
+      setRemediating(false);
+    }
+  }
+
+  // ── Full-scan running: show the same cooking animation as the
+  // starter run, but scoped inside the DoneCard so the user can see
+  // their starter results while the full scan churns.
+  if (fullScanRunning) {
+    return (
+      <div
+        className="rounded-xl p-6 mb-6"
+        style={{
+          background: "var(--cream-soft)",
+          border: "2.5px solid var(--ink)",
+          boxShadow: "6px 6px 0 var(--sauce-dark)",
+        }}
+      >
+        <div className="flex items-start gap-6 flex-wrap md:flex-nowrap">
+          <div className="shrink-0 mx-auto">
+            <CookingMarinara size={180} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div
+              className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--sauce-soft)",
+              }}
+            >
+              ● Full scan running
+            </div>
+            <h2
+              className="font-black italic text-[26px] text-ink m-0 mb-3"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              The whole kitchen&rsquo;s cooking.
+            </h2>
+            <p className="text-[13.5px] text-ink-soft m-0 leading-snug">
+              Running every playbook relevant to your stack, with AI
+              confirm on. This takes longer than the starter — a few
+              minutes for a small project, up to 10 for a large one.
+              Keep this tab open; we&rsquo;ll show the results here
+              when it finishes.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className="rounded-xl p-6 mb-6"
@@ -378,15 +468,15 @@ function DoneCard({ summary }: { summary: StarterScanSummary }) {
           color: "var(--basil-dark)",
         }}
       >
-        ✓ Starter scan complete
+        ✓ {showingFullScan ? "Full scan complete" : "Starter scan complete"}
       </div>
       <h2
         className="font-black italic text-[28px] text-ink m-0 mb-2"
         style={{ fontFamily: "var(--font-display)" }}
       >
-        {issuesFound === 0
+        {s.issuesFound === 0
           ? "Spotless."
-          : `Found ${issuesFound} issue${issuesFound === 1 ? "" : "s"}.`}
+          : `Found ${s.issuesFound} issue${s.issuesFound === 1 ? "" : "s"}.`}
       </h2>
 
       {/* Scan summary — shows exactly what ran + what it scanned.
@@ -411,7 +501,7 @@ function DoneCard({ summary }: { summary: StarterScanSummary }) {
               target
             </span>
             <code style={{ fontFamily: "var(--font-mono)" }}>
-              {scannedPath}
+              {s.scannedPath}
             </code>
           </div>
           <div>
@@ -425,7 +515,7 @@ function DoneCard({ summary }: { summary: StarterScanSummary }) {
               scanned
             </span>
             <span>
-              {filesScanned} files · {playbooksRun} playbooks
+              {s.filesScanned} files · {s.playbooksRun} playbooks
             </span>
           </div>
           <div>
@@ -438,30 +528,32 @@ function DoneCard({ summary }: { summary: StarterScanSummary }) {
             >
               scan id
             </span>
-            <code style={{ fontFamily: "var(--font-mono)" }}>{scanId}</code>
+            <code style={{ fontFamily: "var(--font-mono)" }}>{s.scanId}</code>
           </div>
         </div>
-        {topFiles.length > 0 && (
+        {s.topFiles.length > 0 && (
           <div
             className="mt-2 pt-2 text-[12px] text-ink-soft"
             style={{ borderTop: "1px dashed rgba(34,26,20,0.18)" }}
           >
             <strong className="font-semibold">Top files:</strong>{" "}
-            {topFiles.map((f, i) => (
+            {s.topFiles.map((f, i) => (
               <code
                 key={f}
                 className="inline-block"
                 style={{ fontFamily: "var(--font-mono)" }}
               >
                 {f}
-                {i < topFiles.length - 1 ? ", " : ""}
+                {i < s.topFiles.length - 1 ? ", " : ""}
               </code>
             ))}
           </div>
         )}
       </div>
 
-      {issuesFound > 0 && yoloMode && (
+      {/* YOLO banner — updated copy now that we have a real
+          auto-remediate button right below it. */}
+      {s.issuesFound > 0 && s.yoloMode && !remediateResult && (
         <div
           className="rounded-[10px] px-4 py-3 mb-4"
           style={{
@@ -476,37 +568,166 @@ function DoneCard({ summary }: { summary: StarterScanSummary }) {
               color: "var(--sauce-dark)",
             }}
           >
-            🚀 You&rsquo;re in {summary.autonomy} mode
+            🚀 You&rsquo;re in {s.autonomy} mode
           </div>
-          <div className="text-[13px] text-ink mb-2">
-            Agents can auto-open PRs for these findings. I haven&rsquo;t
-            done that yet because starter scans are meant to be read-only
-            — head to the board to trigger remediation per issue, or run{" "}
-            <code
-              className="px-1 rounded"
-              style={{ background: "var(--cream)" }}
-            >
-              opt remediate --all
-            </code>{" "}
-            in your terminal to fix the whole batch at once.
+          <div className="text-[13px] text-ink">
+            Agents can auto-open PRs for every finding. Hit
+            &ldquo;Auto-remediate all&rdquo; below to fix the whole
+            batch at once, or head to the board to triage them
+            one-by-one.
           </div>
         </div>
       )}
 
-      <p className="text-[14px] text-ink-soft m-0 mb-4">
-        Head to the{" "}
-        <Link
-          href="/board"
-          className="underline"
-          style={{ color: "var(--sauce)" }}
+      {/* Remediation result — PR URLs, gated count, any failures. */}
+      {remediateResult && (
+        <div
+          className="rounded-[10px] px-4 py-3 mb-4 text-[13px]"
+          style={{
+            background: remediateResult.ok ? "#E4F0DF" : "#FBE4E0",
+            border: `2px solid ${remediateResult.ok ? "var(--basil)" : "var(--sauce)"}`,
+          }}
         >
-          board
-        </Link>{" "}
-        to triage, or reload for the full catalog — now unlocked.
+          <div
+            className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: remediateResult.ok
+                ? "var(--basil-dark)"
+                : "var(--sauce-dark)",
+            }}
+          >
+            {remediateResult.ok ? "✓ Remediation run" : "✖ Remediation failed"}
+          </div>
+          <div className="text-ink mb-2">{remediateResult.detail}</div>
+          {remediateResult.prUrls.length > 0 && (
+            <ul className="list-none p-0 m-0 flex flex-col gap-1">
+              {remediateResult.prUrls.map((url) => (
+                <li key={url}>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-[12.5px]"
+                    style={{
+                      color: "var(--sauce)",
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    {url}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Remediating in-progress strip. */}
+      {remediating && (
+        <div
+          className="rounded-[10px] px-4 py-3 mb-4 flex items-center gap-3"
+          style={{
+            background: "var(--parmesan)",
+            border: "2px solid var(--ink)",
+          }}
+        >
+          <CookingMarinara size={44} />
+          <div className="text-[13px] text-ink">
+            Agents are opening PRs — this can take a minute per issue.
+            Keep the tab open.
+          </div>
+        </div>
+      )}
+
+      {actionError && (
+        <div
+          className="mb-4 px-3 py-2 rounded text-[12px]"
+          style={{
+            background: "#FBE4E0",
+            border: "1.5px solid var(--sauce)",
+            color: "var(--sauce-dark)",
+          }}
+        >
+          ✖ {actionError}
+        </div>
+      )}
+
+      <p className="text-[14px] text-ink-soft m-0 mb-4">
+        {s.issuesFound > 0 ? (
+          <>
+            Head to the{" "}
+            <Link
+              href="/board"
+              className="underline"
+              style={{ color: "var(--sauce)" }}
+            >
+              board
+            </Link>{" "}
+            to triage issue-by-issue
+            {showingFullScan ? "." : ", or run the full scan for a deeper pass."}
+          </>
+        ) : showingFullScan ? (
+          <>
+            Nothing to do here. Future scans will continue running on a
+            schedule — check back anytime.
+          </>
+        ) : (
+          <>
+            Starter was clean — want to run the full catalogue next? It
+            takes longer but catches a lot more.
+          </>
+        )}
       </p>
-      <Btn icon="↻" onClick={() => window.location.reload()}>
-        See my scans
-      </Btn>
+
+      <div className="flex items-center gap-3 flex-wrap">
+        {/* Primary CTA: auto-remediate when in YOLO + we found issues
+            and haven't remediated yet. */}
+        {s.issuesFound > 0 && s.yoloMode && !remediateResult && (
+          <Btn
+            icon="🚀"
+            onClick={autoRemediate}
+            disabled={remediating || fullScanRunning}
+          >
+            {remediating
+              ? "Auto-remediating…"
+              : `Auto-remediate all ${s.issuesFound} issue${s.issuesFound === 1 ? "" : "s"}`}
+          </Btn>
+        )}
+
+        {/* Full scan — offer it whenever we haven't already run one. */}
+        {!showingFullScan && (
+          <Btn
+            icon="🔍"
+            onClick={runFullScan}
+            disabled={fullScanRunning || remediating}
+          >
+            {fullScanRunning ? "Running full scan…" : "Run full scan"}
+          </Btn>
+        )}
+
+        {/* Board / reload — always available. */}
+        {s.issuesFound > 0 && (
+          <Link
+            href="/board"
+            className="text-[13px] underline"
+            style={{ color: "var(--ink-soft)" }}
+          >
+            Open the board →
+          </Link>
+        )}
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="ml-auto text-[11px] underline"
+          style={{
+            color: "var(--ink-soft)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          ↻ See my scans
+        </button>
+      </div>
     </div>
   );
 }

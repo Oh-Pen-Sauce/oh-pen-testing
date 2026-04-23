@@ -67,6 +67,20 @@ async function renderBanner() {
   const config = await safeLoadConfig();
   const gitRepo = config?.git.repo ?? null;
 
+  // "Setup still in progress" means either no config exists yet, or
+  // the user hasn't picked a real GitHub repo (git.repo still at the
+  // placeholder "owner/name"), or they haven't acknowledged
+  // authorisation. Before any of those are done, showing a red
+  // "PR target doesn't match scan folder's origin" warning is
+  // nonsense — the user hasn't committed to a PR target yet. Show a
+  // gentle "setup in progress" line instead, so the banner stays
+  // informative without being alarmist.
+  const setupIncomplete =
+    !config ||
+    !gitRepo ||
+    gitRepo === "owner/name" ||
+    !config.scope?.authorisation_acknowledged;
+
   const isOhpenSource = await detectOhpenSource(cwd);
   const cwdTail = path.basename(cwd);
 
@@ -79,6 +93,7 @@ async function renderBanner() {
   const cwdOrigin = await detectCwdOrigin(cwd);
 
   const originMismatch =
+    !setupIncomplete &&
     gitRepo &&
     gitRepo !== "owner/name" &&
     cwdOrigin &&
@@ -86,19 +101,24 @@ async function renderBanner() {
 
   const repoName = gitRepo ? gitRepo.split("/")[1] : null;
   const nameMismatch =
+    !setupIncomplete &&
     gitRepo &&
     repoName &&
     repoName !== "name" &&
     !cwdMatchesRepo(cwdTail, repoName);
 
-  // Tier the banner colour by severity.
-  const level: "neutral" | "warn" | "danger" = isOhpenSource
-    ? "danger"
-    : originMismatch
+  // Tier the banner colour by severity. Setup-incomplete is always
+  // neutral — we're not going to alarm the user about a mismatch
+  // before they've had a chance to declare what they want.
+  const level: "neutral" | "warn" | "danger" = setupIncomplete
+    ? "neutral"
+    : isOhpenSource
       ? "danger"
-      : nameMismatch
-        ? "warn"
-        : "neutral";
+      : originMismatch
+        ? "danger"
+        : nameMismatch
+          ? "warn"
+          : "neutral";
 
   const bg =
     level === "danger"
@@ -142,7 +162,16 @@ async function renderBanner() {
           <code>{gitRepo}</code>
         </span>
       )}
-      {isOhpenSource && (
+      {setupIncomplete && (
+        <span
+          className="text-[11.5px]"
+          style={{ color: "var(--ink-soft)" }}
+        >
+          setup in progress — scan target will lock in once you finish
+          the wizard
+        </span>
+      )}
+      {!setupIncomplete && isOhpenSource && (
         <span
           className="text-[11.5px] font-semibold flex items-center gap-1.5"
           style={{ color: "var(--sauce-dark)" }}
@@ -152,7 +181,7 @@ async function renderBanner() {
           project, relaunch from that project&rsquo;s directory.
         </span>
       )}
-      {!isOhpenSource && originMismatch && (
+      {!setupIncomplete && !isOhpenSource && originMismatch && (
         <span
           className="text-[11.5px] font-semibold flex items-center flex-wrap gap-y-1"
           style={{ color: "var(--sauce-dark)" }}
@@ -164,7 +193,7 @@ async function renderBanner() {
           {cwdOrigin && <AlignRepoButton detectedRepo={cwdOrigin} />}
         </span>
       )}
-      {!isOhpenSource && !originMismatch && nameMismatch && (
+      {!setupIncomplete && !isOhpenSource && !originMismatch && nameMismatch && (
         <span
           className="text-[11.5px]"
           style={{ color: "var(--ink)" }}

@@ -92,3 +92,54 @@ export async function bypassStarterAction(): Promise<void> {
   revalidatePath("/scans");
   revalidatePath("/");
 }
+
+/**
+ * Full scan — every bundled + remote playbook relevant to the
+ * project's languages, with AI confirmation on. The serious scan.
+ *
+ * Shares the StarterScanSummary shape so the UI can treat both
+ * result types uniformly.
+ */
+export async function runFullScanAction(): Promise<StarterScanSummary> {
+  ensureProvidersRegistered();
+  const cwd = await resolveScanTargetPath();
+  const config = await loadConfig(cwd);
+  const provider = await resolveProvider({ config });
+
+  // No onlyPlaybookIds filter → full catalogue runs. skipAiConfirm
+  // defaults to false, so every regex hit gets an AI confirm pass.
+  const result = await runScan({
+    cwd,
+    config,
+    provider,
+    playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
+  });
+
+  const fileCounts = new Map<string, number>();
+  for (const issue of result.issues) {
+    const f = issue.location.file;
+    fileCounts.set(f, (fileCounts.get(f) ?? 0) + 1);
+  }
+  const topFiles = Array.from(fileCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([f]) => f);
+
+  revalidatePath("/scans");
+  revalidatePath("/board");
+  revalidatePath("/");
+
+  return {
+    ok: true,
+    scanId: result.scanId,
+    issuesFound: result.issues.length,
+    filesScanned: result.filesScanned,
+    scannedPath: result.scannedPath,
+    playbooksRun: result.scan.playbooks_run,
+    autonomy: config.agents.autonomy,
+    topFiles,
+    yoloMode:
+      config.agents.autonomy === "yolo" ||
+      config.agents.autonomy === "full-yolo",
+  };
+}

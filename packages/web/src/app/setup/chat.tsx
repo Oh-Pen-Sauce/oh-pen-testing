@@ -21,8 +21,13 @@ import { InlineTerminal } from "./inline-terminal";
 import { renderMiniMarkdown } from "./mini-markdown";
 import {
   runStarterScanAction,
+  runFullScanAction,
   type StarterScanSummary,
 } from "../scans/actions";
+import {
+  runAutoRemediateAction,
+  type AutoRemediateResult,
+} from "../scans/remediate-actions";
 import { CookingMarinara } from "../scans/cooking-marinara";
 
 /**
@@ -1323,11 +1328,24 @@ function FinalActions({
 }) {
   const [phase, setPhase] = useState<
     | { kind: "idle" }
-    | { kind: "running"; startedAt: number }
-    | { kind: "done"; summary: StarterScanSummary }
+    | { kind: "running"; startedAt: number; label: "starter" | "full" }
+    | {
+        kind: "done";
+        summary: StarterScanSummary;
+        /** True if the summary is from runFullScanAction (not starter). */
+        isFullScan: boolean;
+      }
     | { kind: "error"; message: string }
   >({ kind: "idle" });
   const [elapsedMs, setElapsedMs] = useState(0);
+
+  // Independent remediation state — only meaningful once phase.kind === "done"
+  // and the user hits the YOLO auto-remediate button. Kept outside the main
+  // phase machine so the user can keep seeing their scan summary while
+  // agents are cooking PRs.
+  const [remediating, setRemediating] = useState(false);
+  const [remediateResult, setRemediateResult] =
+    useState<AutoRemediateResult | null>(null);
 
   // Tick elapsed time while running.
   useEffect(() => {
@@ -1342,10 +1360,10 @@ function FinalActions({
   async function start() {
     onError(null);
     setElapsedMs(0);
-    setPhase({ kind: "running", startedAt: Date.now() });
+    setPhase({ kind: "running", startedAt: Date.now(), label: "starter" });
     try {
       const res = await runStarterScanAction();
-      setPhase({ kind: "done", summary: res });
+      setPhase({ kind: "done", summary: res, isFullScan: false });
     } catch (err) {
       const message = (err as Error).message ?? "Unknown error";
       setPhase({ kind: "error", message });
@@ -1353,9 +1371,41 @@ function FinalActions({
     }
   }
 
+  async function startFullScan() {
+    onError(null);
+    setElapsedMs(0);
+    setRemediateResult(null);
+    setPhase({ kind: "running", startedAt: Date.now(), label: "full" });
+    try {
+      const res = await runFullScanAction();
+      setPhase({ kind: "done", summary: res, isFullScan: true });
+    } catch (err) {
+      const message = (err as Error).message ?? "Unknown error";
+      setPhase({ kind: "error", message });
+      onError(message);
+    }
+  }
+
+  async function autoRemediate() {
+    onError(null);
+    setRemediating(true);
+    try {
+      const res = await runAutoRemediateAction();
+      setRemediateResult(res);
+      if (!res.ok) onError(res.detail);
+    } catch (err) {
+      const message = (err as Error).message ?? "Unknown error";
+      onError(message);
+    } finally {
+      setRemediating(false);
+    }
+  }
+
   if (phase.kind === "running") {
     const seconds = (elapsedMs / 1000).toFixed(1);
-    const slow = elapsedMs > 30_000;
+    const isFull = phase.label === "full";
+    // Full scans legitimately take minutes. "Slow" thresholds differ.
+    const slow = elapsedMs > (isFull ? 180_000 : 30_000);
     return (
       <UserFormBubble>
         <div className="flex items-start gap-4 flex-wrap">
@@ -1370,17 +1420,20 @@ function FinalActions({
                 color: "var(--sauce-soft)",
               }}
             >
-              ● Scanning · {seconds}s
+              ● {isFull ? "Full scan" : "Scanning"} · {seconds}s
             </div>
             <div
               className="font-black italic text-[18px] text-ink mb-1.5"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Running your first scan.
+              {isFull
+                ? "The whole kitchen's cooking."
+                : "Running your first scan."}
             </div>
             <div className="text-[12px] text-ink-soft leading-snug">
-              5 static playbooks, no network, no AI cost. Usually under
-              30 seconds.
+              {isFull
+                ? "Running every playbook relevant to your stack with AI confirm on. A few minutes for a small project, longer for large ones."
+                : "5 static playbooks, no network, no AI cost. Usually under 30 seconds."}
             </div>
             {slow && (
               <div
@@ -1403,6 +1456,7 @@ function FinalActions({
 
   if (phase.kind === "done") {
     const s = phase.summary;
+    const isFull = phase.isFullScan;
     return (
       <UserFormBubble>
         <div
@@ -1412,7 +1466,7 @@ function FinalActions({
             color: "var(--basil-dark)",
           }}
         >
-          ✓ First scan complete
+          ✓ {isFull ? "Full scan complete" : "First scan complete"}
         </div>
         <div
           className="font-black italic text-[20px] text-ink mb-2"
@@ -1440,7 +1494,7 @@ function FinalActions({
             </div>
           )}
         </div>
-        {s.issuesFound > 0 && s.yoloMode && (
+        {s.issuesFound > 0 && s.yoloMode && !remediateResult && !remediating && (
           <div
             className="text-[12px] mb-3 px-3 py-2 rounded leading-snug"
             style={{
@@ -1448,35 +1502,140 @@ function FinalActions({
               border: "1.5px solid var(--ink)",
             }}
           >
-            🚀 You&rsquo;re in <strong>{s.autonomy}</strong> mode. Agents
-            can auto-open PRs for these — hit{" "}
-            <Link
-              href="/board"
-              className="underline"
-              style={{ color: "var(--sauce)" }}
-            >
-              the board
-            </Link>{" "}
-            and trigger remediation per issue, or run{" "}
-            <code style={{ fontFamily: "var(--font-mono)" }}>
-              opt remediate --all
-            </code>{" "}
-            in your terminal.
+            🚀 You&rsquo;re in <strong>{s.autonomy}</strong> mode. Agents can
+            auto-open PRs for every finding — hit &ldquo;Auto-remediate all&rdquo;
+            below to fix the whole batch, or open the board to triage them
+            one-by-one.
           </div>
         )}
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/board"
-            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+
+        {/* Remediation running strip */}
+        {remediating && (
+          <div
+            className="mb-3 px-3 py-2 rounded flex items-center gap-3"
             style={{
-              background: "var(--sauce)",
-              color: "var(--cream)",
-              border: "2px solid var(--ink)",
-              boxShadow: "3px 3px 0 var(--ink)",
+              background: "var(--parmesan)",
+              border: "1.5px solid var(--ink)",
             }}
           >
-            Open the board →
-          </Link>
+            <CookingMarinara size={40} />
+            <div className="text-[12.5px] text-ink leading-snug">
+              Agents are opening PRs — a minute per issue is normal. Keep this
+              tab open.
+            </div>
+          </div>
+        )}
+
+        {/* Remediation result — PR URLs, gated count, failures. */}
+        {remediateResult && (
+          <div
+            className="mb-3 px-3 py-2 rounded text-[12.5px]"
+            style={{
+              background: remediateResult.ok ? "#E4F0DF" : "#FBE4E0",
+              border: `1.5px solid ${remediateResult.ok ? "var(--basil)" : "var(--sauce)"}`,
+            }}
+          >
+            <div
+              className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: remediateResult.ok
+                  ? "var(--basil-dark)"
+                  : "var(--sauce-dark)",
+              }}
+            >
+              {remediateResult.ok ? "✓ Remediation run" : "✖ Remediation failed"}
+            </div>
+            <div className="text-ink mb-1">{remediateResult.detail}</div>
+            {remediateResult.prUrls.length > 0 && (
+              <ul className="list-none p-0 m-0 flex flex-col gap-0.5">
+                {remediateResult.prUrls.map((url) => (
+                  <li key={url}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline text-[12px]"
+                      style={{
+                        color: "var(--sauce)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          {/* Auto-remediate — primary CTA when YOLO + issues found. */}
+          {s.issuesFound > 0 && s.yoloMode && !remediateResult && (
+            <button
+              type="button"
+              onClick={autoRemediate}
+              disabled={remediating}
+              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg disabled:opacity-60"
+              style={{
+                background: "var(--sauce)",
+                color: "var(--cream)",
+                border: "2px solid var(--ink)",
+                boxShadow: "3px 3px 0 var(--ink)",
+                cursor: remediating ? "wait" : "pointer",
+              }}
+            >
+              {remediating
+                ? "Auto-remediating…"
+                : `🚀 Auto-remediate all ${s.issuesFound} issue${s.issuesFound === 1 ? "" : "s"}`}
+            </button>
+          )}
+
+          {/* Full scan — offered after starter (not after a full scan). */}
+          {!isFull && (
+            <button
+              type="button"
+              onClick={startFullScan}
+              disabled={remediating}
+              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg disabled:opacity-60"
+              style={{
+                background:
+                  s.issuesFound === 0 ? "var(--sauce)" : "var(--cream)",
+                color: s.issuesFound === 0 ? "var(--cream)" : "var(--ink)",
+                border: "2px solid var(--ink)",
+                boxShadow:
+                  s.issuesFound === 0 ? "3px 3px 0 var(--ink)" : undefined,
+                cursor: "pointer",
+              }}
+            >
+              🔍 {s.issuesFound === 0 ? "Run full scan" : "Run full scan too"}
+            </button>
+          )}
+
+          {s.issuesFound > 0 && (
+            <Link
+              href="/board"
+              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+              style={{
+                background:
+                  s.yoloMode && !remediateResult
+                    ? "var(--cream)"
+                    : "var(--sauce)",
+                color:
+                  s.yoloMode && !remediateResult
+                    ? "var(--ink)"
+                    : "var(--cream)",
+                border: "2px solid var(--ink)",
+                boxShadow:
+                  s.yoloMode && !remediateResult
+                    ? undefined
+                    : "3px 3px 0 var(--ink)",
+              }}
+            >
+              Open the board →
+            </Link>
+          )}
           <Link
             href="/scans"
             className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
