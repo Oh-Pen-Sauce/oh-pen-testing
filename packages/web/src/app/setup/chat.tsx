@@ -43,7 +43,14 @@ import { CookingMarinara } from "../scans/cooking-marinara";
 
 interface ChatTurn {
   id: string;
-  from: "bot" | "user";
+  /**
+   * "completion" is a marker turn that renders the FinalActions
+   * starter-scan panel inline in the conversation instead of sticking
+   * it to the bottom forever. Feels natural — the panel enters the
+   * chat as a message at the moment setup completes, and any
+   * subsequent chat scrolls below it like normal.
+   */
+  from: "bot" | "user" | "completion";
   content: React.ReactNode;
   /**
    * Plain-text version of `content`. React nodes can't be serialized
@@ -75,7 +82,7 @@ interface ChatSnapshot {
   version: 1;
   turns: Array<{
     id: string;
-    from: "bot" | "user";
+    from: "bot" | "user" | "completion";
     text: string;
     pendingAction?: ChatTurn["pendingAction"];
   }>;
@@ -239,6 +246,34 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turns, busy]);
+
+  /*
+   * When setup transitions into "done", inject a single marker turn
+   * that renders the FinalActions starter-scan panel INLINE in the
+   * conversation timeline (rather than as a banner pinned to the
+   * bottom). That way any subsequent chat messages append below it
+   * naturally — the completion panel reads as a message rather than
+   * a floating CTA.
+   *
+   * Idempotent: we bail if a completion turn already exists, which
+   * covers both the same-session re-entry case and the
+   * restored-from-sessionStorage case.
+   */
+  useEffect(() => {
+    if (state.currentStep !== "done") return;
+    setTurns((existing) => {
+      if (existing.some((t) => t.from === "completion")) return existing;
+      return [
+        ...existing,
+        {
+          id: randomId("completion"),
+          from: "completion",
+          content: null, // rendered specially by the turns.map switch
+          text: "setup-complete-marker",
+        },
+      ];
+    });
+  }, [state.currentStep]);
 
   // Seed opener. Three branches:
   //   (a) setup already fully complete (authorisation_acknowledged) →
@@ -600,19 +635,31 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             background: `repeating-linear-gradient(0deg, var(--cream-soft), var(--cream-soft) 28px, var(--cream) 28px, var(--cream) 29px)`,
           }}
         >
-          {turns.map((t) =>
-            t.from === "bot" ? (
-              <BotBubble
-                key={t.id}
-                content={t.content}
-                pendingAction={t.pendingAction}
-                onConfirm={(a) => confirmAction(t.id, a)}
-                busy={busy}
-              />
-            ) : (
-              <UserBubble key={t.id}>{t.content}</UserBubble>
-            ),
-          )}
+          {turns.map((t) => {
+            if (t.from === "bot") {
+              return (
+                <BotBubble
+                  key={t.id}
+                  content={t.content}
+                  pendingAction={t.pendingAction}
+                  onConfirm={(a) => confirmAction(t.id, a)}
+                  busy={busy}
+                />
+              );
+            }
+            if (t.from === "completion") {
+              // The starter-scan panel lives in the timeline — new
+              // chat appends below it, so it reads as "a message"
+              // rather than a banner.
+              return (
+                <FinalActions
+                  key={t.id}
+                  onError={(e) => setError(e)}
+                />
+              );
+            }
+            return <UserBubble key={t.id}>{t.content}</UserBubble>;
+          })}
 
           {/*
             Pre-connect surface. For first-time users we lead with the
@@ -751,15 +798,13 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           )}
 
           {/*
-            Final CTA once setup is done — runs the starter scan inline
-            (same server action the /scans gate uses) so the user sees
-            the cooking animation and result right here, without
-            bouncing to another page that looks "empty". If they prefer
-            to jump to the full scans dashboard they can.
+            The Run-first-scan panel used to live here pinned to the
+            bottom. It's now injected as a "completion" turn into the
+            turns timeline above (see the effect that watches
+            state.currentStep === "done"), so it reads as a message
+            rather than a sticky CTA. Removing the block here means
+            new chat messages can flow past it naturally.
           */}
-          {state.currentStep === "done" && (
-            <FinalActions onError={(e) => setError(e)} />
-          )}
 
           {error && (
             <div
