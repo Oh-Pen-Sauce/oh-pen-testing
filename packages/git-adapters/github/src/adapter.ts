@@ -1,7 +1,6 @@
 import {
   commitAll,
   createBranch,
-  getCurrentBranch,
   push,
   type GitAuthor,
   MARINARA_AUTHOR,
@@ -88,20 +87,22 @@ export function createGitHubAdapter(
       // a bare "403 Forbidden" with no idea which of the four
       // sub-operations exploded. Critical for debugging — the four
       // steps fail for very different reasons.
-      let baseBranch: string;
-      try {
-        baseBranch = await getCurrentBranch(input.repoPath);
-      } catch (err) {
-        throw new Error(
-          `[step: read current branch] ${redactToken((err as Error).message)} — is ${input.repoPath} a git repo?`,
-        );
-      }
 
+      // Branch from the configured default branch (e.g. main), NOT
+      // from whatever's currently checked out. This is critical for
+      // sequential remediation runs: previous agents leave HEAD on
+      // their own remediation branches, and basing a new branch off
+      // that cascades — Agent 2's branch contains Agent 1's commit,
+      // Agent 3's contains 1+2, etc. By the time Agent N opens its
+      // PR, the diff against main is N commits long. We saw this in
+      // production as 30 commits in one PR (pull/68 in the user's
+      // repo). Always branching from defaultBranch keeps each PR a
+      // 1-commit isolated diff.
       try {
-        await createBranch(input.repoPath, input.branchName, baseBranch);
+        await createBranch(input.repoPath, input.branchName, defaultBranch);
       } catch (err) {
         throw new Error(
-          `[step: create branch '${input.branchName}'] ${redactToken((err as Error).message)} — branch may already exist from a prior failed run, or the working tree may be dirty.`,
+          `[step: create branch '${input.branchName}' from ${defaultBranch}] ${redactToken((err as Error).message)} — possible causes: (a) ${input.repoPath} isn't a git repo, (b) ${defaultBranch} doesn't exist locally (try \`git fetch origin\`), (c) branch already exists from a prior failed run (delete it locally + on the remote), (d) working tree has uncommitted changes that conflict with ${defaultBranch}.`,
         );
       }
 
