@@ -41,8 +41,10 @@
 import {
   loadConfig,
   STARTER_PLAYBOOK_IDS,
+  createLogger,
   type Config,
   type Issue,
+  type Logger,
 } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import {
@@ -236,7 +238,16 @@ async function runScanAndMaybeRemediate(
 
     // ── Auto-remediation pass (YOLO/full-YOLO) ──
     entry.status = "remediating";
-    entry.autoRemediation = await runAutoRemediation(cwd, config);
+    // Hand a real file-logger to the agent pool so every failure
+    // mode lands in .ohpentesting/logs/<scanId>.jsonl. The user can
+    // grep that file when something fails — gives us the full error
+    // including stack-relevant context that doesn't fit in the UI.
+    const logger = await createLogger(cwd, scanResult.scanId);
+    try {
+      entry.autoRemediation = await runAutoRemediation(cwd, config, logger);
+    } finally {
+      await logger.close();
+    }
     entry.status = "completed";
   } catch (err) {
     entry.error = (err as Error).message ?? "Unknown scan error";
@@ -259,11 +270,18 @@ async function runScanAndMaybeRemediate(
 async function runAutoRemediation(
   cwd: string,
   config: Config,
+  logger: Logger,
 ): Promise<AutoRemediationResult> {
   const finishedAt = () => new Date().toISOString();
+  logger.info("auto_remediate.start", {
+    autonomy: config.agents.autonomy,
+    repo: config.git.repo,
+    cwd,
+  });
 
   const token = await resolveGitHubToken();
   if (!token) {
+    logger.warn("auto_remediate.no_token");
     return {
       ok: false,
       detail:
@@ -276,6 +294,7 @@ async function runAutoRemediation(
     };
   }
   if (!config.git.repo || config.git.repo === "owner/name") {
+    logger.warn("auto_remediate.no_repo");
     return {
       ok: false,
       detail:
@@ -298,6 +317,16 @@ async function runAutoRemediation(
   // No severity filter — YOLO means "fix everything". The agent's
   // own autonomy gate decides whether each individual issue gets a
   // PR or gets bucketed to "gated".
+  //
+  // Parallelism forced to 1 here. The default agent pool runs up to
+  // 4 agents in parallel, but they all share the same cwd /
+  // working-tree, which leads to race conditions: agent A modifies
+  // file X, agent B does `git checkout -b new-branch` (which fails
+  // because the working tree is dirty), or agent A's `git add .`
+  // sweeps up agent B's in-flight changes into A's commit. The
+  // result is the systemic 100%-failure pattern we saw in
+  // production. Until we move each agent into its own git worktree,
+  // serialisation is the only safe option.
   const result = await runAgentPool({
     cwd,
     config,
@@ -305,6 +334,14 @@ async function runAutoRemediation(
     adapter,
     playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
     filter: (_issue: Issue) => true,
+    parallelism: 1,
+    logger,
+    onProgress: (event) => {
+      // Mirror progress events into the log for after-the-fact
+      // analysis — gives us a full ordered transcript of what each
+      // agent did per issue.
+      logger.info(`agent_pool.${event.type}`, event);
+    },
   });
 
   const prUrls = result.completed
@@ -315,6 +352,12 @@ async function runAutoRemediation(
   const gatedCount = result.gated.length;
   const failedCount = result.failed.length;
   const attempted = completedCount + gatedCount + failedCount;
+
+  logger.info("auto_remediate.done", {
+    completed: completedCount,
+    gated: gatedCount,
+    failed: failedCount,
+  });
 
   let detail: string;
   if (attempted === 0) {

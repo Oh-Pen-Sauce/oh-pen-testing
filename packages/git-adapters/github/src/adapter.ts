@@ -55,24 +55,64 @@ export function createGitHubAdapter(
 
   return {
     async createRemediationPr(input: RemediationPushInput) {
-      const baseBranch = await getCurrentBranch(input.repoPath);
-      await createBranch(input.repoPath, input.branchName, baseBranch);
-      await commitAll(
-        input.repoPath,
-        input.commitMessage,
-        input.author ?? MARINARA_AUTHOR,
-      );
-      await push(input.repoPath, input.branchName);
-      return openPullRequest({
-        owner,
-        repo,
-        head: input.branchName,
-        base: defaultBranch,
-        title: input.prTitle,
-        body: buildPrBody(input.prBody),
-        labels: input.labels,
-        token: options.token,
-      });
+      // Each step gets a labelled try/catch so when something fails
+      // the user sees "git push failed: 403 Forbidden" rather than
+      // a bare "403 Forbidden" with no idea which of the four
+      // sub-operations exploded. Critical for debugging — the four
+      // steps fail for very different reasons.
+      let baseBranch: string;
+      try {
+        baseBranch = await getCurrentBranch(input.repoPath);
+      } catch (err) {
+        throw new Error(
+          `[step: read current branch] ${(err as Error).message} — is ${input.repoPath} a git repo?`,
+        );
+      }
+
+      try {
+        await createBranch(input.repoPath, input.branchName, baseBranch);
+      } catch (err) {
+        throw new Error(
+          `[step: create branch '${input.branchName}'] ${(err as Error).message} — branch may already exist from a prior failed run, or the working tree may be dirty.`,
+        );
+      }
+
+      try {
+        await commitAll(
+          input.repoPath,
+          input.commitMessage,
+          input.author ?? MARINARA_AUTHOR,
+        );
+      } catch (err) {
+        throw new Error(
+          `[step: commit] ${(err as Error).message} — most often the agent's patch was identical to the existing file, so there's nothing to commit.`,
+        );
+      }
+
+      try {
+        await push(input.repoPath, input.branchName);
+      } catch (err) {
+        throw new Error(
+          `[step: git push] ${(err as Error).message} — likely the local clone has no push credentials. The GitHub token configured in oh-pen-testing is used for the API call, NOT for git push. Set up an SSH key for the clone, or use a credential helper that injects the token.`,
+        );
+      }
+
+      try {
+        return await openPullRequest({
+          owner,
+          repo,
+          head: input.branchName,
+          base: defaultBranch,
+          title: input.prTitle,
+          body: buildPrBody(input.prBody),
+          labels: input.labels,
+          token: options.token,
+        });
+      } catch (err) {
+        throw new Error(
+          `[step: open PR via GitHub API] ${(err as Error).message} — the token may lack 'pull-requests: write' permission, or the base branch '${defaultBranch}' may not exist on the remote.`,
+        );
+      }
     },
   };
 }

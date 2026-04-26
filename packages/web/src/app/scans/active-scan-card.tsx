@@ -725,6 +725,8 @@ function DoneCard({
     gatedCount: number;
     /** Issues that errored out — bad token, bad model output, etc. */
     failedCount: number;
+    /** Per-issue failure detail so the user can see WHY it failed. */
+    failures: Array<{ issueId: string; error: string }>;
     /** "auto" → ran automatically; "manual" → user clicked button. */
     source: "auto" | "manual";
   } | null = autoRemediation
@@ -734,6 +736,7 @@ function DoneCard({
         prUrls: autoRemediation.prUrls,
         gatedCount: autoRemediation.gated.length,
         failedCount: autoRemediation.failed.length,
+        failures: autoRemediation.failed,
         source: "auto",
       }
     : remediateResult
@@ -743,6 +746,7 @@ function DoneCard({
           prUrls: remediateResult.prUrls,
           gatedCount: remediateResult.gated.length,
           failedCount: remediateResult.failed.length,
+          failures: remediateResult.failed,
           source: "manual",
         }
       : null;
@@ -981,15 +985,10 @@ function DoneCard({
             </div>
           )}
           {renderedRemediation.failedCount > 0 && (
-            <div
-              className="mt-2 text-[12px] text-ink"
-              style={{ lineHeight: 1.4 }}
-            >
-              <strong>{renderedRemediation.failedCount} failed</strong> —
-              the agent threw on these (provider error, rate limit, or a
-              file it couldn&rsquo;t patch). Open the board to retry one-
-              by-one.
-            </div>
+            <FailureBreakdown
+              failures={renderedRemediation.failures}
+              scanId={s.scanId}
+            />
           )}
         </div>
       )}
@@ -1060,6 +1059,209 @@ function DoneCard({
       </div>
     </div>
   );
+}
+
+// ───────── Failure breakdown ─────────
+
+/**
+ * Renders the verbatim per-issue error messages from a remediation
+ * pool run. The error data is captured server-side in
+ * `result.failed[].error`, but until now we only showed the count
+ * ("21 failed") which gave the user nothing to act on.
+ *
+ * Identical error messages are grouped (e.g. 21× "git push failed:
+ * 403 Forbidden") so a systemic failure shows once with a count
+ * rather than 21 near-identical lines. We also tag the most likely
+ * cause so the user knows where to look.
+ */
+function FailureBreakdown({
+  failures,
+  scanId,
+}: {
+  failures: Array<{ issueId: string; error: string }>;
+  /** Scan id used to point at the JSONL log file written during the run. */
+  scanId: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  // Group identical messages.
+  const groups = new Map<string, string[]>();
+  for (const f of failures) {
+    const list = groups.get(f.error) ?? [];
+    list.push(f.issueId);
+    groups.set(f.error, list);
+  }
+  const sorted = Array.from(groups.entries()).sort(
+    (a, b) => b[1].length - a[1].length,
+  );
+
+  // 100% identical = systemic. Tag it.
+  const allSame = sorted.length === 1 && failures.length > 1;
+  const hint = allSame ? guessSystemicCause(sorted[0]![0]) : null;
+
+  return (
+    <div
+      className="mt-3 pt-2"
+      style={{ borderTop: "1px dashed rgba(34,26,20,0.18)" }}
+    >
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <div
+          className="text-[12px] text-ink"
+          style={{ lineHeight: 1.4 }}
+        >
+          <strong>{failures.length} failed</strong>
+          {allSame && (
+            <>
+              {" "}
+              — all with the <em>same</em> error, which usually means a
+              systemic problem rather than per-issue bugs.
+            </>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="text-[11px] underline whitespace-nowrap"
+          style={{
+            color: "var(--ink-soft)",
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          {expanded ? "▾ hide errors" : "▸ show errors"}
+        </button>
+      </div>
+
+      {hint && (
+        <div
+          className="mb-2 text-[12px] px-2.5 py-1.5 rounded leading-snug"
+          style={{
+            background: "var(--parmesan)",
+            border: "1.5px solid var(--ink)",
+            color: "var(--ink)",
+          }}
+        >
+          <strong>💡 Likely cause:</strong> {hint}
+        </div>
+      )}
+
+      {expanded && (
+        <div className="flex flex-col gap-2 mt-2">
+          {sorted.map(([msg, ids], i) => (
+            <details
+              key={i}
+              open={i === 0}
+              className="rounded text-[11.5px]"
+              style={{
+                background: "var(--cream)",
+                border: "1px solid var(--ink)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              <summary
+                className="cursor-pointer px-2.5 py-1.5"
+                style={{ fontWeight: 600 }}
+              >
+                {ids.length}× — affects {ids.slice(0, 3).join(", ")}
+                {ids.length > 3 && ` +${ids.length - 3} more`}
+              </summary>
+              <pre
+                className="px-2.5 py-2 m-0 whitespace-pre-wrap break-all"
+                style={{
+                  background: "var(--ink)",
+                  color: "var(--cream)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "11px",
+                  borderTop: "1px solid var(--ink)",
+                  lineHeight: 1.45,
+                }}
+              >
+                {msg}
+              </pre>
+            </details>
+          ))}
+          <div
+            className="mt-1 text-[11px]"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "var(--ink-soft)",
+              lineHeight: 1.45,
+            }}
+          >
+            Full structured log:{" "}
+            <code
+              className="px-1.5 py-[1px] rounded"
+              style={{
+                background: "var(--cream)",
+                border: "1px solid rgba(34,26,20,0.3)",
+              }}
+            >
+              .ohpentesting/logs/{scanId}.jsonl
+            </code>{" "}
+            — every agent action, AI call, and git step is recorded
+            there. <code>cat</code> or <code>jq</code> it from a
+            terminal to see the full trace.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Pattern-match common error strings against likely root causes so
+ * the user gets a starting point. False negatives are fine — we
+ * just don't show the hint, never something misleading.
+ */
+function guessSystemicCause(err: string): string | null {
+  const lower = err.toLowerCase();
+  if (
+    lower.includes("403") ||
+    lower.includes("permission") ||
+    lower.includes("authentication failed")
+  ) {
+    return "Your GitHub token can't push to this repo. Most common causes: (a) the token is fine-grained and missing 'Contents: write', (b) the local clone is using HTTPS without auth — try regenerating the token with full 'repo' scope, or set up SSH for the clone.";
+  }
+  if (
+    lower.includes("rate limit") ||
+    lower.includes("rate_limit") ||
+    lower.includes("429")
+  ) {
+    return "Provider rate limit hit. Wait a few minutes or switch provider in /settings.";
+  }
+  if (
+    lower.includes("not a git repo") ||
+    lower.includes("not a git repository")
+  ) {
+    return "The scan target directory isn't a git repo, so the agent can't create a branch or commit. Check the scan-target path in the banner — if it's pointing at the wrong folder, relaunch from inside the project clone.";
+  }
+  if (lower.includes("nothing to commit") || lower.includes("clean working")) {
+    return "The agent's patch was identical to the existing file — likely the LLM returned the file unchanged. This sometimes happens with very small or already-correct snippets. Try Recommended autonomy mode for individual review, or check the playbook prompt.";
+  }
+  if (
+    lower.includes("branch already exists") ||
+    lower.includes("already exists")
+  ) {
+    return "A branch from a prior failed run is in the way. Delete branches starting with 'ohpen/issue-' (locally and on the remote), then retry.";
+  }
+  if (
+    lower.includes("could not parse") ||
+    lower.includes("json") ||
+    lower.includes("zod") ||
+    lower.includes("schema")
+  ) {
+    return "The AI provider returned a response the agent couldn't parse as JSON. Often a model misconfiguration — check that the provider supports structured JSON output, or switch to a stronger model.";
+  }
+  if (
+    lower.includes("econnrefused") ||
+    lower.includes("etimedout") ||
+    lower.includes("network")
+  ) {
+    return "Network error reaching the provider or GitHub. Check connectivity, then retry.";
+  }
+  if (lower.includes("enoent")) {
+    return "A file the agent expected to exist isn't there. Often the scan was run against a different cwd than where remediation is happening. Check the scan-target banner.";
+  }
+  return null;
 }
 
 // ───────── Failed ─────────
