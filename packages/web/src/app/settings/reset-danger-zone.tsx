@@ -29,13 +29,22 @@ export function ResetDangerZone() {
   const [wipeHistory, setWipeHistory] = useState(true);
   const [wipeSecrets, setWipeSecrets] = useState(false);
   const [wipeProjects, setWipeProjects] = useState(false);
+  // wipeClones is the heaviest reset — actually deletes the cloned
+  // repo directories. Off by default; users opt-in when their
+  // clones have picked up dirty git state from prior failed runs.
+  // Implies wipeProjects (you can't keep a registry that points at
+  // deleted clones), so we force-tick it when this is enabled.
+  const [wipeClones, setWipeClones] = useState(false);
 
   function doReset() {
     const summary: string[] = [];
     if (resetConfig) summary.push("config.yml");
     if (wipeHistory) summary.push("issues + scans + logs + reports");
     if (wipeSecrets) summary.push("ALL saved secrets (API keys, PATs)");
-    if (wipeProjects) summary.push("managed projects registry");
+    if (wipeProjects || wipeClones)
+      summary.push("managed projects registry");
+    if (wipeClones)
+      summary.push("EVERY cloned repo under ~/.ohpentesting/projects/");
     if (summary.length === 0) {
       setMessage({ kind: "err", text: "Tick at least one box first." });
       return;
@@ -53,7 +62,9 @@ export function ResetDangerZone() {
         resetConfig,
         wipeHistory,
         wipeSecrets,
-        wipeProjects,
+        // wipeClones implies wipeProjects (registry can't outlive clones).
+        wipeProjects: wipeProjects || wipeClones,
+        wipeClones,
       };
       const res = await resetEverythingAction(opts);
       if (!res.ok) {
@@ -171,6 +182,13 @@ export function ResetDangerZone() {
                 onChange={setWipeProjects}
                 label="Wipe managed-projects registry"
                 desc="Drops ~/.ohpentesting/projects.json. Clones under ~/.ohpentesting/projects/ stay on disk (delete manually if you want)."
+                danger
+              />
+              <ResetCheckbox
+                checked={wipeClones}
+                onChange={setWipeClones}
+                label="Delete cloned project directories"
+                desc="rm -rf every clone under ~/.ohpentesting/projects/<owner>/<repo>/. Use this when a clone has dirty git state from prior failed remediation runs (`Your local changes would be overwritten by checkout` errors). After wipe, finish setup and the wizard will re-clone fresh. Implies the registry wipe above."
                 danger
               />
             </div>

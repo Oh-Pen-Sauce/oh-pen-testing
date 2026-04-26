@@ -10,6 +10,7 @@ import {
   readIssue,
   writeIssue,
 } from "@oh-pen-testing/shared";
+import { resetToCleanBranch } from "@oh-pen-testing/git-github";
 import { resolveAgent, type AgentIdentity } from "./agents.js";
 import { loadPlaybooks } from "../playbook-runner/loader.js";
 import { runReview } from "./run-review.js";
@@ -209,6 +210,42 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   issue.assignee = agent.id;
   await writeIssue(options.cwd, issue);
   logger.info("agent.pickup", { agent: agent.id, issue: issue.id });
+
+  // ── Pre-flight: reset working tree to defaultBranch ──
+  //
+  // Critical invariant: every agent must start from a clean
+  // defaultBranch (main) state. Without this, leftover dirty files
+  // from prior failed runs (or stray edits, or leftover branches
+  // with uncommitted changes) bleed into the agent's read of the
+  // file AND into the eventual git checkout-b in the adapter,
+  // producing "your local changes would be overwritten" failures.
+  //
+  // We force-checkout defaultBranch and clean untracked files +
+  // directories. This is destructive of any in-progress work in
+  // the cwd — fine, because the cwd is a clone Oh Pen Testing
+  // manages (~/.ohpentesting/projects/<owner>/<repo>) and the
+  // user shouldn't be making manual edits there. If they were,
+  // those edits are leftover from a previous failed run anyway
+  // and they'd want them gone.
+  //
+  // Failure here is logged-and-continued: if it's not a git repo,
+  // the adapter will fail later with a clearer error, and we'd
+  // rather not lose the agent's work over a flaky pre-flight.
+  const defaultBranch = options.config.git.default_branch ?? "main";
+  try {
+    await resetToCleanBranch(repoPath, defaultBranch);
+    logger.info("agent.preflight_reset", {
+      agent: agent.id,
+      issue: issue.id,
+      branch: defaultBranch,
+    });
+  } catch (err) {
+    logger.warn("agent.preflight_reset_failed", {
+      agent: agent.id,
+      issue: issue.id,
+      error: (err as Error).message,
+    });
+  }
 
   const playbooks = await loadPlaybooks(options.playbookRoots);
   const playbookId = issue.remediation?.strategy;

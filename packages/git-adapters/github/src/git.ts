@@ -67,3 +67,24 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
   const status = await git.status();
   return status.current ?? "main";
 }
+
+/**
+ * Force-checkout `branch`, then remove untracked files. The
+ * filesystem ends up at exactly `branch`'s state, regardless of
+ * what was there before — pending edits, leftover branches with
+ * uncommitted state, untracked clutter from prior failed runs.
+ *
+ * Used as a pre-flight before each agent run so each remediation
+ * starts from a known-clean baseline. DESTRUCTIVE: any uncommitted
+ * work in the working tree is lost. Only safe to use against repos
+ * where the user shouldn't be editing manually (e.g. a clone Oh
+ * Pen Testing manages under ~/.ohpentesting/projects/).
+ */
+export async function resetToCleanBranch(
+  repoPath: string,
+  branch: string,
+): Promise<void> {
+  const git = openRepo(repoPath);
+  await git.checkout(["-f", branch]);
+  await git.clean("f", ["-d"]);
+}

@@ -117,6 +117,15 @@ export interface ResetOptions {
   wipeSecrets: boolean;
   /** Wipe ~/.ohpentesting/projects.json (managed projects). */
   wipeProjects: boolean;
+  /**
+   * Also rm -rf ~/.ohpentesting/projects/<owner>/<repo>/ for every
+   * cloned project. Strictly more destructive than wipeProjects
+   * (which only deletes the registry JSON). Useful when a clone has
+   * picked up dirty git state from prior failed runs and you'd
+   * rather start fresh than `git reset --hard` it manually.
+   * Implies wipeProjects.
+   */
+  wipeClones: boolean;
 }
 
 export interface ResetResult {
@@ -246,10 +255,63 @@ export async function resetEverythingAction(
         };
       }
     }
-    // The clones themselves stay on disk — deleting them could be
-    // destructive (they might have uncommitted local edits from an
-    // earlier session). User can `rm -rf ~/.ohpentesting/projects/`
-    // manually if they want.
+    // The clones themselves stay on disk unless wipeClones is also
+    // set — see below. wipeProjects on its own only deletes the
+    // registry JSON, leaving the clones recoverable.
+  }
+
+  if (opts.wipeClones) {
+    // Nuke every clone Oh Pen Testing has created in
+    // ~/.ohpentesting/projects/. Only the structured "owner/repo"
+    // directory layout is touched — top-level dotfiles or
+    // unrelated content survives.
+    //
+    // This is the heaviest reset option. Recommended when prior
+    // remediation runs left a clone with dirty git state that's
+    // tripping up new agent runs ("Your local changes would be
+    // overwritten by checkout"). After this, re-running setup
+    // re-clones cleanly.
+    const projectsRoot = path.join(
+      os.homedir(),
+      ".ohpentesting",
+      "projects",
+    );
+    try {
+      const owners = await fs.readdir(projectsRoot, { withFileTypes: true });
+      for (const ownerEntry of owners) {
+        if (!ownerEntry.isDirectory()) continue;
+        const ownerDir = path.join(projectsRoot, ownerEntry.name);
+        const repos = await fs.readdir(ownerDir, { withFileTypes: true });
+        for (const repoEntry of repos) {
+          if (!repoEntry.isDirectory()) continue;
+          const repoDir = path.join(ownerDir, repoEntry.name);
+          try {
+            await fs.rm(repoDir, { recursive: true, force: true });
+            wiped.push(`~/.ohpentesting/projects/${ownerEntry.name}/${repoEntry.name}/`);
+          } catch {
+            /* skip individual failures, keep going */
+          }
+        }
+        // Try to remove the (possibly now-empty) owner dir too. If
+        // it has other content (other repos that failed to delete),
+        // rmdir errors out and we leave it alone.
+        try {
+          await fs.rmdir(ownerDir);
+        } catch {
+          /* not empty or permission denied — fine */
+        }
+      }
+    } catch (err) {
+      const code = (err as NodeJS.ErrnoException).code;
+      if (code !== "ENOENT") {
+        return {
+          ok: false,
+          detail: `Couldn't enumerate clones to wipe: ${(err as Error).message}`,
+          wiped,
+        };
+      }
+      // ENOENT = no projects dir, nothing to wipe — that's fine.
+    }
   }
 
   // Broad revalidation so banner / sidebar / every page drops cached
