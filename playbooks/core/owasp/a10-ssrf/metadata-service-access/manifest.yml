@@ -7,6 +7,8 @@ severity_default: critical
 languages: [javascript, typescript, python, generic]
 authors: [oh-pen-testing-core]
 description: "Detects references to cloud metadata services (169.254.169.254, metadata.google.internal) — either the app talks to them intentionally, or it forwards attacker-controllable URLs to its own fetch layer which could."
+impact: |
+  The cloud instance metadata endpoint at 169.254.169.254 hands out the IAM credentials attached to the running instance — with no authentication required, just a local HTTP request. An attacker who can make the server fetch an arbitrary URL (SSRF) points it at this endpoint, retrieves temporary AWS/GCP/Azure keys, and uses those keys to access S3 buckets, call cloud APIs, or pivot to other services in the account. On IMDSv1 (no session token required), this is a single HTTP request away from full cloud-account compromise. Capitalware's 2019 Capital One breach used exactly this path.
 risky: false
 requires_ai: true
 type: regex

@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python, java, go, ruby, php]
 authors: [oh-pen-testing-core]
 description: Detects MD5 / SHA-1 used in a security-relevant context (passwords, tokens, signatures).
+impact: |
+  MD5 and SHA-1 are broken for security use — pre-computed rainbow tables crack most MD5-hashed passwords in seconds, and SHA-1 collisions are now practically feasible. An attacker who obtains your hash database can recover plaintext passwords offline without ever touching your server. For digital signatures, SHA-1 collision attacks allow forging signed documents or tokens, undermining integrity guarantees entirely.
 risky: false
 requires_ai: true
 type: regex

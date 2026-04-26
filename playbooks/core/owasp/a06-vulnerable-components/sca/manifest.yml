@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python, ruby]
 authors: [oh-pen-testing-core]
 description: "Runs npm audit / pip-audit / bundler-audit and surfaces vulnerable dependencies as issues."
+impact: |
+  Vulnerable dependencies ship known exploits — CVE details, proof-of-concept code, and Metasploit modules are public the moment a vulnerability is disclosed. An attacker scanning your app doesn't need to find a novel bug; they just need to identify your dependency versions (often visible in error pages, response headers, or package manifest files) and apply an off-the-shelf exploit. Transitive dependencies are especially dangerous because they're often overlooked and can pull in critical vulnerabilities through a single indirect dependency update.
 risky: false
 requires_ai: false
 type: sca

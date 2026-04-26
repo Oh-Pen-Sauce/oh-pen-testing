@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { listScans, safeLoadConfig } from "../../lib/repo";
+import { listScans, safeLoadConfig, listIssues } from "../../lib/repo";
 import { listCatalog } from "../../lib/playbooks";
 import { STARTER_PLAYBOOK_IDS } from "@oh-pen-testing/shared";
 import { PageHeader } from "../../components/trattoria/page-header";
@@ -10,11 +10,25 @@ import { getActiveScan } from "../../lib/active-scan";
 export const dynamic = "force-dynamic";
 
 export default async function ScansPage() {
-  const [scans, config, catalog] = await Promise.all([
+  const [scans, config, catalog, allIssues] = await Promise.all([
     listScans(),
     safeLoadConfig(),
     listCatalog(),
+    listIssues(),
   ]);
+
+  // Build a per-scan tally of "how many issues from this scan have a
+  // PR opened against them?" — surfaced as the new PRs column. Walks
+  // every issue once; cheap unless the project is years old.
+  const prCountByScan = new Map<string, number>();
+  for (const issue of allIssues) {
+    if (issue.linked_pr) {
+      prCountByScan.set(
+        issue.scan_id,
+        (prCountByScan.get(issue.scan_id) ?? 0) + 1,
+      );
+    }
+  }
 
   const starterComplete = config?.scans.starter_complete ?? false;
   const startersDetail = STARTER_PLAYBOOK_IDS.map((id) => {
@@ -78,7 +92,7 @@ export default async function ScansPage() {
               background: "var(--ink)",
               color: "var(--cream)",
               fontFamily: "var(--font-mono)",
-              gridTemplateColumns: "1.4fr 1.2fr 0.8fr 0.8fr 0.8fr 1fr",
+              gridTemplateColumns: "1.3fr 1.1fr 0.8fr 0.8fr 0.7fr 0.7fr 1fr",
             }}
           >
             <div>Scan ID</div>
@@ -86,61 +100,80 @@ export default async function ScansPage() {
             <div>Status</div>
             <div>Playbooks</div>
             <div>Issues</div>
+            <div>PRs</div>
             <div>Provider</div>
           </div>
-          {scans.map((s, i) => (
-            <Link
-              key={s.id}
-              href={`/scans/${s.id}`}
-              className="grid px-4 py-3.5 text-[13px] hover:bg-parmesan/40 transition-colors"
-              style={{
-                borderBottom:
-                  i < scans.length - 1
-                    ? "1px dashed rgba(34,26,20,0.2)"
-                    : "none",
-                alignItems: "center",
-                gridTemplateColumns: "1.4fr 1.2fr 0.8fr 0.8fr 0.8fr 1fr",
-              }}
-            >
-              <code
-                className="font-bold text-ink"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {s.id}
-              </code>
-              <span className="text-ink-soft text-[12px]">
-                {formatDateTime(s.started_at)}
-              </span>
-              <span>
-                <StatusBadge status={s.status} />
-              </span>
-              <span style={{ fontFamily: "var(--font-mono)" }}>
-                {s.playbooks_run}
-                <span className="text-ink-soft">
-                  {" "}
-                  /{s.playbooks_skipped}
-                </span>
-              </span>
-              <span
-                className="font-bold"
+          {scans.map((s, i) => {
+            const prsOpened = prCountByScan.get(s.id) ?? 0;
+            return (
+              <Link
+                key={s.id}
+                href={`/scans/${s.id}`}
+                className="grid px-4 py-3.5 text-[13px] hover:bg-parmesan/40 transition-colors"
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  color:
-                    s.issues_found > 40
-                      ? "var(--sauce-dark)"
-                      : "var(--ink)",
+                  borderBottom:
+                    i < scans.length - 1
+                      ? "1px dashed rgba(34,26,20,0.2)"
+                      : "none",
+                  alignItems: "center",
+                  gridTemplateColumns: "1.3fr 1.1fr 0.8fr 0.8fr 0.7fr 0.7fr 1fr",
                 }}
               >
-                {s.issues_found}
-              </span>
-              <span
-                className="text-ink-soft text-[12px]"
-                style={{ fontFamily: "var(--font-mono)" }}
-              >
-                {s.provider}
-              </span>
-            </Link>
-          ))}
+                <code
+                  className="font-bold text-ink"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {s.id}
+                </code>
+                <span className="text-ink-soft text-[12px]">
+                  {formatDateTime(s.started_at)}
+                </span>
+                <span>
+                  <StatusBadge status={s.status} />
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)" }}>
+                  {s.playbooks_run}
+                  <span className="text-ink-soft">
+                    {" "}
+                    /{s.playbooks_skipped}
+                  </span>
+                </span>
+                <span
+                  className="font-bold"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color:
+                      s.issues_found > 40
+                        ? "var(--sauce-dark)"
+                        : "var(--ink)",
+                  }}
+                >
+                  {s.issues_found}
+                </span>
+                <span
+                  className="font-bold"
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    color:
+                      prsOpened > 0 ? "var(--basil-dark)" : "var(--ink-soft)",
+                  }}
+                  title={
+                    prsOpened === 0
+                      ? "No PRs opened from this scan"
+                      : `${prsOpened} of ${s.issues_found} issue${s.issues_found === 1 ? "" : "s"} have a remediation PR open`
+                  }
+                >
+                  {prsOpened > 0 ? `${prsOpened} ✓` : "—"}
+                </span>
+                <span
+                  className="text-ink-soft text-[12px]"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {s.provider}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
 

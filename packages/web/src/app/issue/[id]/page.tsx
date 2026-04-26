@@ -69,6 +69,37 @@ export default async function IssueDetailPage({
         <Tag>Status: {issue.status}</Tag>
       </div>
 
+      {/* Impact — "what bad thing happens if we don't fix this".
+          Sourced from the playbook's `impact` field at scan time, so
+          older issues won't have it. Omits cleanly when absent. */}
+      {issue.vulnerability_impact && (
+        <section
+          className="rounded-xl p-5 mb-6"
+          style={{
+            background: "#FBE4E0",
+            border: "2px solid var(--sauce)",
+          }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <span
+              className="text-[10px] font-bold tracking-[0.15em] uppercase"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--sauce-dark)",
+              }}
+            >
+              ⚠ What this could lead to
+            </span>
+          </div>
+          <p
+            className="text-[14px] leading-relaxed text-ink m-0"
+            style={{ whiteSpace: "pre-wrap" }}
+          >
+            {issue.vulnerability_impact}
+          </p>
+        </section>
+      )}
+
       {issue.blame?.oldest_commit_sha && (
         <BlameTimeline blame={issue.blame} />
       )}
@@ -215,18 +246,61 @@ export default async function IssueDetailPage({
         </section>
       </div>
 
+      {/* Fix made — only meaningful once an agent has opened a PR.
+          Combines the AI-authored explanation with a prominent link
+          out to the PR. */}
       {issue.linked_pr && (
-        <section className="mb-6">
-          <h2 className="kicker mb-2">Linked PR</h2>
-          <a
-            href={issue.linked_pr}
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
-            style={{ color: "var(--sauce)" }}
+        <section
+          className="rounded-xl p-5 mb-6"
+          style={{
+            background: "#E4F0DF",
+            border: "2px solid var(--basil)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-2.5 flex-wrap gap-2">
+            <span
+              className="text-[10px] font-bold tracking-[0.15em] uppercase"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--basil-dark)",
+              }}
+            >
+              ✓ Fix made — PR open
+            </span>
+            <a
+              href={issue.linked_pr}
+              target="_blank"
+              rel="noreferrer"
+              className="text-[12px] font-semibold underline"
+              style={{ color: "var(--sauce)" }}
+            >
+              View PR ↗
+            </a>
+          </div>
+          {issue.fix_description ? (
+            <p
+              className="text-[14px] leading-relaxed text-ink m-0 mb-3"
+              style={{ whiteSpace: "pre-wrap" }}
+            >
+              {issue.fix_description}
+            </p>
+          ) : (
+            <p className="text-[13px] text-ink-soft m-0 mb-3">
+              An agent opened a PR for this issue. The fix narrative
+              wasn&rsquo;t captured (older issue, pre-narrative-tracking) — see
+              the PR description for details.
+            </p>
+          )}
+          <div
+            className="text-[11px] mt-2"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "var(--ink-soft)",
+              wordBreak: "break-all",
+            }}
           >
             {issue.linked_pr}
-          </a>
+          </div>
         </section>
       )}
 

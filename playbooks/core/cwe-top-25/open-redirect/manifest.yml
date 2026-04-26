@@ -6,6 +6,8 @@ severity_default: medium
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects res.redirect / HTTP 3xx responses built from unvalidated user input."
+impact: |
+  Attackers craft links like `https://yourtrustedsite.com/login?next=https://evil.com` — the victim sees a legitimate domain in the URL, clicks it, and gets silently redirected to a phishing page. Open redirects are frequently used as the first hop in OAuth phishing attacks, where the redirect parameter in an authorization flow is manipulated to exfiltrate tokens to an attacker-controlled server. They also help bypass spam filters and corporate proxies that block direct links to known-malicious domains.
 risky: false
 requires_ai: true
 type: regex

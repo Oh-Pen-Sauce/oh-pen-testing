@@ -6,6 +6,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects file upload handlers that accept any content-type / extension without validation."
+impact: |
+  An attacker can upload a server-side script (.php, .jsp, .py) disguised as an image and then request it directly to execute arbitrary code on the server. Even without direct execution, unrestricted upload enables hosting malicious files (phishing pages, malware) under your domain, bypassing content-security controls by leveraging your trusted origin. If uploaded files are served from the same origin as the app, a stored XSS payload in an SVG or HTML file can also hijack user sessions.
 risky: false
 requires_ai: true
 type: regex

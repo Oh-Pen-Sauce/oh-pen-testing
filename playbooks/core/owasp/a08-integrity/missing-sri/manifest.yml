@@ -7,6 +7,8 @@ severity_default: medium
 languages: [generic, javascript, typescript]
 authors: [oh-pen-testing-core]
 description: "Detects external `<script>` / `<link rel=stylesheet>` tags loading third-party code without Subresource Integrity (SRI)."
+impact: |
+  Without SRI, if the CDN serving your third-party script is compromised (or if you typo the URL and an attacker registers that domain), the browser will silently execute whatever JavaScript is returned. This is a supply-chain attack surface: a malicious actor who compromises one popular CDN can inject a keylogger or credential harvester into thousands of sites at once. SRI ensures the browser refuses to run anything whose hash doesn't match what you approved at deploy time.
 risky: false
 requires_ai: true
 type: regex

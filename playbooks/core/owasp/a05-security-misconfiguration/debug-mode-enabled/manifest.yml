@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python, generic]
 authors: [oh-pen-testing-core]
 description: "Detects debug/development flags hardcoded to true in code or config (DEBUG=true, app.debug=True)."
+impact: |
+  Debug mode typically enables interactive error pages (Django's Werkzeug debugger, for example, provides a browser-accessible Python REPL) — which is direct remote code execution for anyone who can trigger an exception. Even without an interactive console, debug mode usually disables security hardening, exposes full stack traces, and activates development endpoints that were never meant to face the internet. A production app running in debug mode is effectively an open door to the host.
 risky: false
 requires_ai: true
 type: regex

@@ -6,6 +6,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects JWT signing/verification using a short, hardcoded, or env-default secret."
+impact: |
+  A weak or hardcoded JWT secret can be brute-forced offline — tools like hashcat crack short HMAC-SHA256 JWT secrets in seconds on commodity hardware, and dictionaries of common default secrets (e.g. "secret", "changeme", "your-256-bit-secret") are tried first. Once the secret is known, the attacker can forge arbitrary tokens: they can impersonate any user ID, elevate their own role to admin, and extend token expiry indefinitely. Unlike a stolen session cookie, a forged JWT works from anywhere with no session state to invalidate.
 risky: false
 requires_ai: true
 type: regex

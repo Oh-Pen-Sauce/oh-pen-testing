@@ -6,6 +6,8 @@ severity_default: medium
 languages: [generic]
 authors: [oh-pen-testing-core]
 description: "Flags Dockerfiles that explicitly switch to USER root before CMD/ENTRYPOINT, or that never declare a USER (defaults to root)."
+impact: |
+  A container running as root means any code-execution vulnerability inside the container immediately gives the attacker root-level file access within it — including the ability to read mounted secrets, environment variables, and service account tokens. If the container runtime or kernel has any privilege-escalation flaw, root inside the container becomes root on the host node. Defence-in-depth for containers specifically relies on not running as root; skipping this is one of the easiest controls to add and one of the most commonly neglected.
 risky: false
 requires_ai: true
 type: regex

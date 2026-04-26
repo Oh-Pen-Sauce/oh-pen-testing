@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python, java, go, generic]
 authors: [oh-pen-testing-core]
 description: Detects TLS/SSL downgrades — SSLv2, SSLv3, TLSv1.0, TLSv1.1 configured explicitly.
+impact: |
+  TLS 1.0 and 1.1 are vulnerable to BEAST, POODLE, and related downgrade attacks that allow a network-positioned attacker to decrypt traffic in real time. SSLv3 is completely broken via POODLE and should be treated as plaintext. Accepting these versions means any session on a shared network (coffee shop Wi-Fi, corporate proxy, cloud VPC with a compromised hop) is potentially readable, exposing session cookies, credentials, and sensitive API payloads.
 risky: false
 requires_ai: true
 type: regex

@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: Detects endpoints that mutate state or return sensitive data without an auth middleware or manual auth check.
+impact: |
+  Any unauthenticated caller — logged-out users, bots, or external attackers — can invoke the endpoint directly and perform privileged actions or read restricted data. Depending on what the route does, this ranges from scraping private records to deleting or modifying data for any user in the system. Missing auth on mutation endpoints (POST/PUT/DELETE) is one of the most common paths to full account takeover or mass data loss.
 risky: false
 requires_ai: true
 type: regex

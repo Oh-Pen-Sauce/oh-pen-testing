@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python, java, go]
 authors: [oh-pen-testing-core]
 description: Detects permissive CORS configuration (Access-Control-Allow-Origin `*` combined with credentials, or reflected origin without allowlist).
+impact: |
+  Allows any website to make authenticated cross-origin requests on behalf of a logged-in user and read the response — effectively bypassing the same-origin policy. An attacker hosts a malicious page, tricks a victim into visiting it, and silently exfiltrates API responses (account data, tokens, private records) that the browser would normally block. With a reflected-origin misconfiguration, any origin is whitelisted dynamically, so the attack works from any domain the attacker controls.
 risky: false
 requires_ai: true
 type: regex

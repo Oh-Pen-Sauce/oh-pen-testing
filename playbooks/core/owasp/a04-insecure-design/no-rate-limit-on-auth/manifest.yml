@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects login/signup/password-reset routes without visible rate-limiting middleware."
+impact: |
+  Without rate limiting, an attacker can make unlimited login attempts against any account — a credential-stuffing list of 10 million username/password pairs runs to completion overnight with no friction. Password-reset endpoints are equally exposed: an attacker can flood them to enumerate valid accounts or race to intercept a reset token. The absence of any throttle also makes the auth layer a convenient denial-of-service target, locking out legitimate users by exhausting backend resources.
 risky: false
 requires_ai: true
 type: regex

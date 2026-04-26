@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: Detects non-cryptographic randomness used in security-relevant contexts (tokens, session IDs, password resets).
+impact: |
+  Math.random() and Python's random module are seeded from predictable state and produce a limited range of outputs — an attacker who observes a few tokens can reconstruct the seed and predict all future (and past) values. This lets them forge password-reset links, guess session IDs, or mint valid OTP codes without brute force. The attack is especially cheap against time-seeded generators where the seed space is just the current timestamp.
 risky: false
 requires_ai: true
 type: regex

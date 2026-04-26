@@ -76,6 +76,19 @@ export const IssueSchema = z.object({
       requires_approval: z.boolean().default(false),
     })
     .optional(),
+  /**
+   * User-facing "what bad thing happens if we don't fix this" paragraph.
+   * Sourced from the playbook's `impact` field at scan time. Optional —
+   * older issues won't have it, and not every playbook has authored one.
+   */
+  vulnerability_impact: z.string().optional(),
+  /**
+   * Narrative of the fix the agent applied — populated when the agent
+   * opens a PR (sourced from the AI's `explanation_of_fix`). Surfaced
+   * on the issue detail page so reviewers see what changed without
+   * leaving for GitHub.
+   */
+  fix_description: z.string().optional(),
   linked_pr: z.string().url().nullable().default(null),
   verification: VerificationSchema.default({
     last_run_scan_id: null,

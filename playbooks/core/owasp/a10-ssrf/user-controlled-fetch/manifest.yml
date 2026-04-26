@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects HTTP clients called with URLs built from user-controlled input (SSRF risk)."
+impact: |
+  Lets an attacker use your server as a proxy to reach services that aren't publicly accessible — internal admin panels, databases with HTTP APIs, or the cloud metadata endpoint. Because the request originates from the server itself, it bypasses network-level controls and firewall rules that block external traffic. Depending on what internal services are reachable, SSRF can escalate from "read a local file" to full cloud-account takeover via metadata credential theft.
 risky: false
 requires_ai: true
 type: regex

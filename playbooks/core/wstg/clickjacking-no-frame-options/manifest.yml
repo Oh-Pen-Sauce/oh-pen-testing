@@ -6,6 +6,8 @@ severity_default: medium
 languages: [javascript, typescript]
 authors: [oh-pen-testing-core]
 description: "Detects web frameworks serving HTML without X-Frame-Options / CSP frame-ancestors."
+impact: |
+  Without frame protection, an attacker can embed your app transparently inside an iframe on a malicious page and overlay invisible UI elements to trick users into clicking buttons they can't see — a technique called clickjacking. In practice this is used to silently trigger state-changing actions: confirming a purchase, changing an email address, granting OAuth permissions, or executing a funds transfer. The attack is entirely client-side and requires no vulnerability in your backend — just the absence of two lines of HTTP headers.
 risky: false
 requires_ai: true
 type: regex

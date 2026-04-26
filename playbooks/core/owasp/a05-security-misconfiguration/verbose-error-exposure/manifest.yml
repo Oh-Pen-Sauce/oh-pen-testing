@@ -7,6 +7,8 @@ severity_default: medium
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects HTTP handlers that return raw stack traces / exception details to clients."
+impact: |
+  Stack traces handed back to the client reveal internal file paths, framework versions, dependency names, and sometimes database schema details — a free reconnaissance gift for an attacker scoping the app. In practice, error messages containing SQL snippets have directly enabled injection attacks by showing exactly which query failed and how it was structured. Even without direct exploitation, verbose errors dramatically shorten the time from "I found a bug" to "I know how to exploit it."
 risky: false
 requires_ai: true
 type: regex

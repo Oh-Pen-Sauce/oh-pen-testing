@@ -7,6 +7,8 @@ severity_default: critical
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects plaintext password storage (writing req.body.password directly to DB) or weak non-bcrypt hashing for passwords."
+impact: |
+  Plaintext passwords in the database mean a single SQL injection or backup leak instantly exposes every user's password — no cracking needed, and since most people reuse passwords, the attacker now has credentials for their email, banking, and other services too. Weak hashing (unsalted MD5 or SHA-1) is nearly as bad: large precomputed rainbow tables crack the majority of real-world passwords in seconds. Either way, the breach damage extends far beyond your application and can never be fully undone once credentials are in the wild.
 risky: false
 requires_ai: true
 type: regex

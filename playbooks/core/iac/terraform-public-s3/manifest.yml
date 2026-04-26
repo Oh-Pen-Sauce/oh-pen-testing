@@ -6,6 +6,8 @@ severity_default: high
 languages: [generic]
 authors: [oh-pen-testing-core]
 description: "Flags aws_s3_bucket resources with public ACLs or permissive bucket policies."
+impact: |
+  A publicly readable S3 bucket exposes every object inside it to any internet user with no authentication — backups, user uploads, internal documents, and configuration files are all freely downloadable. A publicly writable bucket lets anyone upload arbitrary content, enabling defacement, malware hosting under your domain, or driving up your S3 costs. Hundreds of significant data breaches have originated from misconfigured S3 buckets, and they're trivially discoverable via automated scanning tools.
 risky: false
 requires_ai: true
 type: regex

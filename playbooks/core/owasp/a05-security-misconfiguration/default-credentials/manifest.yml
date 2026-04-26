@@ -7,6 +7,8 @@ severity_default: critical
 languages: [javascript, typescript, python, generic]
 authors: [oh-pen-testing-core]
 description: "Detects classic default credentials (admin/admin, root/password, etc.) hardcoded in source or config."
+impact: |
+  Default credentials are the first thing automated scanners and attackers try — tools like Shodan, Nuclei, and Metasploit ship with dictionaries of thousands of well-known default logins. A match gives an attacker immediate authenticated access with whatever privilege that account holds, often admin. Because these strings are hardcoded in source, rotating them requires a code deploy; until then every deployed instance is compromised simultaneously.
 risky: false
 requires_ai: true
 type: regex

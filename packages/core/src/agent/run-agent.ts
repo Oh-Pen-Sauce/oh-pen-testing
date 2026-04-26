@@ -244,6 +244,10 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
 
   issue.status = "in_review";
   issue.linked_pr = pr.url;
+  // Capture the AI-authored fix narrative on the issue so the UI can
+  // surface "what the agent changed" without reviewers having to leave
+  // for GitHub. The same string is the body of the PR.
+  issue.fix_description = response.explanation_of_fix;
   await writeIssue(options.cwd, issue);
   logger.info("agent.pr_opened", { issue: issue.id, pr: pr.url });
 

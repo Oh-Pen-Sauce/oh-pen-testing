@@ -241,6 +241,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
                 estimated_diff_size: 1,
                 requires_approval: false,
               },
+              vulnerability_impact: playbook.manifest.impact,
               linked_pr: null,
               verification: {
                 last_run_scan_id: null,
@@ -423,6 +424,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             estimated_diff_size: 4,
             requires_approval: severity === "critical" ? false : false,
           },
+          vulnerability_impact: playbook.manifest.impact,
           linked_pr: null,
           verification: {
             last_run_scan_id: null,

@@ -177,16 +177,34 @@ function BoardCard({
       <div className="text-[12.5px] font-semibold leading-tight text-ink line-clamp-2">
         {issue.title}
       </div>
-      <div className="flex justify-between items-center mt-1.5">
+      <div className="flex justify-between items-center mt-1.5 gap-1.5">
         <code
-          className="text-[10px] text-ink-soft bg-transparent truncate max-w-[160px]"
+          className="text-[10px] text-ink-soft bg-transparent truncate flex-1"
           style={{ fontFamily: "var(--font-mono)" }}
         >
           {issue.location.file}
         </code>
+        {/* PR-opened badge — small, scannable visual cue that the
+            agent has already cooked a remediation for this card.
+            Hovering reveals the URL. */}
+        {issue.linked_pr && (
+          <span
+            className="text-[9px] font-bold tracking-[0.05em] uppercase px-1.5 py-[1px] rounded shrink-0"
+            style={{
+              background: "#E4F0DF",
+              color: "var(--basil-dark)",
+              border: "1px solid var(--basil)",
+              fontFamily: "var(--font-mono)",
+            }}
+            title={`PR open: ${issue.linked_pr}`}
+            aria-label="PR opened"
+          >
+            ✓ PR
+          </span>
+        )}
         {agent && (
           <span
-            className="text-[12px]"
+            className="text-[12px] shrink-0"
             aria-label={agent.name}
             title={agent.name}
           >
@@ -265,28 +283,78 @@ function IssuePanel({
             }
           />
           <Row k="Status" v={issue.status} />
-          {issue.linked_pr && (
-            <Row
-              k="PR"
-              v={
-                <a
-                  href={issue.linked_pr}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline"
-                  style={{ color: "var(--sauce)" }}
-                >
-                  {issue.linked_pr}
-                </a>
-              }
-            />
-          )}
         </dl>
+
+        {/* Impact ribbon — quick "what happens if we don't fix this"
+            for the slide-in. Appears above the analysis since it's
+            the more user-facing framing. */}
+        {issue.vulnerability_impact && (
+          <div
+            className="rounded-lg p-3 mb-4 text-[13px] leading-snug"
+            style={{
+              background: "#FBE4E0",
+              border: "1.5px solid var(--sauce)",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            <div
+              className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--sauce-dark)",
+              }}
+            >
+              ⚠ What this could lead to
+            </div>
+            {issue.vulnerability_impact}
+          </div>
+        )}
 
         <div className="mb-4">
           <div className="kicker mb-1">Analysis</div>
           <p className="text-sm text-ink">{issue.evidence.analysis}</p>
         </div>
+
+        {/* Fix made + PR link, if the agent's already opened one. */}
+        {issue.linked_pr && (
+          <div
+            className="rounded-lg p-3 mb-4 text-[13px] leading-snug"
+            style={{
+              background: "#E4F0DF",
+              border: "1.5px solid var(--basil)",
+            }}
+          >
+            <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
+              <div
+                className="text-[10px] font-bold tracking-[0.15em] uppercase"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--basil-dark)",
+                }}
+              >
+                ✓ Fix made — PR open
+              </div>
+              <a
+                href={issue.linked_pr}
+                target="_blank"
+                rel="noreferrer"
+                className="text-[12px] font-semibold underline"
+                style={{ color: "var(--sauce)" }}
+              >
+                View PR ↗
+              </a>
+            </div>
+            {issue.fix_description ? (
+              <div style={{ whiteSpace: "pre-wrap" }}>
+                {issue.fix_description}
+              </div>
+            ) : (
+              <div className="text-ink-soft text-[12px]">
+                Agent opened a PR. Open the PR for the full fix description.
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="mb-4">
           <div className="kicker mb-2">Change status</div>

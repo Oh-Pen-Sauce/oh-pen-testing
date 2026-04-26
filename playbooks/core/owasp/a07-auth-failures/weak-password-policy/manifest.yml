@@ -7,6 +7,8 @@ severity_default: medium
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects password policy configuration permitting very short passwords (< 8 chars)."
+impact: |
+  A 6-character password space is small enough to exhaust with commodity hardware in minutes — even with bcrypt hashing, a 7-character all-lowercase password falls to a GPU cluster in under an hour. Permissive policies also make credential stuffing attacks more effective, since short passwords are disproportionately common in breach databases. Users allowed to set weak passwords are the weakest link in your authentication chain, regardless of how strong the rest of it is.
 risky: false
 requires_ai: true
 type: regex

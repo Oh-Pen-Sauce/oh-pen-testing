@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python, java]
 authors: [oh-pen-testing-core]
 description: Detects XML parsers configured with external entity resolution enabled (or defaults that leave it on).
+impact: |
+  Lets an attacker embed an external entity reference (e.g. `<!ENTITY xxe SYSTEM "file:///etc/passwd">`) in submitted XML and have the server read and return the file contents in the parsed output. Beyond local file disclosure, XXE can be chained into SSRF to probe internal services or the cloud metadata endpoint, and in some parsers it enables denial-of-service via recursive entity expansion (billion laughs). The default-unsafe configurations are especially dangerous because developers often don't realise entity expansion is active.
 risky: false
 requires_ai: true
 type: regex

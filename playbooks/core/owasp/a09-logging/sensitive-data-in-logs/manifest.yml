@@ -7,6 +7,8 @@ severity_default: high
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects password, token, or secret values being passed to logging calls."
+impact: |
+  Secrets written to logs are accessible to anyone with log access — operations staff, third-party log aggregation services, cloud logging dashboards, and anyone who compromises those systems. Unlike a database breach that requires direct access, log exfiltration is often trivial: misconfigured S3 log buckets, overly permissive log viewer roles, or a single leaked log-drain API key exposes everything. Passwords or tokens that appear in logs also tend to persist indefinitely in log archives long after the credential has theoretically been rotated.
 risky: false
 requires_ai: true
 type: regex

@@ -7,6 +7,8 @@ severity_default: critical
 languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: Detects shell execution with interpolated or concatenated user input.
+impact: |
+  Gives an attacker full shell access on the server — they can read any file, exfiltrate environment variables (including secrets and credentials), install backdoors, or pivot to internal services. A single semicolon or pipe character in user-supplied input is enough to break out of the intended command. Command injection is reliably rated the most severe class of injection because exploitation requires no special tooling and typically yields immediate root-level access in containerised environments.
 risky: false
 requires_ai: true
 type: regex
