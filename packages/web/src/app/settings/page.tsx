@@ -2,6 +2,7 @@ import Link from "next/link";
 import { safeLoadConfig } from "../../lib/repo";
 import { SettingsForm } from "./settings-form";
 import { ResetDangerZone } from "./reset-danger-zone";
+import { TasteTest } from "./taste-test";
 import { PageHeader } from "../../components/trattoria/page-header";
 import { BtnLink } from "../../components/trattoria/button";
 
@@ -33,7 +34,14 @@ export default async function SettingsPage() {
         }
       />
       {config ? (
-        <SettingsForm initial={config} />
+        <>
+          <SettingsForm initial={config} />
+          {/* Pre-flight check — verifies token + repo + push permission
+              without opening a real PR. Kept under the main form (not
+              above) so the user only sees it once they've finished
+              configuring; otherwise it'd just fail. */}
+          <TasteTest />
+        </>
       ) : (
         <div
           className="rounded-xl px-5 py-4 text-[14px]"

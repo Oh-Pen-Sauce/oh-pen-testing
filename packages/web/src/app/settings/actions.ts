@@ -12,7 +12,57 @@ import {
   type AutonomyMode,
   type ProviderId,
 } from "@oh-pen-testing/shared";
+import {
+  pingGitHub,
+  resolveGitHubToken,
+  type PreflightResult,
+} from "@oh-pen-testing/git-github";
 import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
+
+/**
+ * Pre-flight ("taste test") for the GitHub remediation pipeline.
+ * Verifies token + repo access + push permission BEFORE the user
+ * runs a real scan and watches 21 patches fail. Surfaces a step-by-
+ * step report the UI can render as ticks/crosses.
+ */
+export async function pingGitHubAction(): Promise<PreflightResult> {
+  const cwd = await resolveScanTargetPath();
+  const config = await loadConfig(cwd);
+  const token = await resolveGitHubToken();
+  if (!token) {
+    return {
+      ok: false,
+      authenticatedAs: null,
+      steps: [
+        {
+          name: "GitHub token",
+          status: "fail",
+          detail:
+            "No token found. Finish the wizard's GitHub step (or export GITHUB_TOKEN in the shell before launching) so we can authenticate.",
+        },
+      ],
+    };
+  }
+  if (!config.git.repo || config.git.repo === "owner/name") {
+    return {
+      ok: false,
+      authenticatedAs: null,
+      steps: [
+        {
+          name: "Repo target",
+          status: "fail",
+          detail:
+            "PR target repo not set (still 'owner/name'). Finish the GitHub step in /setup so we know where to test pushes.",
+        },
+      ],
+    };
+  }
+  return pingGitHub({
+    token,
+    repo: config.git.repo,
+    repoPath: cwd,
+  });
+}
 
 export interface SettingsPatch {
   autonomy: AutonomyMode;

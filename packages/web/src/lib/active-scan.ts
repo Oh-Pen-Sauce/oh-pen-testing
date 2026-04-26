@@ -96,6 +96,25 @@ export interface AutoRemediationResult {
   finishedAt: string;
 }
 
+/**
+ * Live event the UI streams during a scan/remediation run. The
+ * server keeps the last MAX_EVENTS in-memory; the UI polls the
+ * active-scan state and renders the events as a scrolling log so
+ * the user can see playbooks running, issues being created, agents
+ * picking up work, and errors as they happen — instead of staring
+ * at a spinner for 11 minutes hoping something's actually
+ * happening.
+ */
+export interface ProgressEvent {
+  /** ISO timestamp; used to display "12s ago" relative to now. */
+  ts: string;
+  level: "info" | "warn" | "error";
+  /** Tag from the underlying logger (e.g. "agent_pool.completed"). */
+  category: string;
+  /** Human-readable summary line — pre-formatted, ready to render. */
+  message: string;
+}
+
 export interface ActiveScanState {
   /** Stable id for this run — useful for the UI to detect "new run". */
   id: string;
@@ -120,7 +139,16 @@ export interface ActiveScanState {
    * careful / recommended modes.
    */
   autoRemediation?: AutoRemediationResult;
+  /**
+   * Last MAX_EVENTS progress events from the run. Capped + truncated
+   * from the front when overflowing to bound memory and the
+   * polling-payload size. Empty until logger emits something.
+   */
+  events: ProgressEvent[];
 }
+
+/** Cap on event-buffer size. ~200 events × ~120 bytes = ~24KB max payload. */
+const MAX_EVENTS = 200;
 
 // Module singleton. Intentionally a wrapper object so we can mutate
 // in place (the state object reference stays stable across reads).
@@ -159,6 +187,7 @@ export function startStarterScanInBackground(): ActiveScanState {
     kind: "starter",
     startedAt: Date.now(),
     status: "running",
+    events: [],
   };
   state.current = entry;
   // Fire-and-forget — Node keeps this promise alive in module scope.
@@ -182,6 +211,7 @@ export function startFullScanInBackground(): ActiveScanState {
     kind: "full",
     startedAt: Date.now(),
     status: "running",
+    events: [],
   };
   state.current = entry;
   void runScanAndMaybeRemediate(entry, "full");
@@ -200,11 +230,24 @@ async function runScanAndMaybeRemediate(
   kind: ActiveScanKind,
 ): Promise<void> {
   let config: Config;
+  let cwd: string;
+  // Build the streaming logger early so even pre-scan errors land in
+  // entry.events. The file-logger itself can't be created until we
+  // know the scanId, so this starts as a noop wrapper and gets
+  // upgraded once runScan returns.
+  let fileLogger: Logger | null = null;
+  const streamingLogger = makeStreamingLogger(entry, () => fileLogger);
   try {
     ensureProvidersRegistered();
-    const cwd = await resolveScanTargetPath();
+    cwd = await resolveScanTargetPath();
     config = await loadConfig(cwd);
     const provider = await resolveProvider({ config });
+
+    streamingLogger.info("active_scan.dispatch", {
+      kind,
+      autonomy: config.agents.autonomy,
+      cwd,
+    });
 
     const scanResult =
       kind === "starter"
@@ -215,15 +258,21 @@ async function runScanAndMaybeRemediate(
             playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
             onlyPlaybookIds: [...STARTER_PLAYBOOK_IDS],
             skipAiConfirm: true,
+            logger: streamingLogger,
           })
         : await runScan({
             cwd,
             config,
             provider,
             playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
+            logger: streamingLogger,
           });
 
     entry.summary = summariseScan(scanResult, config.agents.autonomy);
+    streamingLogger.info("active_scan.scan_complete", {
+      scanId: scanResult.scanId,
+      issuesFound: scanResult.issues.length,
+    });
 
     const isYolo =
       config.agents.autonomy === "yolo" ||
@@ -238,18 +287,25 @@ async function runScanAndMaybeRemediate(
 
     // ── Auto-remediation pass (YOLO/full-YOLO) ──
     entry.status = "remediating";
-    // Hand a real file-logger to the agent pool so every failure
-    // mode lands in .ohpentesting/logs/<scanId>.jsonl. The user can
-    // grep that file when something fails — gives us the full error
-    // including stack-relevant context that doesn't fit in the UI.
-    const logger = await createLogger(cwd, scanResult.scanId);
+    // Now that we have a scanId, attach the file logger so events
+    // also land in .ohpentesting/logs/<scanId>.jsonl alongside the
+    // in-memory ring buffer. Both surfaces stay in sync.
+    fileLogger = await createLogger(cwd, scanResult.scanId);
     try {
-      entry.autoRemediation = await runAutoRemediation(cwd, config, logger);
+      entry.autoRemediation = await runAutoRemediation(
+        cwd,
+        config,
+        streamingLogger,
+      );
     } finally {
-      await logger.close();
+      await fileLogger.close();
+      fileLogger = null;
     }
     entry.status = "completed";
   } catch (err) {
+    streamingLogger.error("active_scan.fatal", {
+      error: (err as Error).message,
+    });
     entry.error = (err as Error).message ?? "Unknown scan error";
     entry.status = "failed";
   }
@@ -395,6 +451,182 @@ async function runAutoRemediation(
     attempted,
     finishedAt: finishedAt(),
   };
+}
+
+/**
+ * Wrap a (possibly absent) file logger so every event ALSO appends
+ * to the active-scan entry's events ring buffer, AFTER being passed
+ * through formatProgressEvent() to produce a UI-ready string.
+ *
+ * The fileLogger is a thunk-getter rather than a fixed reference
+ * because we don't always have one — pre-scan we can't know the
+ * scan id, and during scan we want everything streamed; the file
+ * logger gets attached only once auto-remediation begins. The
+ * thunk lets the upgrade happen in-place without rebuilding the
+ * wrapper.
+ */
+function makeStreamingLogger(
+  entry: ActiveScanState,
+  getFileLogger: () => Logger | null,
+): Logger {
+  function append(
+    level: "info" | "warn" | "error",
+    event: string,
+    data?: Record<string, unknown>,
+  ) {
+    // 1. Append to the in-memory ring buffer the UI polls.
+    const message = formatProgressEvent(event, data);
+    if (message) {
+      entry.events.push({
+        ts: new Date().toISOString(),
+        level,
+        category: event,
+        message,
+      });
+      if (entry.events.length > MAX_EVENTS) {
+        // Drop oldest when full. Splice modifies in place so the
+        // outer reference stays stable for polling.
+        entry.events.splice(0, entry.events.length - MAX_EVENTS);
+      }
+    }
+    // 2. Forward to the file logger if one's currently attached.
+    const fl = getFileLogger();
+    if (fl) {
+      if (level === "info") fl.info(event, data);
+      else if (level === "warn") fl.warn(event, data);
+      else fl.error(event, data);
+    }
+  }
+  return {
+    debug: () => {
+      // Debug events skip both surfaces — too noisy for the UI ring.
+    },
+    info: (event, data) => append("info", event, data),
+    warn: (event, data) => append("warn", event, data),
+    error: (event, data) => append("error", event, data),
+    close: async () => {
+      // The file logger's close is owned by the caller (see
+      // runScanAndMaybeRemediate's finally block) so we do nothing
+      // here — closing twice would be a bug.
+    },
+  };
+}
+
+/**
+ * Translate a structured logger event into a single human-readable
+ * line for the progress log. Returns null for events the UI
+ * doesn't need to surface (pure debug/internal noise) — those are
+ * dropped from the ring buffer.
+ */
+function formatProgressEvent(
+  event: string,
+  data?: Record<string, unknown>,
+): string | null {
+  const d = (data ?? {}) as Record<string, string | number | undefined>;
+  const cap = (s: string | undefined) =>
+    typeof s === "string" && s.length > 0
+      ? s[0]!.toUpperCase() + s.slice(1)
+      : (s ?? "?");
+  const emoji = (agentId: string | undefined) => {
+    switch (agentId) {
+      case "marinara":
+        return "🍅";
+      case "carbonara":
+        return "🥓";
+      case "alfredo":
+        return "🧀";
+      case "pesto":
+        return "🌿";
+      case "nonna":
+        return "👵";
+      default:
+        return "•";
+    }
+  };
+
+  switch (event) {
+    case "active_scan.dispatch":
+      return `📋 ${cap(String(d.kind ?? ""))} scan dispatching (autonomy: ${d.autonomy})`;
+    case "active_scan.scan_complete":
+      return `✓ Scan complete — ${d.issuesFound} issue${d.issuesFound === 1 ? "" : "s"} found (${d.scanId})`;
+    case "active_scan.fatal":
+      return `✖ Scan run errored: ${d.error}`;
+
+    case "scan.start":
+      return `▶ Scan ${d.scanId} starting (provider: ${d.provider})`;
+    case "scan.playbooks_loaded":
+      return `📚 Loaded ${d.relevant ?? d.total}/${d.total} playbooks`;
+    case "scan.files_walked":
+      return `🗂  Walked ${d.count} source files`;
+    case "scan.cross_scan_dedup_seeded":
+      return d.existingIssues && Number(d.existingIssues) > 0
+        ? `↻ Cross-scan dedup primed with ${d.existingIssues} existing issue${d.existingIssues === 1 ? "" : "s"}`
+        : null;
+    case "scan.cross_scan_dedup_failed":
+      return `⚠ Dedup priming failed: ${d.error}`;
+
+    case "playbook.candidates":
+      return Number(d.count) > 0
+        ? `🔎 ${d.playbookId} — ${d.count} candidate${d.count === 1 ? "" : "s"}`
+        : null; // skip "0 candidates" — too noisy
+    case "playbook.sca":
+      return `📦 ${d.playbookId} — ${d.findings} vulnerable package${d.findings === 1 ? "" : "s"}`;
+    case "playbook.sca_failed":
+      return `✖ SCA playbook failed (${d.playbookId}): ${d.error}`;
+
+    case "issue.created":
+      return `   • ${d.issueId} created — ${d.severity} in ${d.file}`;
+    case "issue.deduped":
+      return null; // not user-facing
+
+    case "auto_remediate.start":
+      return `🚀 Auto-remediation starting (${d.autonomy} mode, repo: ${d.repo})`;
+    case "auto_remediate.no_token":
+      return `⚠ Auto-remediation skipped — no GitHub token configured`;
+    case "auto_remediate.no_repo":
+      return `⚠ Auto-remediation skipped — PR target repo not set`;
+    case "auto_remediate.done":
+      return `🏁 Auto-remediation done — ${d.completed} PR${d.completed === 1 ? "" : "s"}, ${d.gated} gated, ${d.failed} failed`;
+
+    case "agent_pool.assigned":
+      return `${emoji(String(d.agent))} ${cap(String(d.agent))} picked up ${d.issueId}`;
+    case "agent_pool.completed":
+      return `✓ ${cap(String(d.agent))} opened PR for ${d.issueId}`;
+    case "agent_pool.gated":
+      return `⏸ ${cap(String(d.agent))} gated ${d.issueId}: ${d.reason}`;
+    case "agent_pool.failed":
+      return `✖ ${cap(String(d.agent))} failed on ${d.issueId}: ${d.error}`;
+
+    case "agent.pickup":
+      return null; // duplicate of agent_pool.assigned
+    case "agent.gated":
+      return null; // duplicate of agent_pool.gated
+    case "agent.remediation_received":
+      return `   AI patch received for ${d.issue}`;
+    case "agent.remediation_received_retry":
+      return `   AI patch received for ${d.issue} (Nonna's retry)`;
+    case "agent.review_rejected_retrying":
+      return `👵 Sent back: ${d.feedback}`;
+    case "agent.pr_opened":
+      return null; // duplicate of agent_pool.completed
+
+    case "review.approved":
+      return `👵 Approved ${cap(String(d.worker))}'s patch for ${d.issue}`;
+    case "review.rejected":
+      return `👵 Rejected ${cap(String(d.worker))}'s patch for ${d.issue}: ${d.feedback}`;
+    case "review.fast_reject":
+      return `👵 No-op patch rejected without an AI call (${d.issue})`;
+    case "review.error_fail_open":
+      return `⚠ Review errored — failing open for ${d.issue}: ${d.error}`;
+
+    case "pool.start":
+      return `🍝 Agent pool starting — ${d.total} eligible issue${d.total === 1 ? "" : "s"}, parallelism ${d.parallelism}`;
+    case "pool.complete":
+      return null; // duplicate of auto_remediate.done
+
+    default:
+      return null; // unknown event → drop (don't pollute the ring)
+  }
 }
 
 // Shape mirror — keeps UI/wire format identical to runStarterScanAction.

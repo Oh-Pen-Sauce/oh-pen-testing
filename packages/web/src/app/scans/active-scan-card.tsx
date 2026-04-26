@@ -19,6 +19,7 @@ import type {
   ActiveScanState,
   AutoRemediationResult,
 } from "../../lib/active-scan";
+import { ProgressLog } from "./progress-log";
 
 /**
  * Single source of truth on /scans for "is a scan happening?" and
@@ -160,6 +161,7 @@ export function ActiveScanCard({
         kind={active.kind}
         startedAt={active.startedAt}
         startersDetail={startersDetail}
+        events={active.events}
       />
     );
   }
@@ -172,6 +174,7 @@ export function ActiveScanCard({
       <RemediatingCard
         summary={active.summary}
         startedAt={active.startedAt}
+        events={active.events}
       />
     );
   }
@@ -194,6 +197,7 @@ export function ActiveScanCard({
         summary={active.summary}
         wasFullScan={active.kind === "full"}
         autoRemediation={active.autoRemediation}
+        events={active.events}
         onRunFullScan={startFull}
         onAutoRemediate={autoRemediate}
         onDismiss={dismiss}
@@ -426,10 +430,12 @@ function RunningCard({
   kind,
   startedAt,
   startersDetail,
+  events,
 }: {
   kind: "starter" | "full";
   startedAt: number;
   startersDetail: Array<{ id: string; displayName: string; description: string }>;
+  events: ActiveScanState["events"];
 }) {
   const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
   const startedAtRef = useRef(startedAt);
@@ -580,6 +586,12 @@ function RunningCard({
           )}
         </div>
       </div>
+      {/* Live event log — expand to see playbooks running, candidates
+          spotted, AI calls. Default open during a run so the user
+          has something to watch instead of a static spinner. */}
+      <div className="mt-4">
+        <ProgressLog events={events} live defaultOpen />
+      </div>
     </div>
   );
 }
@@ -600,10 +612,12 @@ function RunningCard({
 function RemediatingCard({
   summary,
   startedAt,
+  events,
 }: {
   summary: NonNullable<ActiveScanState["summary"]>;
   /** When the scan started — used to show a fused elapsed timer. */
   startedAt: number;
+  events: ActiveScanState["events"];
 }) {
   const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
   const startedAtRef = useRef(startedAt);
@@ -684,6 +698,14 @@ function RemediatingCard({
           provider: {summary.scannedPath.split("/").slice(-1)[0]}
         </span>
       </div>
+
+      {/* Live event log — agents picking up issues, AI calls coming
+          back, Nonna's verdicts, PRs landing. Open by default
+          during remediation since it's the only signal of progress
+          while individual issues are being patched. */}
+      <div className="mt-4">
+        <ProgressLog events={events} live defaultOpen />
+      </div>
     </div>
   );
 }
@@ -694,6 +716,7 @@ function DoneCard({
   summary,
   wasFullScan,
   autoRemediation,
+  events,
   onRunFullScan,
   onAutoRemediate,
   onDismiss,
@@ -706,6 +729,7 @@ function DoneCard({
   wasFullScan: boolean;
   /** YOLO auto-remediation that fired automatically after the scan. */
   autoRemediation?: AutoRemediationResult;
+  events: ActiveScanState["events"];
   onRunFullScan: () => void;
   onAutoRemediate: () => void;
   onDismiss: () => void;
@@ -1056,6 +1080,14 @@ function DoneCard({
         >
           ✕ Dismiss
         </button>
+      </div>
+
+      {/* Progress log — closed by default on the done card since
+          the user mostly wants the summary, but available for
+          post-mortem ("which playbook found ISSUE-061?", "did
+          Nonna review this?"). */}
+      <div className="mt-4">
+        <ProgressLog events={events} live={false} />
       </div>
     </div>
   );

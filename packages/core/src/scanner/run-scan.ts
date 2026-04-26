@@ -262,6 +262,12 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             await writeIssue(cwd, issue);
             issues.push(issue);
             scan.issues_found += 1;
+            logger.info("issue.created", {
+              issueId: issue.id,
+              severity: issue.severity,
+              playbookId: playbook.manifest.id,
+              file: issue.location.file,
+            });
           }
           scan.playbooks_run += 1;
         } catch (err) {
