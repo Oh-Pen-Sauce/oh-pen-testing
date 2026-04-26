@@ -763,13 +763,76 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
   );
 }
 
+/**
+ * Resolve which agent's emoji to render on a card.
+ *
+ * Two-stage lookup:
+ *   1. If issue.assignee is set (the agent has already picked this up
+ *      during a remediation pass), use that — it's the source of
+ *      truth straight from the agent pool.
+ *   2. Otherwise predict who WILL pick it up using the same rules
+ *      pickAgentForPlaybook() in core uses, so the kanban shows the
+ *      correct agent even before remediation runs.
+ *
+ * The previous heuristic split discovered_by on "/" and only looked
+ * at the FIRST segment ("owasp", "cwe-top-25", "iac", "wstg"), none
+ * of which match agent specialty regexes — so every card defaulted
+ * to Marinara. This is mirror of pickAgentForPlaybook in
+ * packages/core/src/agent/agents.ts; if the rules diverge, fix both.
+ */
 function agentFromIssue(issue: Issue) {
-  const id = (issue.discovered_by ?? "")
-    .replace(/^playbook:/, "")
-    .split("/")[0] ?? "";
-  if (/(secret|inject|upload|redirect)/i.test(id)) return agentById("marinara");
-  if (/(crypto|tls|jwt|cookie)/i.test(id)) return agentById("carbonara");
-  if (/(auth|access|session|broken)/i.test(id)) return agentById("alfredo");
-  if (/(sca|deps|cve|depend)/i.test(id)) return agentById("pesto");
+  // 1. Real assignment — once an agent has touched the issue.
+  if (issue.assignee && issue.assignee in AGENT_BY_ID) {
+    return agentById(issue.assignee);
+  }
+  // 2. Predicted assignment — based on full playbook id + OWASP cat.
+  const playbookId = (issue.remediation?.strategy ?? "").toLowerCase();
+  const cat = (issue.owasp_category ?? "").toLowerCase();
+  if (
+    playbookId.includes("inject") ||
+    playbookId.includes("xss") ||
+    playbookId.includes("xxe") ||
+    playbookId.includes("command") ||
+    playbookId.includes("secrets") ||
+    cat.includes("a03")
+  ) {
+    return agentById("marinara");
+  }
+  if (
+    playbookId.includes("crypto") ||
+    playbookId.includes("hash") ||
+    playbookId.includes("tls") ||
+    playbookId.includes("random") ||
+    cat.includes("a02")
+  ) {
+    return agentById("carbonara");
+  }
+  if (
+    playbookId.includes("auth") ||
+    playbookId.includes("access-control") ||
+    playbookId.includes("session") ||
+    playbookId.includes("cors") ||
+    cat.includes("a01") ||
+    cat.includes("a07")
+  ) {
+    return agentById("alfredo");
+  }
+  if (
+    playbookId.includes("sca") ||
+    playbookId.includes("component") ||
+    playbookId.includes("deserial") ||
+    playbookId.includes("sri") ||
+    cat.includes("a06") ||
+    cat.includes("a08")
+  ) {
+    return agentById("pesto");
+  }
   return agentById("marinara");
 }
+
+const AGENT_BY_ID: Record<string, true> = {
+  marinara: true,
+  carbonara: true,
+  alfredo: true,
+  pesto: true,
+};
