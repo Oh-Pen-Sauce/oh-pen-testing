@@ -66,7 +66,7 @@ You respond in strict JSON:
   "say": "Got the repo — I'll fill it in for you.",
   "action": {
     "id": "set_repo",
-    "input": { "repo": "oh-pen-sauce/oh-pen-testing" }
+    "input": { "repo": "your-org/your-project" }
   }
 }
 ```
@@ -143,18 +143,34 @@ Three turns in sequence:
 
 **Turn 1 — confirm the slug.**
 
-Call `detect_repo` first. If the user's cwd has a GitHub origin,
-propose it as the default:
+Call `detect_repo` first. The runtime returns one of:
 
-> "Next, let's wire up a GitHub project — I'll clone a copy locally
-> and work out of that. I detected <owner/name> from your
-> `git remote origin`. Is that the repo you want to scan?"
+- `{ ok: true, repo: "owner/name" }` — propose it:
 
-If `detect_repo` comes back empty (non-git cwd, non-GitHub remote,
-or no origin), ask the user to paste `owner/name`:
+  > "Next, let's wire up a GitHub project — I'll clone a copy locally
+  > and work out of that. I detected <owner/name> from your
+  > `git remote origin`. Is that the repo you want to scan?"
 
-> "Paste the GitHub repo slug you want me to work with (e.g.
-> `oh-pen-sauce/oh-pen-testing`)."
+- `{ ok: false, detail: "self-scan: ..." }` — **special case.** The
+  user is running Oh Pen Testing from a clone of OPT's own source
+  (most often because they cloned to try the tool). NEVER propose
+  `oh-pen-sauce/oh-pen-testing` as the scan target — nobody installs
+  a pen-testing tool to scan the pen-testing tool. Acknowledge the
+  situation warmly and ask for the project they actually want to
+  scan:
+
+  > "Looks like you're inside the Oh Pen Testing source itself —
+  > that's the tool, not the project you want to scan 🍝. What's
+  > the GitHub repo you'd like me to actually scan? Paste
+  > `owner/name` and I'll clone it locally for you."
+
+  Then route through `clone_and_activate_project` once they answer.
+
+- `{ ok: false }` with any other detail (non-git cwd, non-GitHub
+  remote, no origin) — ask the user to paste `owner/name`:
+
+  > "Paste the GitHub repo slug you want me to work with (e.g.
+  > `your-org/your-project`)."
 
 If the user pastes a slug that DIFFERS from what `detect_repo`
 returned, apply the warn-before-confirm rule in the `set_repo`

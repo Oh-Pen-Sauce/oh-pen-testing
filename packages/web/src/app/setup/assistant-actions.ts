@@ -365,6 +365,23 @@ async function detectRepoFromGit(): Promise<{
           ok: false,
           detail: `Non-GitHub remote (${parsed.host})`,
         });
+      } else if (isOhpenSourceRepo(parsed.repo)) {
+        // Don't suggest oh-pen-testing's own source as the scan
+        // target. People run `pnpm dev` from a clone of OPT to TRY
+        // the tool — they want to point it at their OWN project,
+        // not at OPT itself (which is mostly deliberate test
+        // fixtures + would just rediscover the bugs the OPT team
+        // already track in our own issue tracker).
+        //
+        // Surface this as ok=false with a specific detail string
+        // Marinara's prompt is wired to recognise — she'll then ask
+        // the user for the slug of the project they actually want
+        // to scan, and route through clone_and_activate_project.
+        resolve({
+          ok: false,
+          detail:
+            "self-scan: detected this is the oh-pen-testing source repo itself. Ask the user which project they actually want to scan and use clone_and_activate_project to set it up.",
+        });
       } else {
         resolve({
           ok: true,
@@ -374,6 +391,20 @@ async function detectRepoFromGit(): Promise<{
       }
     });
   });
+}
+
+/**
+ * True if `slug` (owner/name) is the canonical Oh Pen Testing
+ * source repo or its known mirror. Case-insensitive. Forks under
+ * other org names slip through — that's fine, they're rare and
+ * the user's intent there is ambiguous (genuine fork? misconfig?).
+ */
+function isOhpenSourceRepo(slug: string): boolean {
+  const lower = slug.toLowerCase();
+  return (
+    lower === "oh-pen-sauce/oh-pen-testing" ||
+    lower === "oh-pen-sauce/ohpen-testing"
+  );
 }
 
 function parseGitRemote(
