@@ -40,9 +40,26 @@ export async function commitAll(
   return result.commit;
 }
 
-export async function push(repoPath: string, branchName: string): Promise<void> {
+/**
+ * Push a branch. By default uses `origin` (whatever credentials git
+ * has configured locally — SSH key, credential helper, or none). If
+ * `pushUrl` is passed, push to THAT URL instead — this is how the
+ * GitHub adapter injects the API token into the URL for HTTPS push
+ * auth without depending on the user's local git credentials.
+ *
+ * The pushUrl variant is strictly safer than mutating origin's URL,
+ * because (a) it doesn't leave a token-laden remote URL on disk
+ * after the operation, and (b) it doesn't conflict with whatever
+ * other tools might be reading origin.
+ */
+export async function push(
+  repoPath: string,
+  branchName: string,
+  options: { pushUrl?: string } = {},
+): Promise<void> {
   const git = openRepo(repoPath);
-  await git.push("origin", branchName, ["--set-upstream"]);
+  const remote = options.pushUrl ?? "origin";
+  await git.push(remote, branchName, ["--set-upstream"]);
 }
 
 export async function getCurrentBranch(repoPath: string): Promise<string> {

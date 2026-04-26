@@ -17,8 +17,14 @@ import { runReview } from "./run-review.js";
 export const RemediationResponseSchema = z.object({
   patched_file_contents: z.string(),
   explanation_of_fix: z.string(),
-  env_var_name: z.string().optional(),
-  env_example_addition: z.string().optional(),
+  // .nullish() = string | null | undefined. Claude (and most other
+  // LLMs) often return `null` for "not applicable" optional fields
+  // rather than omitting them. Plain .optional() rejects that with a
+  // type-mismatch and the whole remediation fails. .nullish() lets
+  // both shapes through; the truthy-check downstream handles either
+  // one identically.
+  env_var_name: z.string().nullish(),
+  env_example_addition: z.string().nullish(),
 });
 export type RemediationResponse = z.infer<typeof RemediationResponseSchema>;
 

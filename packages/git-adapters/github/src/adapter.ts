@@ -47,11 +47,39 @@ export async function resolveGitHubToken(): Promise<string | null> {
   return result.value;
 }
 
+/**
+ * Strip the GitHub API token out of an error message so the user
+ * never sees it in the UI or logs. The token gets embedded in the
+ * push URL (https://x-access-token:TOKEN@github.com/...) and any
+ * git error that mentions the URL would otherwise leak it. We
+ * redact every `x-access-token:something@` occurrence on its way
+ * out of the adapter.
+ */
+function redactToken(input: string): string {
+  return input.replace(
+    /x-access-token:[^@\s]+@/gi,
+    "x-access-token:***@",
+  );
+}
+
 export function createGitHubAdapter(
   options: GitHubAdapterOptions,
 ): GitHubAdapter {
   const { owner, repo } = parseGitHubRepo(options.repo);
   const defaultBranch = options.defaultBranch ?? "main";
+
+  // Authenticated push URL using the token. Important: the API
+  // token lets us hit the REST API for opening PRs but says NOTHING
+  // about whether the local clone has push credentials — most users
+  // clone via HTTPS without auth and `git push origin` then fails
+  // with "Repository not found" (GitHub's same-error-for-no-access-
+  // and-not-found policy). Pushing to this URL instead uses the
+  // token for auth directly, so the API and push share one
+  // credential path. The user only has to set up the token once.
+  //
+  // GitHub's documented bot-token format is `x-access-token:<TOKEN>`.
+  // Standard PATs (classic + fine-grained) work the same way.
+  const pushUrl = `https://x-access-token:${options.token}@github.com/${owner}/${repo}.git`;
 
   return {
     async createRemediationPr(input: RemediationPushInput) {
@@ -65,7 +93,7 @@ export function createGitHubAdapter(
         baseBranch = await getCurrentBranch(input.repoPath);
       } catch (err) {
         throw new Error(
-          `[step: read current branch] ${(err as Error).message} — is ${input.repoPath} a git repo?`,
+          `[step: read current branch] ${redactToken((err as Error).message)} — is ${input.repoPath} a git repo?`,
         );
       }
 
@@ -73,7 +101,7 @@ export function createGitHubAdapter(
         await createBranch(input.repoPath, input.branchName, baseBranch);
       } catch (err) {
         throw new Error(
-          `[step: create branch '${input.branchName}'] ${(err as Error).message} — branch may already exist from a prior failed run, or the working tree may be dirty.`,
+          `[step: create branch '${input.branchName}'] ${redactToken((err as Error).message)} — branch may already exist from a prior failed run, or the working tree may be dirty.`,
         );
       }
 
@@ -85,15 +113,18 @@ export function createGitHubAdapter(
         );
       } catch (err) {
         throw new Error(
-          `[step: commit] ${(err as Error).message} — most often the agent's patch was identical to the existing file, so there's nothing to commit.`,
+          `[step: commit] ${redactToken((err as Error).message)} — most often the agent's patch was identical to the existing file, so there's nothing to commit.`,
         );
       }
 
       try {
-        await push(input.repoPath, input.branchName);
+        // Push using the token-authenticated URL — bypasses the
+        // user's local git credential setup entirely. See pushUrl
+        // construction above.
+        await push(input.repoPath, input.branchName, { pushUrl });
       } catch (err) {
         throw new Error(
-          `[step: git push] ${(err as Error).message} — likely the local clone has no push credentials. The GitHub token configured in oh-pen-testing is used for the API call, NOT for git push. Set up an SSH key for the clone, or use a credential helper that injects the token.`,
+          `[step: git push] ${redactToken((err as Error).message)} — token-authenticated push failed. Common causes: the token doesn't have 'Contents: write' permission on this repo, or the repo slug (${options.repo}) is wrong.`,
         );
       }
 
@@ -110,7 +141,7 @@ export function createGitHubAdapter(
         });
       } catch (err) {
         throw new Error(
-          `[step: open PR via GitHub API] ${(err as Error).message} — the token may lack 'pull-requests: write' permission, or the base branch '${defaultBranch}' may not exist on the remote.`,
+          `[step: open PR via GitHub API] ${redactToken((err as Error).message)} — the token may lack 'pull-requests: write' permission, or the base branch '${defaultBranch}' may not exist on the remote.`,
         );
       }
     },
