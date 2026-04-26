@@ -19,16 +19,7 @@ import {
 } from "./assistant-actions";
 import { InlineTerminal } from "./inline-terminal";
 import { renderMiniMarkdown } from "./mini-markdown";
-import {
-  runStarterScanAction,
-  runFullScanAction,
-  type StarterScanSummary,
-} from "../scans/actions";
-import {
-  runAutoRemediateAction,
-  type AutoRemediateResult,
-} from "../scans/remediate-actions";
-import { CookingMarinara } from "../scans/cooking-marinara";
+import { startStarterScanInBackgroundAction } from "../scans/actions";
 
 /**
  * Chat-style setup with Marinara.
@@ -1308,435 +1299,46 @@ function SidebarPanels({
 }
 
 /**
- * Setup-done state. Lets the user trigger the starter scan inline
- * (same server action as /scans), watch the cooking animation
- * happen, and see a real success or failure without navigating away.
+ * Setup-done state. Kicks off the starter scan as a background job
+ * (server-singleton tracks it) and immediately redirects the user to
+ * /scans, where ActiveScanCard renders the cooking animation +
+ * eventual result.
  *
- * Three sub-states:
- *   idle    — a card with "Run starter scan" + "Go to dashboard"
- *   running — CookingMarinara + elapsed timer + slow-scan hint
- *   done    — ✓ with issue count + links to board + scans
+ * Why redirect instead of running inline? Earlier flow ran the scan
+ * as a blocking server action awaited on this chat page; if the user
+ * clicked away mid-scan, the cooking animation died and the result
+ * vanished into the ether. Now /scans is the canonical "watch your
+ * scan" surface — the singleton on the server keeps state across
+ * navigation, so users can leave + come back without losing progress.
  *
- * Errors (rate limit, provider failure, scanner crash) get a visible
- * red panel with the message verbatim — no more "I clicked and
- * nothing happened".
+ * This component therefore has only two states:
+ *   idle  — explainer card + "Run first scan" / "Skip to dashboard"
+ *   error — only for the rare case the bg-launch action itself fails
+ *           (network blip between client and Next server). The scan
+ *           itself failing is handled on /scans.
  */
 function FinalActions({
   onError,
 }: {
   onError: (message: string | null) => void;
 }) {
-  const [phase, setPhase] = useState<
-    | { kind: "idle" }
-    | { kind: "running"; startedAt: number; label: "starter" | "full" }
-    | {
-        kind: "done";
-        summary: StarterScanSummary;
-        /** True if the summary is from runFullScanAction (not starter). */
-        isFullScan: boolean;
-      }
-    | { kind: "error"; message: string }
-  >({ kind: "idle" });
-  const [elapsedMs, setElapsedMs] = useState(0);
-
-  // Independent remediation state — only meaningful once phase.kind === "done"
-  // and the user hits the YOLO auto-remediate button. Kept outside the main
-  // phase machine so the user can keep seeing their scan summary while
-  // agents are cooking PRs.
-  const [remediating, setRemediating] = useState(false);
-  const [remediateResult, setRemediateResult] =
-    useState<AutoRemediateResult | null>(null);
-
-  // Tick elapsed time while running.
-  useEffect(() => {
-    if (phase.kind !== "running") return;
-    const startedAt = phase.startedAt;
-    const t = window.setInterval(() => {
-      setElapsedMs(Date.now() - startedAt);
-    }, 100);
-    return () => window.clearInterval(t);
-  }, [phase]);
+  const [launching, setLaunching] = useState(false);
 
   async function start() {
     onError(null);
-    setElapsedMs(0);
-    setPhase({ kind: "running", startedAt: Date.now(), label: "starter" });
+    setLaunching(true);
     try {
-      const res = await runStarterScanAction();
-      setPhase({ kind: "done", summary: res, isFullScan: false });
-    } catch (err) {
-      const message = (err as Error).message ?? "Unknown error";
-      setPhase({ kind: "error", message });
-      onError(message);
-    }
-  }
-
-  async function startFullScan() {
-    onError(null);
-    setElapsedMs(0);
-    setRemediateResult(null);
-    setPhase({ kind: "running", startedAt: Date.now(), label: "full" });
-    try {
-      const res = await runFullScanAction();
-      setPhase({ kind: "done", summary: res, isFullScan: true });
-    } catch (err) {
-      const message = (err as Error).message ?? "Unknown error";
-      setPhase({ kind: "error", message });
-      onError(message);
-    }
-  }
-
-  async function autoRemediate() {
-    onError(null);
-    setRemediating(true);
-    try {
-      const res = await runAutoRemediateAction();
-      setRemediateResult(res);
-      if (!res.ok) onError(res.detail);
+      await startStarterScanInBackgroundAction();
+      // Hard-redirect rather than router.push — we want a fresh
+      // page that picks up the active-scan state from the server.
+      window.location.href = "/scans";
     } catch (err) {
       const message = (err as Error).message ?? "Unknown error";
       onError(message);
-    } finally {
-      setRemediating(false);
+      setLaunching(false);
     }
   }
 
-  if (phase.kind === "running") {
-    const seconds = (elapsedMs / 1000).toFixed(1);
-    const isFull = phase.label === "full";
-    // Full scans legitimately take minutes. "Slow" thresholds differ.
-    const slow = elapsedMs > (isFull ? 180_000 : 30_000);
-    return (
-      <UserFormBubble>
-        <div className="flex items-start gap-4 flex-wrap">
-          <div className="shrink-0">
-            <CookingMarinara size={130} />
-          </div>
-          <div className="flex-1 min-w-[180px]">
-            <div
-              className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
-              style={{
-                fontFamily: "var(--font-mono)",
-                color: "var(--sauce-soft)",
-              }}
-            >
-              ● {isFull ? "Full scan" : "Scanning"} · {seconds}s
-            </div>
-            <div
-              className="font-black italic text-[18px] text-ink mb-1.5"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {isFull
-                ? "The whole kitchen's cooking."
-                : "Running your first scan."}
-            </div>
-            <div className="text-[12px] text-ink-soft leading-snug">
-              {isFull
-                ? "Running every playbook relevant to your stack with AI confirm on. A few minutes for a small project, longer for large ones."
-                : "5 static playbooks, no network, no AI cost. Usually under 30 seconds."}
-            </div>
-            {slow && (
-              <div
-                className="mt-2 text-[11px] px-2.5 py-1.5 rounded"
-                style={{
-                  background: "var(--parmesan)",
-                  border: "1px solid var(--ink)",
-                  color: "var(--ink)",
-                  fontFamily: "var(--font-mono)",
-                }}
-              >
-                ⏳ Taking longer than usual — large repos can. Hang tight.
-              </div>
-            )}
-          </div>
-        </div>
-      </UserFormBubble>
-    );
-  }
-
-  if (phase.kind === "done") {
-    const s = phase.summary;
-    const isFull = phase.isFullScan;
-    return (
-      <UserFormBubble>
-        <div
-          className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1"
-          style={{
-            fontFamily: "var(--font-mono)",
-            color: "var(--basil-dark)",
-          }}
-        >
-          ✓ {isFull ? "Full scan complete" : "First scan complete"}
-        </div>
-        <div
-          className="font-black italic text-[20px] text-ink mb-2"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          {s.issuesFound === 0
-            ? "Spotless."
-            : `Found ${s.issuesFound} issue${s.issuesFound === 1 ? "" : "s"}.`}
-        </div>
-        <div
-          className="text-[11.5px] text-ink-soft mb-3 leading-relaxed px-3 py-2 rounded"
-          style={{
-            background: "var(--cream)",
-            border: "1px solid var(--ink)",
-            fontFamily: "var(--font-mono)",
-          }}
-        >
-          <div>target: {s.scannedPath}</div>
-          <div>
-            scanned: {s.filesScanned} files · {s.playbooksRun} playbooks · scan {s.scanId}
-          </div>
-          {s.topFiles.length > 0 && (
-            <div className="mt-1 whitespace-pre-wrap break-words">
-              top: {s.topFiles.join(", ")}
-            </div>
-          )}
-        </div>
-        {s.issuesFound > 0 && s.yoloMode && !remediateResult && !remediating && (
-          <div
-            className="text-[12px] mb-3 px-3 py-2 rounded leading-snug"
-            style={{
-              background: "var(--parmesan)",
-              border: "1.5px solid var(--ink)",
-            }}
-          >
-            🚀 You&rsquo;re in <strong>{s.autonomy}</strong> mode. Agents can
-            auto-open PRs for every finding — hit &ldquo;Auto-remediate all&rdquo;
-            below to fix the whole batch, or open the board to triage them
-            one-by-one.
-          </div>
-        )}
-
-        {/* Remediation running strip */}
-        {remediating && (
-          <div
-            className="mb-3 px-3 py-2 rounded flex items-center gap-3"
-            style={{
-              background: "var(--parmesan)",
-              border: "1.5px solid var(--ink)",
-            }}
-          >
-            <CookingMarinara size={40} />
-            <div className="text-[12.5px] text-ink leading-snug">
-              Agents are opening PRs — a minute per issue is normal. Keep this
-              tab open.
-            </div>
-          </div>
-        )}
-
-        {/* Remediation result — PR URLs, gated count, failures. */}
-        {remediateResult && (
-          <div
-            className="mb-3 px-3 py-2 rounded text-[12.5px]"
-            style={{
-              background: remediateResult.ok ? "#E4F0DF" : "#FBE4E0",
-              border: `1.5px solid ${remediateResult.ok ? "var(--basil)" : "var(--sauce)"}`,
-            }}
-          >
-            <div
-              className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
-              style={{
-                fontFamily: "var(--font-mono)",
-                color: remediateResult.ok
-                  ? "var(--basil-dark)"
-                  : "var(--sauce-dark)",
-              }}
-            >
-              {remediateResult.ok ? "✓ Remediation run" : "✖ Remediation failed"}
-            </div>
-            <div className="text-ink mb-1">{remediateResult.detail}</div>
-            {remediateResult.prUrls.length > 0 && (
-              <ul className="list-none p-0 m-0 flex flex-col gap-0.5">
-                {remediateResult.prUrls.map((url) => (
-                  <li key={url}>
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline text-[12px]"
-                      style={{
-                        color: "var(--sauce)",
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      {url}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        )}
-
-        <div className="flex flex-wrap gap-2">
-          {/* Auto-remediate — primary CTA when YOLO + issues found. */}
-          {s.issuesFound > 0 && s.yoloMode && !remediateResult && (
-            <button
-              type="button"
-              onClick={autoRemediate}
-              disabled={remediating}
-              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg disabled:opacity-60"
-              style={{
-                background: "var(--sauce)",
-                color: "var(--cream)",
-                border: "2px solid var(--ink)",
-                boxShadow: "3px 3px 0 var(--ink)",
-                cursor: remediating ? "wait" : "pointer",
-              }}
-            >
-              {remediating
-                ? "Auto-remediating…"
-                : `🚀 Auto-remediate all ${s.issuesFound} issue${s.issuesFound === 1 ? "" : "s"}`}
-            </button>
-          )}
-
-          {/* Full scan — offered after starter (not after a full scan). */}
-          {!isFull && (
-            <button
-              type="button"
-              onClick={startFullScan}
-              disabled={remediating}
-              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg disabled:opacity-60"
-              style={{
-                background:
-                  s.issuesFound === 0 ? "var(--sauce)" : "var(--cream)",
-                color: s.issuesFound === 0 ? "var(--cream)" : "var(--ink)",
-                border: "2px solid var(--ink)",
-                boxShadow:
-                  s.issuesFound === 0 ? "3px 3px 0 var(--ink)" : undefined,
-                cursor: "pointer",
-              }}
-            >
-              🔍 {s.issuesFound === 0 ? "Run full scan" : "Run full scan too"}
-            </button>
-          )}
-
-          {s.issuesFound > 0 && (
-            <Link
-              href="/board"
-              className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-              style={{
-                background:
-                  s.yoloMode && !remediateResult
-                    ? "var(--cream)"
-                    : "var(--sauce)",
-                color:
-                  s.yoloMode && !remediateResult
-                    ? "var(--ink)"
-                    : "var(--cream)",
-                border: "2px solid var(--ink)",
-                boxShadow:
-                  s.yoloMode && !remediateResult
-                    ? undefined
-                    : "3px 3px 0 var(--ink)",
-              }}
-            >
-              Open the board →
-            </Link>
-          )}
-          <Link
-            href="/scans"
-            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-            style={{
-              background: "var(--cream)",
-              color: "var(--ink)",
-              border: "2px solid var(--ink)",
-            }}
-          >
-            All scans
-          </Link>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-            style={{
-              background: "var(--cream)",
-              color: "var(--ink)",
-              border: "2px solid var(--ink)",
-            }}
-          >
-            Go to dashboard
-          </Link>
-        </div>
-      </UserFormBubble>
-    );
-  }
-
-  if (phase.kind === "error") {
-    return (
-      <UserFormBubble>
-        <div
-          className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1"
-          style={{
-            fontFamily: "var(--font-mono)",
-            color: "var(--sauce-dark)",
-          }}
-        >
-          ✖ Starter scan failed
-        </div>
-        <div
-          className="font-black italic text-[18px] text-ink mb-1"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Something went wrong mid-scan.
-        </div>
-        <pre
-          className="mt-2 mb-3 px-3 py-2 rounded text-[11px] whitespace-pre-wrap break-words"
-          style={{
-            background: "#FBE4E0",
-            border: "1.5px solid var(--sauce)",
-            color: "var(--sauce-dark)",
-            fontFamily: "var(--font-mono)",
-            margin: 0,
-          }}
-        >
-          {phase.message}
-        </pre>
-        <div className="text-[12px] text-ink-soft mb-3 leading-snug">
-          Common causes: provider rate-limit hit, network blip, or the
-          repo contains files the scanner can&rsquo;t read. Try again,
-          or run{" "}
-          <code
-            className="px-1 rounded"
-            style={{ background: "var(--parmesan)" }}
-          >
-            opt scan --starter
-          </code>{" "}
-          in your terminal for the full stack trace.
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={start}
-            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-            style={{
-              background: "var(--sauce)",
-              color: "var(--cream)",
-              border: "2px solid var(--ink)",
-              boxShadow: "3px 3px 0 var(--ink)",
-              cursor: "pointer",
-            }}
-          >
-            ↻ Retry
-          </button>
-          <Link
-            href="/scans"
-            className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
-            style={{
-              background: "var(--cream)",
-              color: "var(--ink)",
-              border: "2px solid var(--ink)",
-            }}
-          >
-            Skip to scans
-          </Link>
-        </div>
-      </UserFormBubble>
-    );
-  }
-
-  // idle
   return (
     <UserFormBubble>
       <div
@@ -1752,24 +1354,33 @@ function FinalActions({
         Let&rsquo;s cook your first scan.
       </div>
       <div className="text-[12.5px] text-ink-soft mb-3 leading-snug">
-        I&rsquo;ll run 5 static playbooks right here — no network, no
-        AI calls, takes seconds. You&rsquo;ll see what a finding looks
-        like before we turn on the full catalogue.
+        I&rsquo;ll kick off the starter — 5 static playbooks, no network, no
+        AI cost, takes seconds. We&rsquo;ll move you to{" "}
+        <Link
+          href="/scans"
+          className="underline"
+          style={{ color: "var(--sauce)" }}
+        >
+          /scans
+        </Link>{" "}
+        so you can watch it cook (and wander off if you want — it keeps
+        running).
       </div>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={start}
-          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg"
+          disabled={launching}
+          className="inline-flex items-center gap-2 px-4 py-2 text-[13px] font-semibold rounded-lg disabled:opacity-60"
           style={{
             background: "var(--sauce)",
             color: "var(--cream)",
             border: "2px solid var(--ink)",
             boxShadow: "3px 3px 0 var(--ink)",
-            cursor: "pointer",
+            cursor: launching ? "wait" : "pointer",
           }}
         >
-          🔎 Run first scan
+          {launching ? "🍅 Starting…" : "🔎 Run first scan"}
         </button>
         <Link
           href="/"
@@ -1786,6 +1397,7 @@ function FinalActions({
     </UserFormBubble>
   );
 }
+
 
 function describeAction(
   id: string,

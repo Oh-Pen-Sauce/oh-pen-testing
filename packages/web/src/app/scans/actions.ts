@@ -11,6 +11,13 @@ import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import { resolveProvider, runScan } from "@oh-pen-testing/core";
 import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 import { ensureProvidersRegistered } from "../../lib/providers-bootstrap";
+import {
+  getActiveScan,
+  clearActiveScan,
+  startStarterScanInBackground,
+  startFullScanInBackground,
+  type ActiveScanState,
+} from "../../lib/active-scan";
 
 /**
  * Run the starter scan — 5 safe regex playbooks, no network, no AI
@@ -142,4 +149,40 @@ export async function runFullScanAction(): Promise<StarterScanSummary> {
       config.agents.autonomy === "yolo" ||
       config.agents.autonomy === "full-yolo",
   };
+}
+
+/**
+ * ────────── Background-scan server actions ──────────
+ *
+ * These wrap the active-scan singleton in lib/active-scan.ts. The
+ * launchers return immediately after kicking the bg promise, so the
+ * client is free to navigate away — the scan keeps running in the
+ * Node process. The status getter is what the UI polls to show the
+ * cooking animation and eventually the result.
+ */
+
+export async function startStarterScanInBackgroundAction(): Promise<ActiveScanState> {
+  return startStarterScanInBackground();
+}
+
+export async function startFullScanInBackgroundAction(): Promise<ActiveScanState> {
+  return startFullScanInBackground();
+}
+
+export async function getActiveScanAction(): Promise<ActiveScanState | null> {
+  const active = getActiveScan();
+  // When a bg scan finishes, refresh the scans list / board so polling
+  // clients pick up the new data on the same tick they discover the
+  // status flip. This is best-effort — revalidatePath outside of an
+  // active request does nothing in some Next versions, but won't hurt.
+  if (active && active.status !== "running") {
+    revalidatePath("/scans");
+    revalidatePath("/board");
+    revalidatePath("/");
+  }
+  return active;
+}
+
+export async function clearActiveScanAction(): Promise<void> {
+  clearActiveScan();
 }

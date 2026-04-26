@@ -4,7 +4,8 @@ import { listCatalog } from "../../lib/playbooks";
 import { STARTER_PLAYBOOK_IDS } from "@oh-pen-testing/shared";
 import { PageHeader } from "../../components/trattoria/page-header";
 import { Btn } from "../../components/trattoria/button";
-import { StarterGate } from "./starter-gate";
+import { ActiveScanCard } from "./active-scan-card";
+import { getActiveScan } from "../../lib/active-scan";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,12 @@ export default async function ScansPage() {
     };
   });
 
+  // Read the active-scan singleton on the server so the page lands
+  // already showing the cooking animation if a scan is in flight (or
+  // the result panel if one finished while the user was elsewhere).
+  // Avoids a flash of "no scan" before the client poll kicks in.
+  const initialActive = getActiveScan();
+
   return (
     <div>
       <PageHeader
@@ -38,16 +45,22 @@ export default async function ScansPage() {
             : "Let's ease into this — start with a tiny, safe scan below."
         }
         actions={
-          <>
-            <Btn variant="ghost" icon="⟳">
-              Refresh
-            </Btn>
-            {starterComplete && <Btn icon="🔎">Run scan</Btn>}
-          </>
+          <Btn variant="ghost" icon="⟳">
+            Refresh
+          </Btn>
         }
       />
 
-      {!starterComplete && <StarterGate startersDetail={startersDetail} />}
+      {/* ActiveScanCard handles every "scan-related" UI state on this
+          page — idle (run starter / run full), running (cooking
+          animation, persists across navigation because the scan job
+          lives in a Node singleton), completed (summary + CTAs),
+          failed. */}
+      <ActiveScanCard
+        starterComplete={starterComplete}
+        startersDetail={startersDetail}
+        initialActive={initialActive}
+      />
 
       {scans.length === 0 ? (
         <EmptyState />
