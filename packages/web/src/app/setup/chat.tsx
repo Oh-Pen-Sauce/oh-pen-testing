@@ -151,56 +151,62 @@ const PROVIDER_CHOICES: Array<{
 ];
 
 export function SetupChat({ initial }: { initial: Config | null }) {
-  // Attempt to rehydrate from sessionStorage — so navigating to
-  // another page and back doesn't nuke a conversation mid-flight.
-  // If a snapshot exists and is valid, use it; otherwise build
-  // initial state from the server-sent config.
-  const snapshot = typeof window !== "undefined" ? loadChatSnapshot() : null;
+  // ── Hydration-safe init ──
+  //
+  // We CAN'T touch sessionStorage during the initial render. The
+  // server has no DOM, so `typeof window === "undefined"` and
+  // sessionStorage returns null; on the first client render
+  // (hydration) the snapshot exists, so server and client compute
+  // different state and React throws a hydration mismatch.
+  //
+  // Instead, we always start with the same "fresh" state on both
+  // sides, then in a useEffect AFTER mount we load the snapshot and
+  // replace state. The price is one extra render on chat resume —
+  // briefly showing "fresh" before the snapshot pops in. Worth it
+  // to kill the hydration warning.
+  const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
 
-  const [turns, setTurns] = useState<ChatTurn[]>(() => {
-    if (!snapshot) return [];
-    return snapshot.turns.map((t) => ({
-      id: t.id,
-      from: t.from,
-      // Re-render the text through the markdown renderer so links /
-      // bold / code come back visually. Falls back to plain text if
-      // the renderer is unhappy with something.
-      content: renderMiniMarkdown(t.text),
-      text: t.text,
-      pendingAction: t.pendingAction,
-    }));
-  });
-  // Persistent message log the AI sees — we don't send React nodes to it.
-  const [history, setHistory] = useState<Turn[]>(() =>
-    snapshot ? snapshot.history : [],
-  );
-  const [state, setState] = useState<SetupState>(() => {
-    if (snapshot) return snapshot.state;
-    const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
-    return {
-      currentStep: alreadyDone ? "done" : "provider",
-      providerId: initial?.ai.primary_provider ?? null,
-      // If the user has already finished setup, trust the config —
-      // probe result is effectively "yes it was ok when I saved".
-      // Otherwise null and we'll run a real probe below.
-      providerProbeOk: alreadyDone ? true : null,
-      repoSet: Boolean(
-        initial?.git.repo && initial.git.repo !== "owner/name",
-      ),
-      tokenSaved: alreadyDone,
-      autonomy: initial?.agents.autonomy ?? null,
-      authAcknowledged: alreadyDone,
-    };
-  });
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [history, setHistory] = useState<Turn[]>([]);
+  const [state, setState] = useState<SetupState>(() => ({
+    currentStep: alreadyDone ? "done" : "provider",
+    providerId: initial?.ai.primary_provider ?? null,
+    providerProbeOk: alreadyDone ? true : null,
+    repoSet: Boolean(
+      initial?.git.repo && initial.git.repo !== "owner/name",
+    ),
+    tokenSaved: alreadyDone,
+    autonomy: initial?.agents.autonomy ?? null,
+    authAcknowledged: alreadyDone,
+  }));
   const [busy, setBusy] = useState(false);
-  // Which provider the inline-terminal's pre-typed command targets.
-  // Defaults to claude-code-cli — the best first-run experience.
   const [terminalProviderId, setTerminalProviderId] = useState<ProviderId>(
-    () =>
-      snapshot?.terminalProviderId ??
-      initial?.ai.primary_provider ??
-      "claude-code-cli",
+    () => initial?.ai.primary_provider ?? "claude-code-cli",
   );
+
+  // After mount, rehydrate from sessionStorage if a snapshot exists.
+  // Marks didBootstrapRef so the welcome/auto-probe useEffect
+  // further down doesn't try to seed an opener over the restored
+  // chat. Empty deps so this only runs once.
+  useEffect(() => {
+    const snapshot = loadChatSnapshot();
+    if (!snapshot || snapshot.turns.length === 0) return;
+    setTurns(
+      snapshot.turns.map((t) => ({
+        id: t.id,
+        from: t.from,
+        content: renderMiniMarkdown(t.text),
+        text: t.text,
+        pendingAction: t.pendingAction,
+      })),
+    );
+    setHistory(snapshot.history);
+    setState(snapshot.state);
+    if (snapshot.terminalProviderId) {
+      setTerminalProviderId(snapshot.terminalProviderId);
+    }
+    didBootstrapRef.current = true;
+  }, []);
 
   // Persist to sessionStorage whenever something interesting changes.
   // This is the durable fix for "chat disappears when I navigate away".
@@ -281,9 +287,10 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     if (didBootstrapRef.current) return;
     didBootstrapRef.current = true;
 
-    // If we restored a snapshot with turns, skip the welcome/probe
-    // sequence entirely — the user's picking up where they left off.
-    if (snapshot && snapshot.turns.length > 0) return;
+    // The snapshot-restore useEffect above also sets
+    // didBootstrapRef.current = true if it found turns to restore,
+    // so we won't reach here when the user is picking up where they
+    // left off — only on truly-fresh mounts.
 
     const preselected = initial?.ai.primary_provider;
     const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;

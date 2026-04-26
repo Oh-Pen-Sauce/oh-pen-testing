@@ -308,6 +308,7 @@ export default async function IssueDetailPage({
         <h2 className="kicker mb-2">Actions</h2>
         <IssueActions
           issueId={issue.id}
+          status={issue.status}
           canRemediate={canRemediate}
           severity={issue.severity}
           autonomy={autonomy}

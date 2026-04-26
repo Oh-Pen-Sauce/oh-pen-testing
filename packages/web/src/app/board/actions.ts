@@ -3,10 +3,57 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { revalidatePath } from "next/cache";
-import type { IssueStatus } from "@oh-pen-testing/shared";
+import type { Issue, IssueStatus } from "@oh-pen-testing/shared";
 import { ohpenPaths } from "@oh-pen-testing/shared";
-import { getIssue, updateIssue } from "../../lib/repo";
+import { getIssue, readSourceFileSlice, updateIssue } from "../../lib/repo";
 import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
+
+/**
+ * Slim snippet bundle the slide-in panel asks for on demand —
+ * lighter than re-fetching the whole issue, and lets us keep the
+ * code preview hidden until the user opens the panel.
+ */
+export interface IssueSnippet {
+  lines: string[];
+  startLine: number;
+  endLine: number;
+  /** The line range of the actual finding within the snippet. */
+  highlight: [number, number];
+}
+
+export async function fetchIssueSnippetAction(
+  id: string,
+): Promise<IssueSnippet | null> {
+  const issue = await getIssue(id);
+  if (!issue) return null;
+  try {
+    const slice = await readSourceFileSlice(
+      issue.location.file,
+      issue.location.line_range[0],
+      issue.location.line_range[1],
+      4,
+    );
+    return {
+      lines: slice.lines,
+      startLine: slice.startLine,
+      endLine: slice.endLine,
+      highlight: issue.location.line_range,
+    };
+  } catch {
+    // Source file no longer present — let the UI render its empty
+    // state without exploding the panel.
+    return null;
+  }
+}
+
+/**
+ * Re-read the issue from disk so the slide-in can refresh its state
+ * after an action (status change, PR opened, fix description
+ * captured) without forcing the user to close + reopen the panel.
+ */
+export async function fetchIssueAction(id: string): Promise<Issue | null> {
+  return getIssue(id);
+}
 
 export async function changeIssueStatusAction(
   id: string,

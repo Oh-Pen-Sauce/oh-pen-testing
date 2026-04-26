@@ -721,6 +721,10 @@ function DoneCard({
     ok: boolean;
     detail: string;
     prUrls: string[];
+    /** Issues that needed approval (won't be PR'd until human says go). */
+    gatedCount: number;
+    /** Issues that errored out — bad token, bad model output, etc. */
+    failedCount: number;
     /** "auto" → ran automatically; "manual" → user clicked button. */
     source: "auto" | "manual";
   } | null = autoRemediation
@@ -728,6 +732,8 @@ function DoneCard({
         ok: autoRemediation.ok,
         detail: autoRemediation.detail,
         prUrls: autoRemediation.prUrls,
+        gatedCount: autoRemediation.gated.length,
+        failedCount: autoRemediation.failed.length,
         source: "auto",
       }
     : remediateResult
@@ -735,6 +741,8 @@ function DoneCard({
           ok: remediateResult.ok,
           detail: remediateResult.detail,
           prUrls: remediateResult.prUrls,
+          gatedCount: remediateResult.gated.length,
+          failedCount: remediateResult.failed.length,
           source: "manual",
         }
       : null;
@@ -936,6 +944,52 @@ function DoneCard({
                 ))}
               </ul>
             </>
+          )}
+
+          {/* Gated CTA — auto-remediation never opens PRs for issues
+              that match approval triggers (auth changes, secrets,
+              schema migrations, critical severity in recommended).
+              Direct the user to the board where they can click
+              "Approve & open PR" on each one. Without this CTA the
+              user is left with "4 gated for approval" and no idea
+              where to go next. */}
+          {renderedRemediation.gatedCount > 0 && (
+            <div
+              className="mt-3 pt-2 flex items-center justify-between gap-2 flex-wrap"
+              style={{ borderTop: "1px dashed rgba(34,26,20,0.18)" }}
+            >
+              <div
+                className="text-[12px] text-ink"
+                style={{ lineHeight: 1.4 }}
+              >
+                <strong>
+                  {renderedRemediation.gatedCount} gated for approval
+                </strong>{" "}
+                — these matched an approval trigger (auth / secrets /
+                schema / critical) and need your sign-off.
+              </div>
+              <Link
+                href="/board?filter=pending_approval"
+                className="text-[12px] font-bold underline whitespace-nowrap"
+                style={{
+                  color: "var(--sauce)",
+                  fontFamily: "var(--font-mono)",
+                }}
+              >
+                Review & approve →
+              </Link>
+            </div>
+          )}
+          {renderedRemediation.failedCount > 0 && (
+            <div
+              className="mt-2 text-[12px] text-ink"
+              style={{ lineHeight: 1.4 }}
+            >
+              <strong>{renderedRemediation.failedCount} failed</strong> —
+              the agent threw on these (provider error, rate limit, or a
+              file it couldn&rsquo;t patch). Open the board to retry one-
+              by-one.
+            </div>
           )}
         </div>
       )}

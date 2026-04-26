@@ -122,6 +122,16 @@ export interface RunAgentOptions {
   adapter: RemediationAdapter;
   logger?: Logger;
   repoPath?: string;
+  /**
+   * Skip the autonomy-mode gate for THIS run. Set to true ONLY when
+   * a human has explicitly approved this individual issue (e.g. via
+   * the "Approve & open PR" button on the board). Without this, an
+   * issue that was gated for approval would just be re-gated every
+   * time runAgent is called — there's no "approval persisted on the
+   * issue" mechanism otherwise. Use sparingly: this is the kill
+   * switch on autonomy enforcement.
+   */
+  bypassAutonomyGate?: boolean;
 }
 
 export interface RemediationAdapter {
@@ -162,7 +172,15 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   // issue in `backlog` (or a new `pending_approval` state) and return
   // without patching anything. Humans approve via the web /reviews page
   // or `opt approve --issue <ID>`.
-  const gate = evaluateAutonomyGate(options.config, issue);
+  //
+  // bypassAutonomyGate skips this entirely — it's how the
+  // "Approve & open PR" button works. The caller is asserting that a
+  // human just clicked the green button on this specific issue, so
+  // the gate's "is this risky enough to need approval?" question has
+  // already been answered yes-and-the-human-said-go.
+  const gate = options.bypassAutonomyGate
+    ? ({ allowed: true } as const)
+    : evaluateAutonomyGate(options.config, issue);
   if (!gate.allowed) {
     issue.status = "pending_approval" as Issue["status"];
     issue.assignee = agent.id;
