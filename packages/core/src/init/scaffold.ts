@@ -48,6 +48,16 @@ credentials*
 .counter.json
 `;
 
+/**
+ * Block we append to the user's ROOT .gitignore. Must be a single
+ * line so we can do a substring `.includes(".ohpentesting")` check
+ * for idempotency without false-matching some other config block.
+ * Comment is on the same line so a casual reader can see why the
+ * entry is there.
+ */
+const ROOT_GITIGNORE_MARKER =
+  ".ohpentesting/ # oh-pen-testing local state (issues, scans, logs)";
+
 export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult> {
   const paths = ohpenPaths(options.cwd);
   const created: string[] = [];
@@ -93,6 +103,43 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   if (!ohpenIgnoreExists) {
     await fs.writeFile(paths.gitignore, OHPEN_GITIGNORE, "utf-8");
     created.push(path.relative(options.cwd, paths.gitignore));
+  }
+
+  // Add `.ohpentesting/` to the user's ROOT .gitignore so our state
+  // dir (issues, scans, logs, config) is never accidentally
+  // committed by a buggy `git add .` somewhere — and so `git
+  // checkout -f main` (which removes tracked files not present in
+  // main) can't sweep our state away as a side effect of switching
+  // branches. Without this, an old build that staged `.ohpentesting/`
+  // contents into a branch would cause subsequent agent pre-flights
+  // to wipe half the state on the next checkout.
+  //
+  // Idempotent: only appends if the marker isn't already present.
+  // We don't touch any other line in the user's .gitignore.
+  const rootGitignore = path.join(options.cwd, ".gitignore");
+  try {
+    const existing = await readFileIfExists(rootGitignore);
+    if (!existing) {
+      // No .gitignore at all — create one with just our marker.
+      await fs.writeFile(
+        rootGitignore,
+        ROOT_GITIGNORE_MARKER + "\n",
+        "utf-8",
+      );
+      created.push(".gitignore (created with .ohpentesting/ entry)");
+    } else if (!existing.includes(".ohpentesting")) {
+      // Has one already — append our entry.
+      const sep = existing.endsWith("\n") ? "" : "\n";
+      await fs.writeFile(
+        rootGitignore,
+        existing + sep + ROOT_GITIGNORE_MARKER + "\n",
+        "utf-8",
+      );
+      created.push(".gitignore (appended .ohpentesting/ entry)");
+    }
+  } catch {
+    // Best effort — failing to update .gitignore isn't fatal, the
+    // pre-flight snapshot/restore is the second line of defence.
   }
 
   // Install pre-commit hook if this is a git repo

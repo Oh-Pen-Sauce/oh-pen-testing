@@ -1,3 +1,5 @@
+import fs from "node:fs/promises";
+import nodePath from "node:path";
 import { simpleGit, type SimpleGit } from "simple-git";
 
 export interface GitAuthor {
@@ -98,24 +100,35 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
  * where the user shouldn't be editing manually (e.g. a clone Oh
  * Pen Testing manages under ~/.ohpentesting/projects/).
  *
- * **Critically excludes `.ohpentesting/`** from the clean. That
- * directory holds Oh Pen Testing's own state — issues, scans,
- * logs, the ID counter — and wiping it during a remediation run
- * causes a catastrophic ENOENT cascade: the agent pool reads N
- * issues from disk before kicking individual agents, and every
- * agent that runs after the first one tries to re-read its issue
- * file and finds it gone. Bare `git clean -fd` doesn't touch
- * gitignored content, but `.ohpentesting/` usually isn't in the
- * user's root `.gitignore` (we never added it to theirs — we only
- * write a gitignore INSIDE the dir, which doesn't help). So we
- * have to be explicit.
+ * **Snapshots and restores `.ohpentesting/` around the checkout.**
+ * Why both layers (excluding it from `git clean` AND
+ * snapshot/restore around `git checkout -f`)?
+ *
+ *   - `git clean -fd` removes untracked files. We exclude
+ *     .ohpentesting/ via -e so our state survives.
+ *   - `git checkout -f main` removes TRACKED files that exist on
+ *     the previous branch but not on main. If a buggy old build
+ *     (or a manual `git add .`) ever staged .ohpentesting/ files
+ *     into a branch, switching back to main would wipe them. The
+ *     snapshot+restore protects against that — we copy
+ *     .ohpentesting/ to memory before checkout, then write it
+ *     back after, so even if checkout removes the tree from disk
+ *     we've got a backup.
+ *
+ * Belt-and-suspenders. The .gitignore-based prevention (scaffold
+ * adds .ohpentesting/ to the user's root .gitignore) is the
+ * primary defence; this is the safety net for repos that haven't
+ * been re-scaffolded yet, or where some side channel slipped
+ * tracked files in.
  */
 export async function resetToCleanBranch(
   repoPath: string,
   branch: string,
 ): Promise<void> {
   const git = openRepo(repoPath);
+  const ohpenSnapshot = await snapshotOhpenDir(repoPath);
   await git.checkout(["-f", branch]);
+  await restoreOhpenSnapshot(repoPath, ohpenSnapshot);
   await git.clean("f", [
     "-d",
     "-e",
@@ -123,4 +136,71 @@ export async function resetToCleanBranch(
     "-e",
     ".ohpentesting",
   ]);
+}
+
+/**
+ * Recursively read every file under .ohpentesting/ into memory as
+ * a path → bytes map. Returns an empty map if the dir doesn't
+ * exist. Best-effort: any file we can't read (permission, race) is
+ * silently skipped.
+ */
+async function snapshotOhpenDir(
+  repoPath: string,
+): Promise<Map<string, Buffer>> {
+  const snapshot = new Map<string, Buffer>();
+  const root = nodePath.join(repoPath, ".ohpentesting");
+  async function walk(dir: string): Promise<void> {
+    let entries: import("node:fs").Dirent[];
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const entry of entries) {
+      const full = nodePath.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        await walk(full);
+      } else if (entry.isFile()) {
+        try {
+          const rel = nodePath.relative(repoPath, full);
+          snapshot.set(rel, await fs.readFile(full));
+        } catch {
+          /* skip unreadable */
+        }
+      }
+    }
+  }
+  await walk(root);
+  return snapshot;
+}
+
+/**
+ * Write the snapshot back to disk. Creates parent dirs as needed.
+ * Only writes files that AREN'T already present on disk with the
+ * same byte length — minor optimisation to avoid touching files
+ * that survived the checkout, which keeps mtime stable for any
+ * tools watching them.
+ */
+async function restoreOhpenSnapshot(
+  repoPath: string,
+  snapshot: Map<string, Buffer>,
+): Promise<void> {
+  for (const [rel, contents] of snapshot.entries()) {
+    const full = nodePath.join(repoPath, rel);
+    try {
+      const existing = await fs.stat(full);
+      if (existing.isFile() && existing.size === contents.length) {
+        // Same byte count — most likely identical, skip.
+        continue;
+      }
+    } catch {
+      /* file doesn't exist — proceed to write */
+    }
+    try {
+      await fs.mkdir(nodePath.dirname(full), { recursive: true });
+      await fs.writeFile(full, contents);
+    } catch {
+      /* skip individual write failures */
+    }
+  }
 }

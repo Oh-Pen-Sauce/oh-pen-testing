@@ -15,7 +15,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "dogfood": "turbo run build && node scripts/dogfood.mjs",
-    "clean": "turbo run clean && rm -rf node_modules"
+    "clean": "turbo run clean && rm -rf node_modules",
+    "dev": "turbo run build --filter=!@oh-pen-testing/web && pnpm --filter @oh-pen-testing/web dev"
   },
   "devDependencies": {
     "@oh-pen-testing/core": "workspace:*",
