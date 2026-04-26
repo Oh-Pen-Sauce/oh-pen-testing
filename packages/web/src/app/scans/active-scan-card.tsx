@@ -9,6 +9,7 @@ import {
   startFullScanInBackgroundAction,
   getActiveScanAction,
   clearActiveScanAction,
+  abortActiveScanAction,
   bypassStarterAction,
 } from "./actions";
 import {
@@ -66,11 +67,14 @@ export function ActiveScanCard({
     useState<AutoRemediateResult | null>(null);
 
   // Poll active-scan status. Faster cadence while running OR
-  // remediating so the phase-flip from scan→remediate→done feels snappy.
+  // remediating so the phase-flip from scan→remediate→done feels
+  // snappy. Even faster while "stopping" so the cancelled state
+  // appears as soon as runners actually halt.
   useEffect(() => {
     const isLive =
       active?.status === "running" || active?.status === "remediating";
-    const intervalMs = isLive ? 1500 : 4000;
+    const isStopping = active?.status === "stopping";
+    const intervalMs = isStopping ? 800 : isLive ? 1500 : 4000;
     let cancelled = false;
     const tick = async () => {
       try {
@@ -86,6 +90,31 @@ export function ActiveScanCard({
       window.clearInterval(handle);
     };
   }, [active?.status]);
+
+  /**
+   * Stop-cooking handler. Confirms with the user (a 10-minute scan
+   * isn't easy to recreate), then fires the abort action. Server
+   * flips status to "stopping" immediately; runners promote it to
+   * "cancelled" at the next checkpoint. We don't wait — the polling
+   * loop will pick up the state change.
+   */
+  async function stopCooking() {
+    if (!active) return;
+    const phase = active.status === "remediating" ? "remediation" : "scan";
+    const ok = confirm(
+      `Stop the ${phase}? Anything already done is kept (issues found, PRs opened) — only future work is skipped. The current AI call (if any) finishes first, so the actual halt may take a few seconds.`,
+    );
+    if (!ok) return;
+    setActionError(null);
+    try {
+      const res = await abortActiveScanAction();
+      if (!res.aborted) {
+        setActionError(`Couldn't stop: ${res.reason ?? "unknown"}`);
+      }
+    } catch (err) {
+      setActionError((err as Error).message);
+    }
+  }
 
   async function startStarter() {
     setActionError(null);
@@ -155,6 +184,9 @@ export function ActiveScanCard({
 
   // ──────────────────── render branches ────────────────────
 
+  // "stopping" routes to whichever phase we WERE in: if we have a
+  // scan summary, the stop arrived mid-remediation; otherwise it
+  // arrived mid-scan. Either card shows a "stopping…" overlay.
   if (active?.status === "running") {
     return (
       <RunningCard
@@ -162,19 +194,40 @@ export function ActiveScanCard({
         startedAt={active.startedAt}
         startersDetail={startersDetail}
         events={active.events}
+        stopping={false}
+        onStop={stopCooking}
+      />
+    );
+  }
+  if (active?.status === "stopping" && !active.summary) {
+    return (
+      <RunningCard
+        kind={active.kind}
+        startedAt={active.startedAt}
+        startersDetail={startersDetail}
+        events={active.events}
+        stopping
+        onStop={stopCooking}
       />
     );
   }
 
   // YOLO/full-YOLO chain: scan finished, agent pool now opening PRs.
   // Show the scan summary inline so the user has context for what's
-  // being remediated.
-  if (active?.status === "remediating" && active.summary) {
+  // being remediated. "stopping" with a summary means the user
+  // pressed stop during remediation — same UI, different flag.
+  if (
+    (active?.status === "remediating" ||
+      (active?.status === "stopping" && active.summary)) &&
+    active.summary
+  ) {
     return (
       <RemediatingCard
         summary={active.summary}
         startedAt={active.startedAt}
         events={active.events}
+        stopping={active.status === "stopping"}
+        onStop={stopCooking}
       />
     );
   }
@@ -191,13 +244,17 @@ export function ActiveScanCard({
     );
   }
 
-  if (active?.status === "completed" && active.summary) {
+  if (
+    (active?.status === "completed" || active?.status === "cancelled") &&
+    active.summary
+  ) {
     return (
       <DoneCard
         summary={active.summary}
         wasFullScan={active.kind === "full"}
         autoRemediation={active.autoRemediation}
         events={active.events}
+        wasCancelled={active.status === "cancelled"}
         onRunFullScan={startFull}
         onAutoRemediate={autoRemediate}
         onDismiss={dismiss}
@@ -207,6 +264,13 @@ export function ActiveScanCard({
         actionError={actionError}
       />
     );
+  }
+  // Cancelled WITHOUT a summary = user stopped before any scan
+  // results existed (e.g. crash during file walk + immediate stop).
+  // Render a tiny "stopped before any scan results" card with a
+  // dismiss button.
+  if (active?.status === "cancelled") {
+    return <StoppedEarlyCard onDismiss={dismiss} />;
   }
 
   // ─── idle ───
@@ -431,11 +495,16 @@ function RunningCard({
   startedAt,
   startersDetail,
   events,
+  stopping,
+  onStop,
 }: {
   kind: "starter" | "full";
   startedAt: number;
   startersDetail: Array<{ id: string; displayName: string; description: string }>;
   events: ActiveScanState["events"];
+  /** True after the user clicked stop — runners draining at next checkpoint. */
+  stopping: boolean;
+  onStop: () => void;
 }) {
   const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
   const startedAtRef = useRef(startedAt);
@@ -592,6 +661,14 @@ function RunningCard({
       <div className="mt-4">
         <ProgressLog events={events} live defaultOpen />
       </div>
+      {/* Stop cooking — visible bottom-right of the running card. */}
+      <div className="mt-4 flex justify-end">
+        <StopCookingButton
+          stopping={stopping}
+          onStop={onStop}
+          phaseLabel="scan"
+        />
+      </div>
     </div>
   );
 }
@@ -613,11 +690,15 @@ function RemediatingCard({
   summary,
   startedAt,
   events,
+  stopping,
+  onStop,
 }: {
   summary: NonNullable<ActiveScanState["summary"]>;
   /** When the scan started — used to show a fused elapsed timer. */
   startedAt: number;
   events: ActiveScanState["events"];
+  stopping: boolean;
+  onStop: () => void;
 }) {
   const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
   const startedAtRef = useRef(startedAt);
@@ -706,6 +787,14 @@ function RemediatingCard({
       <div className="mt-4">
         <ProgressLog events={events} live defaultOpen />
       </div>
+      {/* Stop cooking — visible bottom-right of the remediation card. */}
+      <div className="mt-4 flex justify-end">
+        <StopCookingButton
+          stopping={stopping}
+          onStop={onStop}
+          phaseLabel="remediation"
+        />
+      </div>
     </div>
   );
 }
@@ -717,6 +806,7 @@ function DoneCard({
   wasFullScan,
   autoRemediation,
   events,
+  wasCancelled,
   onRunFullScan,
   onAutoRemediate,
   onDismiss,
@@ -729,6 +819,12 @@ function DoneCard({
   wasFullScan: boolean;
   /** YOLO auto-remediation that fired automatically after the scan. */
   autoRemediation?: AutoRemediationResult;
+  /**
+   * True when the run finished because the user clicked stop, not
+   * because it ran to completion. The summary still reflects what
+   * was done before the stop — same fields, partial values.
+   */
+  wasCancelled?: boolean;
   events: ActiveScanState["events"];
   onRunFullScan: () => void;
   onAutoRemediate: () => void;
@@ -787,11 +883,27 @@ function DoneCard({
         className="text-[10px] font-bold tracking-[0.2em] uppercase mb-2"
         style={{
           fontFamily: "var(--font-mono)",
-          color: "var(--basil-dark)",
+          color: wasCancelled ? "var(--sauce-dark)" : "var(--basil-dark)",
         }}
       >
-        ✓ {wasFullScan ? "Full scan complete" : "Starter scan complete"}
+        {wasCancelled
+          ? `🛑 ${wasFullScan ? "Full scan" : "Starter scan"} stopped`
+          : `✓ ${wasFullScan ? "Full scan complete" : "Starter scan complete"}`}
       </div>
+      {wasCancelled && (
+        <div
+          className="rounded-lg p-3 mb-3 text-[12.5px] leading-snug"
+          style={{
+            background: "var(--parmesan)",
+            border: "1.5px solid var(--ink)",
+          }}
+        >
+          You stopped the run before it finished. Anything below
+          reflects what was already done — issues found are on the
+          board, PRs already opened are on GitHub, and any unattempted
+          work is left at backlog/ready for a future run.
+        </div>
+      )}
       <h2
         className="font-black italic text-[28px] text-ink m-0 mb-2"
         style={{ fontFamily: "var(--font-display)" }}
@@ -1381,6 +1493,115 @@ function FailedCard({
           ✕ Dismiss
         </button>
       </div>
+    </div>
+  );
+}
+
+// ───────── Stop cooking button + early-stop fallback ─────────
+
+/**
+ * "🛑 Stop cooking" button shown on RunningCard and RemediatingCard.
+ *
+ * Two states:
+ *   - idle: red button, click opens a confirm and fires the abort.
+ *   - stopping: disabled, shows a tiny spinner + "Stopping…" so
+ *     the user knows their click registered while the runners
+ *     drain at the next checkpoint (an in-flight AI call has to
+ *     finish, which can take 5-30s).
+ *
+ * The button visually echoes the kitchen metaphor — "stop cooking"
+ * vs "still cooking" — so the action feels native to Marinara's
+ * voice rather than a generic Cancel.
+ */
+function StopCookingButton({
+  stopping,
+  onStop,
+  phaseLabel,
+}: {
+  stopping: boolean;
+  onStop: () => void;
+  /** "scan" or "remediation" — surfaces in the button title-tip. */
+  phaseLabel: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onStop}
+      disabled={stopping}
+      title={
+        stopping
+          ? `Stopping ${phaseLabel}… runners halt at the next safe checkpoint`
+          : `Stop the ${phaseLabel}. Anything already done is kept.`
+      }
+      className="text-[12px] font-semibold px-3 py-1.5 rounded-md disabled:opacity-70"
+      style={{
+        background: stopping ? "var(--ink-soft)" : "var(--sauce-dark)",
+        color: "var(--cream)",
+        border: "2px solid var(--ink)",
+        boxShadow: stopping ? undefined : "2px 2px 0 var(--ink)",
+        cursor: stopping ? "wait" : "pointer",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {stopping ? (
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block w-[8px] h-[8px] rounded-full animate-pulse"
+            style={{ background: "var(--cream)" }}
+            aria-hidden
+          />
+          Stopping…
+        </span>
+      ) : (
+        "🛑 Stop cooking"
+      )}
+    </button>
+  );
+}
+
+/**
+ * Tiny "stopped before any results" card. Appears when the user
+ * cancels a scan so quickly that no scan summary was produced
+ * (e.g. mid-file-walk). Just acknowledges the stop and offers a
+ * dismiss — there's nothing to summarise.
+ */
+function StoppedEarlyCard({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      className="rounded-xl p-5 mb-6 flex items-center gap-4 flex-wrap"
+      style={{
+        background: "var(--cream-soft)",
+        border: "2.5px solid var(--ink)",
+        boxShadow: "4px 4px 0 var(--sauce-dark)",
+      }}
+    >
+      <span className="text-[28px]" aria-hidden>
+        🛑
+      </span>
+      <div className="flex-1 min-w-[200px]">
+        <h3
+          className="font-black italic text-[18px] text-ink m-0 leading-tight"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Stopped before any results.
+        </h3>
+        <p className="text-[12.5px] text-ink-soft mt-1 m-0 leading-snug">
+          You hit stop very early — nothing was scanned long enough to
+          report. No issues created, no PRs opened. Run another scan
+          when you&rsquo;re ready.
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onDismiss}
+        className="text-[12px] underline"
+        style={{
+          color: "var(--ink-soft)",
+          fontFamily: "var(--font-mono)",
+        }}
+      >
+        ✕ Dismiss
+      </button>
     </div>
   );
 }

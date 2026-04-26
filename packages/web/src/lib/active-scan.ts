@@ -51,6 +51,7 @@ import {
   resolveProvider,
   runScan,
   runAgentPool,
+  ScanCancelled,
 } from "@oh-pen-testing/core";
 import {
   createGitHubAdapter,
@@ -94,6 +95,10 @@ export interface AutoRemediationResult {
   attempted: number;
   /** ISO timestamp when the remediation step finished. */
   finishedAt: string;
+  /** True when the pool stopped early because the user clicked stop. */
+  cancelled?: boolean;
+  /** Issue IDs left untouched at cancellation time. */
+  skipped?: string[];
 }
 
 /**
@@ -125,11 +130,21 @@ export interface ActiveScanState {
    * Lifecycle:
    *   running     — scan is in flight
    *   remediating — scan finished, agent pool is opening PRs (YOLO only)
+   *   stopping    — user clicked stop; runners will halt at next checkpoint
    *   completed   — fully done; check `summary` and (optional) `autoRemediation`
    *   failed      — scan itself errored; check `error`
+   *   cancelled   — user-stopped, partial results in `summary` /
+   *                `autoRemediation`. Issues already created stay on
+   *                the board, PRs already opened stay open.
    */
-  status: "running" | "remediating" | "completed" | "failed";
-  /** Populated once status === "completed". */
+  status:
+    | "running"
+    | "remediating"
+    | "stopping"
+    | "completed"
+    | "failed"
+    | "cancelled";
+  /** Populated once status === "completed" or "cancelled" (partial). */
   summary?: ActiveScanSummary;
   /** Populated once status === "failed". */
   error?: string;
@@ -154,8 +169,47 @@ const MAX_EVENTS = 200;
 // in place (the state object reference stays stable across reads).
 const state: { current: ActiveScanState | null } = { current: null };
 
+/**
+ * Internal companion to `state.current`. Holds the AbortController
+ * for the in-flight scan promise. NOT serialised to the client —
+ * the controller can't cross the wire, and the client only needs
+ * to know "can I cancel?" (yes if status is running/remediating).
+ *
+ * Lives in a wrapper object so we can null it out when a run
+ * finishes without disturbing `state.current`.
+ */
+const internal: { controller: AbortController | null } = { controller: null };
+
 export function getActiveScan(): ActiveScanState | null {
   return state.current;
+}
+
+/**
+ * Abort the currently-running scan, if any. Cooperative — runners
+ * check the signal at safe checkpoints and unwind cleanly. Status
+ * flips to "stopping" immediately; the runners promote it to
+ * "cancelled" once they actually halt (could take seconds for an
+ * in-flight AI call to finish).
+ *
+ * No-op if nothing is in flight, or if the scan has already
+ * transitioned past the running/remediating phases.
+ */
+export function abortActiveScan(): { aborted: boolean; reason?: string } {
+  if (!state.current) {
+    return { aborted: false, reason: "no active scan" };
+  }
+  if (
+    state.current.status !== "running" &&
+    state.current.status !== "remediating"
+  ) {
+    return {
+      aborted: false,
+      reason: `scan is in status '${state.current.status}', already past the cancellable phase`,
+    };
+  }
+  state.current.status = "stopping";
+  internal.controller?.abort(new Error("user requested stop"));
+  return { aborted: true };
 }
 
 export function clearActiveScan(): void {
@@ -190,8 +244,9 @@ export function startStarterScanInBackground(): ActiveScanState {
     events: [],
   };
   state.current = entry;
+  internal.controller = new AbortController();
   // Fire-and-forget — Node keeps this promise alive in module scope.
-  void runScanAndMaybeRemediate(entry, "starter");
+  void runScanAndMaybeRemediate(entry, "starter", internal.controller.signal);
   return entry;
 }
 
@@ -214,7 +269,8 @@ export function startFullScanInBackground(): ActiveScanState {
     events: [],
   };
   state.current = entry;
-  void runScanAndMaybeRemediate(entry, "full");
+  internal.controller = new AbortController();
+  void runScanAndMaybeRemediate(entry, "full", internal.controller.signal);
   return entry;
 }
 
@@ -228,6 +284,7 @@ export function startFullScanInBackground(): ActiveScanState {
 async function runScanAndMaybeRemediate(
   entry: ActiveScanState,
   kind: ActiveScanKind,
+  signal: AbortSignal,
 ): Promise<void> {
   let config: Config;
   let cwd: string;
@@ -259,6 +316,7 @@ async function runScanAndMaybeRemediate(
             onlyPlaybookIds: [...STARTER_PLAYBOOK_IDS],
             skipAiConfirm: true,
             logger: streamingLogger,
+            signal,
           })
         : await runScan({
             cwd,
@@ -266,6 +324,7 @@ async function runScanAndMaybeRemediate(
             provider,
             playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
             logger: streamingLogger,
+            signal,
           });
 
     entry.summary = summariseScan(scanResult, config.agents.autonomy);
@@ -273,6 +332,19 @@ async function runScanAndMaybeRemediate(
       scanId: scanResult.scanId,
       issuesFound: scanResult.issues.length,
     });
+
+    // After the scan completes, the user may have cancelled before
+    // we move into remediation. Honour it — they don't want PRs to
+    // start opening if they hit stop. (If they hit stop AFTER
+    // remediation started, the agent pool's own signal check
+    // handles it.)
+    if (signal.aborted) {
+      streamingLogger.info("active_scan.cancelled_before_remediate", {
+        scanId: scanResult.scanId,
+      });
+      entry.status = "cancelled";
+      return;
+    }
 
     const isYolo =
       config.agents.autonomy === "yolo" ||
@@ -296,18 +368,33 @@ async function runScanAndMaybeRemediate(
         cwd,
         config,
         streamingLogger,
+        signal,
       );
     } finally {
       await fileLogger.close();
       fileLogger = null;
     }
-    entry.status = "completed";
+    // If the agent pool reported cancellation, surface that as the
+    // top-level status. Otherwise, completed.
+    entry.status = entry.autoRemediation?.cancelled ? "cancelled" : "completed";
   } catch (err) {
+    if (err instanceof ScanCancelled) {
+      // Cancellation thrown from inside runScan — treat as expected.
+      streamingLogger.info("active_scan.scan_cancelled", {
+        scanId: err.scanId,
+      });
+      entry.status = "cancelled";
+      return;
+    }
     streamingLogger.error("active_scan.fatal", {
       error: (err as Error).message,
     });
     entry.error = (err as Error).message ?? "Unknown scan error";
     entry.status = "failed";
+  } finally {
+    // Clear the controller — the run is done one way or another,
+    // and a future scan will create a fresh one.
+    internal.controller = null;
   }
 }
 
@@ -327,6 +414,7 @@ async function runAutoRemediation(
   cwd: string,
   config: Config,
   logger: Logger,
+  signal: AbortSignal,
 ): Promise<AutoRemediationResult> {
   const finishedAt = () => new Date().toISOString();
   logger.info("auto_remediate.start", {
@@ -392,6 +480,7 @@ async function runAutoRemediation(
     filter: (_issue: Issue) => true,
     parallelism: 1,
     logger,
+    signal,
     onProgress: (event) => {
       // Mirror progress events into the log for after-the-fact
       // analysis — gives us a full ordered transcript of what each
@@ -417,8 +506,9 @@ async function runAutoRemediation(
 
   let detail: string;
   if (attempted === 0) {
-    detail =
-      "Nothing to remediate — no open issues at backlog/ready. (Issues already in_review or done aren't re-PR'd.)";
+    detail = result.cancelled
+      ? `Stopped before any issue was attempted. ${result.skipped?.length ?? 0} issues left at backlog/ready for a future run.`
+      : "Nothing to remediate — no open issues at backlog/ready. (Issues already in_review or done aren't re-PR'd.)";
   } else {
     const parts: string[] = [];
     if (completedCount > 0) {
@@ -430,6 +520,9 @@ async function runAutoRemediation(
     if (failedCount > 0) {
       parts.push(`${failedCount} failed`);
     }
+    if (result.cancelled && result.skipped && result.skipped.length > 0) {
+      parts.push(`${result.skipped.length} skipped (you stopped the run)`);
+    }
     detail =
       parts.length > 0
         ? parts.join(" · ") + "."
@@ -437,7 +530,7 @@ async function runAutoRemediation(
   }
 
   return {
-    ok: completedCount > 0 || (attempted === 0),
+    ok: completedCount > 0 || (attempted === 0 && !result.cancelled),
     detail,
     prUrls,
     gated: result.gated.map((g) => ({
@@ -450,6 +543,8 @@ async function runAutoRemediation(
     })),
     attempted,
     finishedAt: finishedAt(),
+    cancelled: result.cancelled,
+    skipped: result.skipped,
   };
 }
 

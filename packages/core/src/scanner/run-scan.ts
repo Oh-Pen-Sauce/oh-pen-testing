@@ -60,6 +60,28 @@ export interface RunScanOptions {
    * the forthcoming `--only <id>` CLI flag.
    */
   onlyPlaybookIds?: readonly string[];
+  /**
+   * Optional cancellation signal. The scanner checks `signal.aborted`
+   * between playbooks; when true, it finalises the partial scan
+   * record (status=cancelled), keeps any issues already created, and
+   * throws ScanCancelled. The caller decides how to surface it. We
+   * don't cancel mid-playbook — that would leave a partially-scanned
+   * playbook in an ambiguous state — but with 31 playbooks and ~1s
+   * each, between-playbook is responsive enough.
+   */
+  signal?: AbortSignal;
+}
+
+/**
+ * Thrown when an in-flight scan is asked to stop. Caller should
+ * treat the partial result as valid — issues already created stay
+ * on disk, the scan record is finalised with status=cancelled.
+ */
+export class ScanCancelled extends Error {
+  constructor(public readonly scanId: string) {
+    super(`Scan ${scanId} cancelled by user`);
+    this.name = "ScanCancelled";
+  }
 }
 
 export interface RunScanResult {
@@ -200,6 +222,25 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     }
 
     for (const playbook of relevant) {
+      // Cooperative cancellation checkpoint — user clicked "stop
+      // cooking" mid-scan. We finalise the scan record as cancelled,
+      // keep any issues already created, and throw so the caller
+      // can update its own state. Issues from playbooks that
+      // already ran stay valid; the rest of the catalogue is
+      // skipped.
+      if (options.signal?.aborted) {
+        logger.warn("scan.cancelled", {
+          scanId,
+          completedPlaybooks: scan.playbooks_run,
+          remainingPlaybooks:
+            relevant.length - relevant.indexOf(playbook),
+        });
+        scan.ended_at = new Date().toISOString();
+        scan.status = "checkpointed"; // closest existing status; UI surfaces "cancelled" separately
+        await writeScan(cwd, scan);
+        throw new ScanCancelled(scanId);
+      }
+
       // SCA playbooks shell out to external auditors (npm audit / pip-audit
       // / bundler-audit). Different runtime path from regex playbooks.
       if (playbook.manifest.type === "sca") {

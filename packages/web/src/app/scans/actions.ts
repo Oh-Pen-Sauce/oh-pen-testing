@@ -14,6 +14,7 @@ import { ensureProvidersRegistered } from "../../lib/providers-bootstrap";
 import {
   getActiveScan,
   clearActiveScan,
+  abortActiveScan,
   startStarterScanInBackground,
   startFullScanInBackground,
   type ActiveScanState,
@@ -185,4 +186,25 @@ export async function getActiveScanAction(): Promise<ActiveScanState | null> {
 
 export async function clearActiveScanAction(): Promise<void> {
   clearActiveScan();
+}
+
+/**
+ * "Stop cooking" — request cancellation of the in-flight scan or
+ * remediation. Cooperative: the runners check the signal at safe
+ * checkpoints (between playbooks during scan, between issues during
+ * remediation), so the actual halt can take seconds for an
+ * in-flight AI call to drain. Status flips to "stopping"
+ * immediately so the UI can react; runners promote it to "cancelled"
+ * once they actually stop.
+ *
+ * No-op if nothing is in flight, or if the run has already moved
+ * past the cancellable phase. Returns whether the abort was
+ * actually accepted, so the UI can decline to show a confirmation
+ * if it wasn't.
+ */
+export async function abortActiveScanAction(): Promise<{
+  aborted: boolean;
+  reason?: string;
+}> {
+  return abortActiveScan();
 }

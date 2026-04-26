@@ -32,18 +32,35 @@ export interface AgentPoolOptions {
   parallelism?: number;
   /** Progress callback for CLI/UI. */
   onProgress?: (event: AgentPoolProgressEvent) => void;
+  /**
+   * Optional cancellation signal. The pool checks `signal.aborted`
+   * before assigning each issue to an agent; when true, it stops
+   * accepting new work, lets in-flight remediations finish, and
+   * resolves with whatever it has completed so far. The unhandled
+   * issues are NOT marked failed — they're just left at backlog/
+   * ready for a future run. Mid-issue cancellation isn't supported
+   * (each runAgent call is treated as atomic) — the wait is at
+   * worst the duration of one AI patch + git push, which is
+   * acceptable from a "stop cooking" UX angle.
+   */
+  signal?: AbortSignal;
 }
 
 export type AgentPoolProgressEvent =
   | { type: "assigned"; agent: string; issueId: string }
   | { type: "completed"; agent: string; issueId: string; prUrl: string }
   | { type: "gated"; agent: string; issueId: string; reason: string }
-  | { type: "failed"; agent: string; issueId: string; error: string };
+  | { type: "failed"; agent: string; issueId: string; error: string }
+  | { type: "cancelled"; remaining: number };
 
 export interface AgentPoolResult {
   completed: RunAgentResult[];
   gated: Array<{ issueId: string; agentId: string; reason: string }>;
   failed: Array<{ issueId: string; agentId: string; error: string }>;
+  /** True when the pool stopped early because signal was aborted. */
+  cancelled?: boolean;
+  /** Issues that were never picked up because cancellation arrived. */
+  skipped?: string[];
 }
 
 /**
@@ -157,13 +174,18 @@ export async function runAgentPool(
   }
 
   async function drain(agent: AgentIdentity, ownBucket: Issue[]): Promise<void> {
-    // Drain own bucket first, then steal.
+    // Drain own bucket first, then steal. Each iteration checks the
+    // cancellation signal — once it fires, we stop accepting new
+    // work but let any in-flight runAgent finish (it's atomic at
+    // the issue level by design).
     for (const issue of ownBucket) {
+      if (options.signal?.aborted) return;
       if (taken.has(issue.id)) continue;
       await tryIssue(agent, issue);
     }
     // Work-stealing loop.
     while (true) {
+      if (options.signal?.aborted) return;
       const idx = stealPile.findIndex((i) => !taken.has(i.id));
       if (idx === -1) break;
       const issue = stealPile[idx]!;
@@ -180,13 +202,34 @@ export async function runAgentPool(
     activeAgents.map((agent) => drain(agent, buckets.get(agent.id) ?? [])),
   );
 
+  // If cancellation fired, surface what we left undone so the UI can
+  // show "stopped at issue N of M".
+  const wasCancelled = options.signal?.aborted ?? false;
+  const skipped = wasCancelled
+    ? eligible.filter((i) => !taken.has(i.id)).map((i) => i.id)
+    : undefined;
+  if (wasCancelled) {
+    options.onProgress?.({
+      type: "cancelled",
+      remaining: skipped?.length ?? 0,
+    });
+  }
+
   logger.info("pool.complete", {
     completed: completed.length,
     gated: gated.length,
     failed: failed.length,
+    cancelled: wasCancelled,
+    skipped: skipped?.length ?? 0,
   });
 
-  return { completed, gated, failed };
+  return {
+    completed,
+    gated,
+    failed,
+    cancelled: wasCancelled || undefined,
+    skipped,
+  };
 }
 
 function severityRank(s: string): number {
