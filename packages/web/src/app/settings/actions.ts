@@ -20,6 +20,8 @@ export interface SettingsPatch {
   provider: ProviderId;
   model: string;
   budgetUsd: number;
+  /** Nonna's review pass — head-chef quality gate before commit. */
+  reviewEnabled: boolean;
 }
 
 export async function saveSettingsAction(patch: SettingsPatch): Promise<void> {
@@ -27,6 +29,9 @@ export async function saveSettingsAction(patch: SettingsPatch): Promise<void> {
   const current = await loadConfig(cwd);
   current.agents.autonomy = patch.autonomy;
   current.agents.parallelism = patch.parallelism;
+  // Defensive: older configs may not have the review object yet (it
+  // was added later) — initialise if missing.
+  current.agents.review = { enabled: patch.reviewEnabled };
   current.ai.primary_provider = patch.provider;
   current.ai.model = patch.model;
   current.ai.rate_limit.budget_usd = patch.budgetUsd;

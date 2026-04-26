@@ -80,6 +80,14 @@ export function SettingsForm({ initial }: { initial: Config }) {
     initial.agents.autonomy,
   );
   const [parallelism, setParallelism] = useState(initial.agents.parallelism);
+  // Nonna's review pass — head-chef agent inspects every patch
+  // before commit. On by default; off saves ~1 extra AI call per
+  // remediation. Tracked separately from autonomy because the two
+  // concerns are orthogonal (autonomy = "do I need a human"; review
+  // = "is the patch any good").
+  const [reviewEnabled, setReviewEnabled] = useState(
+    initial.agents.review?.enabled ?? true,
+  );
   const [provider, setProvider] = useState<ProviderId>(
     initial.ai.primary_provider,
   );
@@ -101,6 +109,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
         provider,
         model,
         budgetUsd: budget,
+        reviewEnabled,
       });
       // Persist risky toggles only if the user has actually unlocked
       // the advanced panel — prevents a default-off form from clobbering
@@ -173,6 +182,48 @@ export function SettingsForm({ initial }: { initial: Config }) {
             min={1}
             max={16}
           />
+
+          {/* Nonna's review — head-chef quality gate. Default on. */}
+          <div className="mt-3">
+            <Label>Head-chef review (Nonna 👵)</Label>
+            <button
+              type="button"
+              onClick={() => setReviewEnabled((v) => !v)}
+              className="w-full text-left p-2.5 rounded-md transition-transform hover:-translate-y-px"
+              style={{
+                background: reviewEnabled ? "var(--basil)" : "var(--cream)",
+                color: reviewEnabled ? "var(--cream)" : "var(--ink)",
+                border: "1.5px solid var(--ink)",
+                boxShadow: reviewEnabled ? "2px 2px 0 var(--ink)" : "none",
+              }}
+            >
+              <div className="text-[12px] font-bold flex items-center justify-between">
+                <span>
+                  {reviewEnabled ? "✓ On" : "Off"} — Nonna reviews every
+                  patch
+                </span>
+                <span
+                  className="text-[9px] font-bold tracking-[0.15em] uppercase"
+                  style={{ fontFamily: "var(--font-mono)" }}
+                >
+                  {reviewEnabled ? "click to disable" : "click to enable"}
+                </span>
+              </div>
+              <div
+                className="text-[10px] opacity-85 mt-1 leading-snug"
+                style={{
+                  color: reviewEnabled ? "var(--cream)" : "var(--ink-soft)",
+                }}
+              >
+                A head-chef agent inspects every worker&rsquo;s patch
+                BEFORE it&rsquo;s committed. If she finds the fix wrong or
+                sloppy, she sends the worker back for one retry — then
+                ships regardless (no infinite loop). Costs ~1 extra AI
+                call per remediation; catches a lot of bad patches before
+                they become PRs.
+              </div>
+            </button>
+          </div>
         </Card>
 
         <Card title="AI provider" icon="🤖">

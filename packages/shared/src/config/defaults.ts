@@ -46,6 +46,10 @@ export function buildDefaultConfig(input: DefaultsInput): Config {
         "schema_migrations",
         "large_diff",
       ],
+      // Nonna's review pass — head-chef quality gate. Default on so
+      // first-run users get the safer experience automatically; can
+      // be flipped off in /settings to save tokens.
+      review: { enabled: true },
     },
     scope: {
       authorisation_acknowledged: false,

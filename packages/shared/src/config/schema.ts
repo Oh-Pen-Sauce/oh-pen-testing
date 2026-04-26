@@ -149,6 +149,22 @@ export const ConfigSchema = z.object({
       "schema_migrations",
       "large_diff",
     ]),
+    /**
+     * "Head chef" review pass — Nonna inspects every patch BEFORE the
+     * agent commits and pushes. If she finds the fix off, she sends
+     * it back to the worker for one more attempt; the second attempt
+     * always ships (so we can't loop forever).
+     *
+     * On by default because catching a bad patch before it lands as a
+     * PR is much cheaper than reviewing 21 PRs and rejecting half. Off
+     * saves ~1 extra AI call per remediation — relevant only on tight
+     * token budgets.
+     */
+    review: z
+      .object({
+        enabled: z.boolean().default(true),
+      })
+      .default({ enabled: true }),
   }),
   scope: ScopeSchema.default({
     authorisation_acknowledged: false,

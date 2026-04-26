@@ -3,11 +3,19 @@
 // the sidebar, playbook grid, reviews, and board cards.
 
 export interface AgentMeta {
-  id: "marinara" | "carbonara" | "alfredo" | "pesto";
+  id: "marinara" | "carbonara" | "alfredo" | "pesto" | "nonna";
   name: string;
   emoji: string;
   tag: string;
   color: string; // hex, used as the tinted avatar bg
+  /**
+   * Reviewer agents don't get pool buckets — they participate as
+   * hooks inside runAgent. Used by the UI to render them in a
+   * separate "head chef" group on /agents and on the sidebar
+   * roster, so users understand why Nonna isn't picking up issues
+   * the way the other four do.
+   */
+  role?: "worker" | "reviewer";
 }
 
 export const AGENTS: AgentMeta[] = [
@@ -17,6 +25,7 @@ export const AGENTS: AgentMeta[] = [
     emoji: "🍅",
     tag: "injection · secrets · input",
     color: "#C8321E",
+    role: "worker",
   },
   {
     id: "carbonara",
@@ -24,6 +33,7 @@ export const AGENTS: AgentMeta[] = [
     emoji: "🥓",
     tag: "crypto · secrets · tls",
     color: "#C8921E",
+    role: "worker",
   },
   {
     id: "alfredo",
@@ -31,6 +41,7 @@ export const AGENTS: AgentMeta[] = [
     emoji: "🧀",
     tag: "access-control · auth · session",
     color: "#E9C46A",
+    role: "worker",
   },
   {
     id: "pesto",
@@ -38,6 +49,17 @@ export const AGENTS: AgentMeta[] = [
     emoji: "🌿",
     tag: "sca · deps · supply-chain",
     color: "#3F7A3A",
+    role: "worker",
+  },
+  {
+    id: "nonna",
+    name: "Nonna",
+    emoji: "👵",
+    tag: "head chef · patch review",
+    // Aubergine — distinct from the four worker palettes so she
+    // visually reads as "different role" not "fifth worker".
+    color: "#6B3F7A",
+    role: "reviewer",
   },
 ];
 

@@ -12,6 +12,7 @@ import {
 } from "@oh-pen-testing/shared";
 import { resolveAgent, type AgentIdentity } from "./agents.js";
 import { loadPlaybooks } from "../playbook-runner/loader.js";
+import { runReview } from "./run-review.js";
 
 export const RemediationResponseSchema = z.object({
   patched_file_contents: z.string(),
@@ -211,7 +212,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   const fileAbs = path.join(repoPath, issue.location.file);
   const fileContents = await fs.readFile(fileAbs, "utf-8");
 
-  const response = await requestRemediation({
+  let response = await requestRemediation({
     provider: options.provider,
     agent,
     issue,
@@ -220,7 +221,76 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   });
   logger.info("agent.remediation_received", { issue: issue.id });
 
-  // Apply the patch
+  // ── Nonna's review pass ──
+  //
+  // Optional head-chef step. Inspects the worker's patch BEFORE it
+  // hits the filesystem or git. If she rejects, the worker gets ONE
+  // retry with her feedback in hand; the second attempt always
+  // ships, no matter what she thinks. This is the explicit
+  // anti-infinite-loop: at most two AI calls per issue, never more.
+  //
+  // Skipped entirely when config.agents.review.enabled is false.
+  // Failures inside runReview fail-open (treated as approved) so a
+  // flaky reviewer can't block the whole pipeline.
+  let reviewVerdict: "approved" | "rejected_then_retried" | "skipped" =
+    "skipped";
+  if (options.config.agents.review?.enabled) {
+    const review = await runReview({
+      worker: agent,
+      issue,
+      originalFileContents: fileContents,
+      patchedFileContents: response.patched_file_contents,
+      workerExplanation: response.explanation_of_fix,
+      provider: options.provider,
+      logger,
+    });
+    if (review.approved) {
+      reviewVerdict = "approved";
+      issue.comments.push({
+        author: "nonna",
+        text: "👵 Reviewed and approved.",
+        at: new Date().toISOString(),
+      });
+    } else {
+      // Rejected. Send the worker back with Nonna's feedback. This
+      // is a one-shot retry — we DON'T re-review the second attempt,
+      // it ships regardless.
+      reviewVerdict = "rejected_then_retried";
+      issue.comments.push({
+        author: "nonna",
+        text: `👵 Sent back to ${agent.displayName}: ${review.feedback}`,
+        at: new Date().toISOString(),
+      });
+      logger.info("agent.review_rejected_retrying", {
+        issue: issue.id,
+        worker: agent.id,
+        feedback: review.feedback,
+      });
+      response = await requestRemediation({
+        provider: options.provider,
+        agent,
+        issue,
+        fileContents,
+        playbookPrompt: remediatePrompt,
+        previousAttempt: {
+          patchedFileContents: response.patched_file_contents,
+          explanation: response.explanation_of_fix,
+          reviewerFeedback: review.feedback,
+        },
+      });
+      logger.info("agent.remediation_received_retry", { issue: issue.id });
+      issue.comments.push({
+        author: agent.id,
+        text: `${agent.emoji} Second attempt after Nonna's feedback. Shipping regardless of her opinion (one-shot retry policy).`,
+        at: new Date().toISOString(),
+      });
+    }
+    // Persist the comments so the trail survives even if subsequent
+    // git/PR steps fail.
+    await writeIssue(options.cwd, issue);
+  }
+
+  // Apply the patch (post-review, post-retry).
   await fs.writeFile(fileAbs, response.patched_file_contents, "utf-8");
   const filesChanged = [issue.location.file];
 
@@ -284,18 +354,49 @@ interface RequestRemediationInput {
   issue: Issue;
   fileContents: string;
   playbookPrompt?: string;
+  /**
+   * Optional context from a prior attempt that Nonna rejected. When
+   * present, the worker sees their previous patch, their previous
+   * explanation, and Nonna's feedback — this is the "do better"
+   * second pass before we ship regardless.
+   */
+  previousAttempt?: {
+    patchedFileContents: string;
+    explanation: string;
+    reviewerFeedback: string;
+  };
 }
 
 async function requestRemediation(
   input: RequestRemediationInput,
 ): Promise<RemediationResponse> {
-  const { provider, agent, issue, fileContents, playbookPrompt } = input;
+  const { provider, agent, issue, fileContents, playbookPrompt, previousAttempt } = input;
 
   const system = [
     { text: SYSTEM_BASE, cache: true },
     { text: agent.systemPromptSuffix, cache: true },
   ];
   if (playbookPrompt) system.push({ text: playbookPrompt, cache: true });
+
+  const retryContext = previousAttempt
+    ? `
+
+<previous_attempt>
+You produced this patch on the first try. Nonna (the head-chef reviewer) sent it back with the feedback below. Address her feedback while still producing the minimum viable fix.
+
+<previous_explanation>
+${previousAttempt.explanation}
+</previous_explanation>
+
+<previous_patched_file>
+${previousAttempt.patchedFileContents}
+</previous_patched_file>
+
+<reviewer_feedback>
+${previousAttempt.reviewerFeedback}
+</reviewer_feedback>
+</previous_attempt>`
+    : "";
 
   const userContent = `Issue: ${issue.title}
 Severity: ${issue.severity}
@@ -308,7 +409,7 @@ ${issue.evidence.analysis}
 
 <untrusted_source_code file="${issue.location.file}">
 ${fileContents}
-</untrusted_source_code>
+</untrusted_source_code>${retryContext}
 
 Produce the JSON remediation object. Nothing else.`;
 

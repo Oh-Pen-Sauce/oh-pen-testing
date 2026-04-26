@@ -9,6 +9,7 @@ export * from "./scanner/run-scan.js";
 export * from "./agent/agents.js";
 export * from "./agent/run-agent.js";
 export * from "./agent/agent-pool.js";
+export * from "./agent/run-review.js";
 export * from "./init/scaffold.js";
 export * from "./provider-router/index.js";
 export * from "./scope/enforce.js";

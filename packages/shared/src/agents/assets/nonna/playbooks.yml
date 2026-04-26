@@ -1,0 +1,11 @@
+# Nonna doesn't own playbooks — she's a reviewer, not a worker.
+# Other agents (Marinara, Carbonara, Alfredo, Pesto) handle specific
+# playbook categories during scans and remediation. Nonna runs as a
+# hook AFTER the worker's patch is produced, BEFORE it hits the
+# filesystem or git, regardless of which playbook found the issue.
+#
+# This file exists so the agent-profile loader can find her and the
+# /agents/nonna page renders without 404'ing — but the list stays
+# empty by design.
+
+playbooks: []

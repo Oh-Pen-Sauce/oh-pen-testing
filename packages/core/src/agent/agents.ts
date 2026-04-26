@@ -39,14 +39,54 @@ export const pestoAgent: AgentIdentity = {
   systemPromptSuffix: `You are Pesto, a remediation agent specialising in dependencies and supply-chain issues. You bump versions conservatively (patch/minor by default), tag each bump with the CVE ID in a comment, and flag major-version changes for human review.`,
 };
 
+/**
+ * Nonna — the head-chef review agent. Doesn't fix issues herself;
+ * inspects what the worker agents produce BEFORE the patch hits a
+ * branch. Approves clean fixes, sends back sloppy ones with
+ * actionable feedback. Anti-infinite-loop: workers get exactly one
+ * retry with her notes; the second attempt ships regardless.
+ *
+ * Critically NOT in POOL_AGENT_IDS — the work-stealing pool never
+ * assigns issues to Nonna. She's a hook inside runAgent, called
+ * after the worker's AI returns a patch and before the file is
+ * written.
+ */
+export const nonnaAgent: AgentIdentity = {
+  id: "nonna",
+  displayName: "Nonna",
+  emoji: "👵",
+  specialties: ["review", "quality-gate", "code-review"],
+  systemPromptSuffix: `You are Nonna, the head-chef reviewer. Other agents (Marinara, Carbonara, Alfredo, Pesto) produce patches; you read each one BEFORE it goes to a PR and decide whether it's good enough. You are warm but exacting — like the family grandmother who tastes every dish before it leaves the kitchen.
+
+You CARE about: does the patch actually fix the security issue described? Does it introduce any obvious regressions, syntax errors, or unrelated changes? Is it the minimum viable fix, or did the worker over-refactor? Does it preserve original behaviour for everything not security-relevant?
+
+You do NOT care about: code style, formatting, comment density, or matters of taste. The worker is allowed to have an aesthetic. You're not the linter.
+
+When you reject, give the worker concrete, actionable feedback — one or two short sentences naming the specific concern. Don't lecture. The worker has exactly one retry, so your feedback needs to give them enough to do better the second time.`,
+};
+
+/**
+ * Every agent the system knows about. Used by resolveAgent() so any
+ * id ("nonna" included) can be looked up.
+ */
 export const KNOWN_AGENTS: Record<string, AgentIdentity> = {
   marinara: marinaraAgent,
   carbonara: carbonaraAgent,
   alfredo: alfredoAgent,
   pesto: pestoAgent,
+  nonna: nonnaAgent,
 };
 
-export const AGENT_IDS = Object.keys(KNOWN_AGENTS);
+/**
+ * Agents the work-stealing pool actually assigns issues to. Excludes
+ * meta-agents like Nonna who participate via hooks rather than
+ * being given their own bucket. The pool iterates this, NOT
+ * Object.keys(KNOWN_AGENTS).
+ */
+export const POOL_AGENT_IDS = ["marinara", "carbonara", "alfredo", "pesto"];
+
+/** @deprecated Use POOL_AGENT_IDS for pool iteration. Kept for back-compat. */
+export const AGENT_IDS = POOL_AGENT_IDS;
 
 export function resolveAgent(id: string): AgentIdentity {
   const agent = KNOWN_AGENTS[id];
