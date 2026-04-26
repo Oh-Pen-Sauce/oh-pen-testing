@@ -107,10 +107,18 @@ export function createGitHubAdapter(
       }
 
       try {
+        // Stage ONLY the files the agent intended to change. Without
+        // an explicit list `git add .` would sweep up
+        // `.ohpentesting/` (issue JSON files, scan logs, counter)
+        // alongside the actual security fix — and those would land
+        // in the PR diff. The agent records its filesChanged on
+        // input.prBody.filesChanged; we use that as the
+        // authoritative list.
         await commitAll(
           input.repoPath,
           input.commitMessage,
           input.author ?? MARINARA_AUTHOR,
+          input.prBody.filesChanged,
         );
       } catch (err) {
         throw new Error(
