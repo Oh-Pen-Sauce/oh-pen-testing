@@ -268,12 +268,31 @@ function IssuePanel({
   const [snippet, setSnippet] = useState<IssueSnippet | null>(null);
   const [snippetLoading, setSnippetLoading] = useState(true);
   const [running, setRunning] = useState<null | "remediate" | "approve">(null);
+  // Elapsed seconds while running. Drives the "Marinara is patching
+  // (12s)…" hint so the user has live signal that something's
+  // happening, even though the underlying server action is a single
+  // long-running await with no streaming progress.
+  const [runningElapsedMs, setRunningElapsedMs] = useState(0);
   const [result, setResult] = useState<
     | { ok: true; prUrl: string; prNumber: number }
     | { ok: false; error: string }
     | null
   >(null);
   const [showMore, setShowMore] = useState(false);
+
+  // Tick the elapsed counter while running. Resets when running flips
+  // back to null. 200ms granularity = good enough for "8.4s" UI.
+  useEffect(() => {
+    if (!running) {
+      setRunningElapsedMs(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const handle = window.setInterval(() => {
+      setRunningElapsedMs(Date.now() - startedAt);
+    }, 200);
+    return () => window.clearInterval(handle);
+  }, [running]);
 
   // Fetch the code snippet on first open. Cheap — it's just file slice
   // I/O — but we keep it lazy so the kanban itself stays snappy.
@@ -352,9 +371,10 @@ function IssuePanel({
     onClick: () => void;
     title?: string;
   } = (() => {
+    const elapsed = Math.floor(runningElapsedMs / 1000);
     if (running === "remediate") {
       return {
-        label: "Remediating…",
+        label: `Remediating… ${elapsed}s`,
         icon: "🍅",
         bg: "var(--ink-soft)",
         onClick: () => {},
@@ -362,7 +382,7 @@ function IssuePanel({
     }
     if (running === "approve") {
       return {
-        label: "Approving + opening PR…",
+        label: `Approving + opening PR… ${elapsed}s`,
         icon: "🍅",
         bg: "var(--ink-soft)",
         onClick: () => {},
@@ -565,6 +585,54 @@ function IssuePanel({
                 Agent opened a PR. Open the PR for the full fix description.
               </div>
             )}
+          </div>
+        )}
+
+        {/* Live progress hint — visible only while remediation /
+            approval is running. The server action does AI patch +
+            Nonna review + git push + PR API call, all serial, all
+            blocking, and typically takes 30-90 seconds. Without
+            this hint the spinner-only UI feels frozen. The text
+            phases as elapsed time grows so the user knows what's
+            normal vs what's stalling. */}
+        {running && (
+          <div
+            className="rounded-lg p-3 mb-4 text-[12.5px] leading-snug"
+            style={{
+              background: "var(--parmesan)",
+              border: "1.5px solid var(--ink)",
+            }}
+          >
+            <div
+              className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1.5 flex items-center gap-1.5"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--sauce-dark)",
+              }}
+            >
+              <span
+                className="inline-block w-[6px] h-[6px] rounded-full animate-pulse"
+                style={{ background: "var(--sauce)" }}
+                aria-hidden
+              />
+              Working — {Math.floor(runningElapsedMs / 1000)}s elapsed
+            </div>
+            <div className="text-ink">
+              {runningElapsedMs < 15_000
+                ? "Marinara is reading the file and asking the AI for a patch."
+                : runningElapsedMs < 45_000
+                  ? "AI patch in flight — Nonna will review it before the PR opens."
+                  : runningElapsedMs < 90_000
+                    ? "Still cooking. Long files or large diffs can stretch to ~90s."
+                    : "Taking longer than usual. If this hits 3 minutes, the AI provider may be rate-limited or stalling — close the panel and check /scans for the structured log."}
+            </div>
+            <div
+              className="text-[11px] mt-1.5"
+              style={{ color: "var(--ink-soft)" }}
+            >
+              Don&rsquo;t close this panel — closing cancels the request.
+              Anything the agent has already written is kept.
+            </div>
           </div>
         )}
 

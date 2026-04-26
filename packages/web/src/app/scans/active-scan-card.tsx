@@ -506,7 +506,12 @@ function RunningCard({
   stopping: boolean;
   onStop: () => void;
 }) {
-  const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
+  // Init to 0, NOT `Date.now() - startedAt`. Server and client run
+  // useState's initializer at different wall-clock moments, so any
+  // Date.now()-derived initial value mismatches and triggers a
+  // hydration error ("server rendered 0.4, client rendered 0.6").
+  // The useEffect below ticks it to the real value on mount.
+  const [elapsedMs, setElapsedMs] = useState(0);
   const startedAtRef = useRef(startedAt);
   startedAtRef.current = startedAt;
 
@@ -700,7 +705,9 @@ function RemediatingCard({
   stopping: boolean;
   onStop: () => void;
 }) {
-  const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
+  // Init to 0 (not Date.now()-derived) to keep server + client
+  // hydration outputs identical. See RunningCard for the same fix.
+  const [elapsedMs, setElapsedMs] = useState(0);
   const startedAtRef = useRef(startedAt);
   startedAtRef.current = startedAt;
   useEffect(() => {
