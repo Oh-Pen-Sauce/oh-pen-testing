@@ -945,8 +945,25 @@ function DoneCard({
             >
               scanned
             </span>
-            <span>
-              {s.filesScanned} files · {s.playbooksRun} playbooks
+            <span
+              title={
+                s.playbooksAvailable && s.playbooksAvailable > s.playbooksRun
+                  ? `${s.playbooksAvailable - s.playbooksRun} playbooks didn't apply to your stack — most often Python/Docker/Terraform/Kubernetes patterns on a JS-only project. The ${s.playbooksRun} that ran cover everything relevant.`
+                  : undefined
+              }
+            >
+              {s.filesScanned} files ·{" "}
+              {s.playbooksAvailable && s.playbooksAvailable > s.playbooksRun
+                ? `${s.playbooksRun} of ${s.playbooksAvailable} playbooks`
+                : `${s.playbooksRun} playbooks`}
+              {s.playbooksAvailable && s.playbooksAvailable > s.playbooksRun && (
+                <span
+                  className="ml-1 text-[10px]"
+                  style={{ color: "var(--ink-soft)" }}
+                >
+                  (rest don&rsquo;t apply to your stack)
+                </span>
+              )}
             </span>
           </div>
           <div>
@@ -1161,16 +1178,19 @@ function DoneCard({
           </Btn>
         )}
 
-        {/* Run full scan — only after a starter. */}
-        {!wasFullScan && (
-          <Btn
-            icon="🔍"
-            onClick={onRunFullScan}
-            disabled={actionPending || remediating}
-          >
-            Run full scan
-          </Btn>
-        )}
+        {/* Run full scan — visible after a starter (escalation), and
+            visible after a full scan completes (so users can re-run
+            without dismissing first — important after a "Spotless"
+            result, where the previous UI offered no obvious next
+            step). The label adapts: "Run full scan" the first time,
+            "🔁 Re-run full scan" the second. */}
+        <Btn
+          icon={wasFullScan ? "🔁" : "🔍"}
+          onClick={onRunFullScan}
+          disabled={actionPending || remediating}
+        >
+          {wasFullScan ? "Re-run full scan" : "Run full scan"}
+        </Btn>
 
         {s.issuesFound > 0 && (
           <Link

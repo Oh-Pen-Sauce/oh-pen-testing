@@ -74,6 +74,14 @@ export interface ActiveScanSummary {
   filesScanned: number;
   scannedPath: string;
   playbooksRun: number;
+  /**
+   * Total playbooks in the bundled catalog. Surfaced as "10 of 31"
+   * so users understand WHY only some ran (the rest don't apply to
+   * their stack — Python playbooks vs a TS project, etc).
+   */
+  playbooksAvailable: number;
+  /** Playbooks skipped because their `languages` didn't match. */
+  playbooksFilteredByLanguage: number;
   autonomy: string;
   topFiles: string[];
   yoloMode: boolean;
@@ -745,6 +753,8 @@ function summariseScan(
     filesScanned: result.filesScanned,
     scannedPath: result.scannedPath,
     playbooksRun: result.scan.playbooks_run,
+    playbooksAvailable: result.playbooksAvailable,
+    playbooksFilteredByLanguage: result.playbooksFilteredByLanguage,
     autonomy,
     topFiles,
     yoloMode: autonomy === "yolo" || autonomy === "full-yolo",

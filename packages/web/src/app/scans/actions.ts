@@ -32,6 +32,15 @@ export interface StarterScanSummary {
   filesScanned: number;
   scannedPath: string;
   playbooksRun: number;
+  /**
+   * Total playbooks in the bundled catalog (whether or not they
+   * applied). UI shows "10 of 31" so users understand that a
+   * lower-than-total run count is normal — not every playbook
+   * applies to every stack.
+   */
+  playbooksAvailable: number;
+  /** Playbooks skipped because their `languages` didn't match. */
+  playbooksFilteredByLanguage: number;
   autonomy: string;
   /** Top files that contributed findings, for the UI summary. */
   topFiles: string[];
@@ -78,6 +87,8 @@ export async function runStarterScanAction(): Promise<StarterScanSummary> {
     filesScanned: result.filesScanned,
     scannedPath: result.scannedPath,
     playbooksRun: result.scan.playbooks_run,
+    playbooksAvailable: result.playbooksAvailable,
+    playbooksFilteredByLanguage: result.playbooksFilteredByLanguage,
     autonomy: config.agents.autonomy,
     topFiles,
     yoloMode:
@@ -144,6 +155,8 @@ export async function runFullScanAction(): Promise<StarterScanSummary> {
     filesScanned: result.filesScanned,
     scannedPath: result.scannedPath,
     playbooksRun: result.scan.playbooks_run,
+    playbooksAvailable: result.playbooksAvailable,
+    playbooksFilteredByLanguage: result.playbooksFilteredByLanguage,
     autonomy: config.agents.autonomy,
     topFiles,
     yoloMode:

@@ -96,6 +96,24 @@ export interface RunScanResult {
   filesScanned: number;
   /** Absolute path of the directory that was scanned. */
   scannedPath: string;
+  /**
+   * Total playbooks in the bundled catalog BEFORE any filtering.
+   * Lets the UI show "10 of 31 — the rest don't apply to your
+   * stack" so users aren't worried that only ~⅓ of playbooks ran.
+   */
+  playbooksAvailable: number;
+  /**
+   * Playbooks filtered out by language match (your project's
+   * primary_languages doesn't intersect the playbook's `languages`
+   * field). The most common reason for X-of-Y < 100% coverage on
+   * a non-polyglot project.
+   */
+  playbooksFilteredByLanguage: number;
+  /**
+   * Playbooks the user explicitly disabled in Settings → Tests.
+   * Almost always 0 unless someone's tinkered.
+   */
+  playbooksDisabled: number;
 }
 
 export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
@@ -569,6 +587,9 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
       scan,
       filesScanned: files.length,
       scannedPath: cwd,
+      playbooksAvailable: allPlaybooks.length,
+      playbooksFilteredByLanguage: allPlaybooks.length - byLanguage.length,
+      playbooksDisabled: byOnly.length - relevant.length,
     };
   } catch (err) {
     scan.ended_at = new Date().toISOString();
