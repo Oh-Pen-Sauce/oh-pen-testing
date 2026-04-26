@@ -15,7 +15,10 @@ import {
   runAutoRemediateAction,
   type AutoRemediateResult,
 } from "./remediate-actions";
-import type { ActiveScanState } from "../../lib/active-scan";
+import type {
+  ActiveScanState,
+  AutoRemediationResult,
+} from "../../lib/active-scan";
 
 /**
  * Single source of truth on /scans for "is a scan happening?" and
@@ -61,10 +64,12 @@ export function ActiveScanCard({
   const [remediateResult, setRemediateResult] =
     useState<AutoRemediateResult | null>(null);
 
-  // Poll active-scan status. Faster cadence while running so the
-  // "scan finished" transition feels snappy.
+  // Poll active-scan status. Faster cadence while running OR
+  // remediating so the phase-flip from scan→remediate→done feels snappy.
   useEffect(() => {
-    const intervalMs = active?.status === "running" ? 1500 : 4000;
+    const isLive =
+      active?.status === "running" || active?.status === "remediating";
+    const intervalMs = isLive ? 1500 : 4000;
     let cancelled = false;
     const tick = async () => {
       try {
@@ -159,6 +164,18 @@ export function ActiveScanCard({
     );
   }
 
+  // YOLO/full-YOLO chain: scan finished, agent pool now opening PRs.
+  // Show the scan summary inline so the user has context for what's
+  // being remediated.
+  if (active?.status === "remediating" && active.summary) {
+    return (
+      <RemediatingCard
+        summary={active.summary}
+        startedAt={active.startedAt}
+      />
+    );
+  }
+
   if (active?.status === "failed") {
     return (
       <FailedCard
@@ -176,6 +193,7 @@ export function ActiveScanCard({
       <DoneCard
         summary={active.summary}
         wasFullScan={active.kind === "full"}
+        autoRemediation={active.autoRemediation}
         onRunFullScan={startFull}
         onAutoRemediate={autoRemediate}
         onDismiss={dismiss}
@@ -566,11 +584,116 @@ function RunningCard({
   );
 }
 
+// ───────── Remediating (YOLO post-scan) ─────────
+
+/**
+ * Phase 2 of the YOLO chain: scan finished, agent pool is now
+ * walking every backlog/ready issue and opening PRs. This is its own
+ * card so the user sees a clear visual handoff from "scanning" to
+ * "remediating" — and so the elapsed timer resets to feel like real
+ * progress on the new phase.
+ *
+ * Server-side, this lives in the same active-scan promise as the
+ * scan that triggered it. The user can navigate away and come back
+ * — the polling re-syncs whatever state the singleton is in.
+ */
+function RemediatingCard({
+  summary,
+  startedAt,
+}: {
+  summary: NonNullable<ActiveScanState["summary"]>;
+  /** When the scan started — used to show a fused elapsed timer. */
+  startedAt: number;
+}) {
+  const [elapsedMs, setElapsedMs] = useState(Date.now() - startedAt);
+  const startedAtRef = useRef(startedAt);
+  startedAtRef.current = startedAt;
+  useEffect(() => {
+    const tick = window.setInterval(() => {
+      setElapsedMs(Date.now() - startedAtRef.current);
+    }, 200);
+    return () => window.clearInterval(tick);
+  }, []);
+  const seconds = Math.floor(elapsedMs / 1000);
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  const elapsed = m > 0 ? `${m}m ${s}s` : `${s}s`;
+
+  return (
+    <div
+      className="rounded-xl p-6 mb-6"
+      style={{
+        background: "var(--cream-soft)",
+        border: "2.5px solid var(--ink)",
+        boxShadow: "6px 6px 0 var(--sauce)",
+      }}
+    >
+      <div className="flex items-start gap-6 flex-wrap md:flex-nowrap">
+        <div className="shrink-0 mx-auto">
+          <CookingMarinara size={180} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div
+            className="text-[10px] font-bold tracking-[0.2em] uppercase mb-1.5"
+            style={{
+              fontFamily: "var(--font-mono)",
+              color: "var(--sauce-soft)",
+            }}
+          >
+            ● Auto-remediating · {elapsed} elapsed
+          </div>
+          <h2
+            className="font-black italic text-[26px] text-ink m-0 mb-3"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Agents are opening PRs.
+          </h2>
+          <p className="text-[13.5px] text-ink-soft m-0 mb-3 leading-snug">
+            You&rsquo;re in <strong>{summary.autonomy}</strong> mode, so the
+            scan flowed straight into auto-remediation — agents are working
+            through every backlog/ready issue and opening a PR for each
+            fix.
+          </p>
+          <p className="text-[12.5px] text-ink-soft m-0 leading-snug">
+            A minute per issue is normal. Feel free to wander —{" "}
+            <Link
+              href="/board"
+              className="underline"
+              style={{ color: "var(--sauce)" }}
+            >
+              the board
+            </Link>{" "}
+            updates live, and this card waits for you when you come back.
+          </p>
+        </div>
+      </div>
+
+      {/* Scan-summary strip so the user remembers what spawned this. */}
+      <div
+        className="rounded-[10px] px-4 py-2 mt-4 text-[11.5px] flex flex-wrap gap-x-4 gap-y-1"
+        style={{
+          background: "var(--cream)",
+          border: "1.5px solid var(--ink)",
+          fontFamily: "var(--font-mono)",
+          color: "var(--ink-soft)",
+        }}
+      >
+        <span>scan: {summary.scanId}</span>
+        <span>found: {summary.issuesFound} new</span>
+        <span>
+          provider: {summary.scannedPath.split("/").slice(-1)[0]}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 // ───────── Done ─────────
 
 function DoneCard({
   summary,
   wasFullScan,
+  autoRemediation,
   onRunFullScan,
   onAutoRemediate,
   onDismiss,
@@ -581,6 +704,8 @@ function DoneCard({
 }: {
   summary: NonNullable<ActiveScanState["summary"]>;
   wasFullScan: boolean;
+  /** YOLO auto-remediation that fired automatically after the scan. */
+  autoRemediation?: AutoRemediationResult;
   onRunFullScan: () => void;
   onAutoRemediate: () => void;
   onDismiss: () => void;
@@ -590,6 +715,29 @@ function DoneCard({
   actionError: string | null;
 }) {
   const s = summary;
+  // Either remediation has happened (auto or manual), OR it hasn't.
+  // Coalesce so the rendering treats both flavours identically.
+  const renderedRemediation: {
+    ok: boolean;
+    detail: string;
+    prUrls: string[];
+    /** "auto" → ran automatically; "manual" → user clicked button. */
+    source: "auto" | "manual";
+  } | null = autoRemediation
+    ? {
+        ok: autoRemediation.ok,
+        detail: autoRemediation.detail,
+        prUrls: autoRemediation.prUrls,
+        source: "auto",
+      }
+    : remediateResult
+      ? {
+          ok: remediateResult.ok,
+          detail: remediateResult.detail,
+          prUrls: remediateResult.prUrls,
+          source: "manual",
+        }
+      : null;
   return (
     <div
       className="rounded-xl p-6 mb-6"
@@ -686,30 +834,37 @@ function DoneCard({
         )}
       </div>
 
-      {s.issuesFound > 0 && s.yoloMode && !remediateResult && !remediating && (
-        <div
-          className="rounded-[10px] px-4 py-3 mb-4"
-          style={{
-            background: "var(--parmesan)",
-            border: "2px solid var(--ink)",
-          }}
-        >
+      {/* "Why are agents waiting?" banner — only shown for YOLO users
+          when remediation hasn't happened (which would be very unusual
+          since YOLO auto-fires post-scan, but covers the edge case
+          where auto-fire was skipped). */}
+      {s.issuesFound > 0 &&
+        s.yoloMode &&
+        !renderedRemediation &&
+        !remediating && (
           <div
-            className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
+            className="rounded-[10px] px-4 py-3 mb-4"
             style={{
-              fontFamily: "var(--font-mono)",
-              color: "var(--sauce-dark)",
+              background: "var(--parmesan)",
+              border: "2px solid var(--ink)",
             }}
           >
-            🚀 You&rsquo;re in {s.autonomy} mode
+            <div
+              className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
+              style={{
+                fontFamily: "var(--font-mono)",
+                color: "var(--sauce-dark)",
+              }}
+            >
+              🚀 You&rsquo;re in {s.autonomy} mode
+            </div>
+            <div className="text-[13px] text-ink">
+              Auto-remediation should have fired automatically — if it
+              didn&rsquo;t, hit the button below to retry, or check the
+              board for individual triage.
+            </div>
           </div>
-          <div className="text-[13px] text-ink">
-            Agents can auto-open PRs for every finding. Hit
-            &ldquo;Auto-remediate all&rdquo; below to fix the whole batch at
-            once, or head to the board to triage them one-by-one.
-          </div>
-        </div>
-      )}
+        )}
 
       {remediating && (
         <div
@@ -727,45 +882,60 @@ function DoneCard({
         </div>
       )}
 
-      {remediateResult && (
+      {renderedRemediation && (
         <div
           className="rounded-[10px] px-4 py-3 mb-4 text-[13px]"
           style={{
-            background: remediateResult.ok ? "#E4F0DF" : "#FBE4E0",
-            border: `2px solid ${remediateResult.ok ? "var(--basil)" : "var(--sauce)"}`,
+            background: renderedRemediation.ok ? "#E4F0DF" : "#FBE4E0",
+            border: `2px solid ${renderedRemediation.ok ? "var(--basil)" : "var(--sauce)"}`,
           }}
         >
           <div
             className="text-[10px] font-bold tracking-[0.15em] uppercase mb-1"
             style={{
               fontFamily: "var(--font-mono)",
-              color: remediateResult.ok
+              color: renderedRemediation.ok
                 ? "var(--basil-dark)"
                 : "var(--sauce-dark)",
             }}
           >
-            {remediateResult.ok ? "✓ Remediation run" : "✖ Remediation failed"}
+            {renderedRemediation.ok ? "✓ " : "✖ "}
+            {renderedRemediation.source === "auto"
+              ? "Auto-remediation (YOLO)"
+              : "Remediation"}{" "}
+            {renderedRemediation.ok ? "complete" : "failed"}
           </div>
-          <div className="text-ink mb-2">{remediateResult.detail}</div>
-          {remediateResult.prUrls.length > 0 && (
-            <ul className="list-none p-0 m-0 flex flex-col gap-1">
-              {remediateResult.prUrls.map((url) => (
-                <li key={url}>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-[12.5px]"
-                    style={{
-                      color: "var(--sauce)",
-                      fontFamily: "var(--font-mono)",
-                    }}
-                  >
-                    {url}
-                  </a>
-                </li>
-              ))}
-            </ul>
+          <div className="text-ink mb-2">{renderedRemediation.detail}</div>
+          {renderedRemediation.prUrls.length > 0 && (
+            <>
+              <div
+                className="text-[10px] font-bold tracking-[0.1em] uppercase mt-2 mb-1"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  color: "var(--ink-soft)",
+                }}
+              >
+                Pull requests opened
+              </div>
+              <ul className="list-none p-0 m-0 flex flex-col gap-1">
+                {renderedRemediation.prUrls.map((url) => (
+                  <li key={url}>
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline text-[12.5px]"
+                      style={{
+                        color: "var(--sauce)",
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {url}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </div>
       )}
@@ -784,8 +954,13 @@ function DoneCard({
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Auto-remediate — primary CTA when YOLO + issues found. */}
-        {s.issuesFound > 0 && s.yoloMode && !remediateResult && (
+        {/* Auto-remediate manual trigger — visible when:
+            - User has issues, AND
+            - YOLO didn't auto-fire (autoRemediation absent), AND
+            - User hasn't already clicked it (renderedRemediation absent)
+            In recommended/careful modes this is the only path; in YOLO
+            it's a backup if auto-fire was skipped (e.g. token missing). */}
+        {s.issuesFound > 0 && !renderedRemediation && (
           <Btn
             icon="🚀"
             onClick={onAutoRemediate}
