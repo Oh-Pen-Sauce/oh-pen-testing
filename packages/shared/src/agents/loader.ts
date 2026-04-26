@@ -31,13 +31,26 @@ import { z } from "zod";
  * (read-only) vs overridden (project-local, editable).
  */
 
-export type AgentId = "marinara" | "carbonara" | "alfredo" | "pesto";
+export type AgentId =
+  | "marinara"
+  | "carbonara"
+  | "alfredo"
+  | "pesto"
+  | "nonna";
 
+/**
+ * Every agent the loader can resolve a profile for. INCLUDES Nonna
+ * (the head-chef reviewer), even though she's not a worker — she
+ * has a memory.md the user can inspect on /agents/nonna, and the
+ * sidebar links there. The four worker agents come first by
+ * convention so iteration order matches the kanban.
+ */
 export const AGENT_IDS: AgentId[] = [
   "marinara",
   "carbonara",
   "alfredo",
   "pesto",
+  "nonna",
 ];
 
 const PlaybooksDocSchema = z.object({
