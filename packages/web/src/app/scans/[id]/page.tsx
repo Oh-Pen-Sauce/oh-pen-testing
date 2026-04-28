@@ -39,11 +39,34 @@ export default async function ScanDetailPage({
           <Field label="Started" value={scan.started_at} />
           <Field label="Ended" value={scan.ended_at ?? "—"} />
           <Field label="Provider" value={scan.provider} />
-          <Field label="Playbooks run" value={scan.playbooks_run.toString()} />
           <Field
-            label="Playbooks skipped"
-            value={scan.playbooks_skipped.toString()}
+            label="Playbooks run"
+            value={
+              scan.playbooks_total
+                ? `${scan.playbooks_run} of ${scan.playbooks_total}`
+                : scan.playbooks_run.toString()
+            }
           />
+          {scan.playbooks_filtered_by_language !== undefined &&
+            scan.playbooks_filtered_by_language > 0 && (
+              <Field
+                label="Not applicable"
+                value={`${scan.playbooks_filtered_by_language} (language filter — playbooks for stacks your project doesn't use, e.g. Python, Docker, Terraform)`}
+              />
+            )}
+          {scan.playbooks_disabled !== undefined &&
+            scan.playbooks_disabled > 0 && (
+              <Field
+                label="Disabled"
+                value={`${scan.playbooks_disabled} (you opted these out in Settings → Tests)`}
+              />
+            )}
+          {scan.playbooks_skipped > 0 && (
+            <Field
+              label="Skipped during run"
+              value={`${scan.playbooks_skipped} (started but bailed — bad rules, errored, or no candidates to AI-confirm)`}
+            />
+          )}
           <Field label="Issues found" value={scan.issues_found.toString()} />
           <Field label="AI calls" value={scan.ai_calls.toString()} />
           <Field label="Tokens spent" value={scan.tokens_spent.toString()} />
@@ -53,6 +76,27 @@ export default async function ScanDetailPage({
             last
           />
         </dl>
+        {scan.playbooks_total &&
+          scan.playbooks_total > scan.playbooks_run && (
+            <div
+              className="mt-4 rounded-md p-3 text-[12.5px] leading-snug"
+              style={{
+                background: "var(--parmesan)",
+                border: "1.5px solid var(--ink)",
+              }}
+            >
+              <strong>About coverage:</strong> Oh Pen Testing ships with{" "}
+              {scan.playbooks_total} playbooks, but each one declares which
+              languages / stacks it applies to. The{" "}
+              {scan.playbooks_total - scan.playbooks_run} that didn&rsquo;t
+              run on this scan were filtered out at scan-time because their
+              targets weren&rsquo;t present in your project (e.g. Python
+              syntax patterns on a TypeScript-only codebase, Dockerfile
+              checks when there&rsquo;s no Dockerfile). The{" "}
+              {scan.playbooks_run} that ran cover everything relevant to
+              your stack.
+            </div>
+          )}
       </div>
     </div>
   );

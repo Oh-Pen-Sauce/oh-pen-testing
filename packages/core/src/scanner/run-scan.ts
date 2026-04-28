@@ -191,6 +191,15 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
       relevant: relevant.length,
     });
 
+    // Persist the filter breakdown on the scan record so the
+    // detail page can show "10 of 31 — 21 not applicable to your
+    // stack" later. Without this, there's no way to surface the
+    // filter outcome on a past scan; only the in-flight UI knew.
+    scan.playbooks_total = allPlaybooks.length;
+    scan.playbooks_filtered_by_language =
+      allPlaybooks.length - byLanguage.length;
+    scan.playbooks_disabled = byOnly.length - relevant.length;
+
     const files: WalkedFile[] = [];
     for await (const f of walkFiles(cwd)) files.push(f);
     logger.info("scan.files_walked", { count: files.length });

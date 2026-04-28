@@ -16,8 +16,26 @@ export const ScanRunSchema = z.object({
   started_at: z.string(),
   ended_at: z.string().nullable().default(null),
   triggered_by: z.enum(["cli", "web", "cron", "ci"]).default("cli"),
+  /** Playbooks that ran end-to-end (regex/SCA execution finished). */
   playbooks_run: z.number().int().nonnegative().default(0),
+  /** Playbooks the runner started but bailed on (no rules, type mismatch, errored). */
   playbooks_skipped: z.number().int().nonnegative().default(0),
+  /**
+   * Total playbooks in the bundled catalog at scan time, BEFORE any
+   * filtering. Helps the scan detail page show "10 of 31 — rest
+   * didn't apply" so users don't worry about coverage. Optional
+   * because pre-existing scan records on disk don't have it; the
+   * UI falls back to playbooks_run + playbooks_skipped when absent.
+   */
+  playbooks_total: z.number().int().nonnegative().optional(),
+  /** Playbooks the language filter excluded (no overlap with project's primary_languages). */
+  playbooks_filtered_by_language: z
+    .number()
+    .int()
+    .nonnegative()
+    .optional(),
+  /** Playbooks the user disabled in Settings → Tests. */
+  playbooks_disabled: z.number().int().nonnegative().optional(),
   issues_found: z.number().int().nonnegative().default(0),
   issues_remediated: z.number().int().nonnegative().default(0),
   ai_calls: z.number().int().nonnegative().default(0),
