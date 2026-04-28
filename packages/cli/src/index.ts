@@ -16,7 +16,7 @@ import { registerCompliance } from "./commands/compliance.js";
 import { registerVersion } from "./commands/version.js";
 import { registerAllProviders } from "./provider-registration.js";
 
-export const CLI_VERSION = "1.0.0";
+export const CLI_VERSION = "1.0.1";
 
 export function buildCli(): Command {
   registerAllProviders();
