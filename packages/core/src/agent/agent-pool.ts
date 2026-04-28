@@ -44,6 +44,19 @@ export interface AgentPoolOptions {
    * acceptable from a "stop cooking" UX angle.
    */
   signal?: AbortSignal;
+  /**
+   * Optional override: maps an agent slot index (0..parallelism-1)
+   * to a `repoPath` for that slot's runAgent calls. Used by the
+   * web auto-remediation path to give each parallel agent its own
+   * git worktree so they can work concurrently without racing on
+   * the working tree (file writes, `git checkout -b`, staging
+   * area). Slot 0 is conventionally the main repo path.
+   *
+   * When omitted, all agents share `options.cwd` as their
+   * repoPath. That's fine for parallelism=1 or for runs where
+   * the caller has set up its own isolation.
+   */
+  repoPathForAgent?: (agentIdx: number) => string;
 }
 
 export type AgentPoolProgressEvent =
@@ -118,7 +131,11 @@ export async function runAgentPool(
   const gated: AgentPoolResult["gated"] = [];
   const failed: AgentPoolResult["failed"] = [];
 
-  async function tryIssue(agent: AgentIdentity, issue: Issue): Promise<void> {
+  async function tryIssue(
+    agent: AgentIdentity,
+    agentIdx: number,
+    issue: Issue,
+  ): Promise<void> {
     if (taken.has(issue.id)) return;
     taken.add(issue.id);
     options.onProgress?.({
@@ -126,11 +143,19 @@ export async function runAgentPool(
       agent: agent.id,
       issueId: issue.id,
     });
+    // Per-agent repoPath if the caller set up worktrees;
+    // otherwise everyone shares cwd. State files (issues, scans,
+    // logs, counter) always live under cwd — the per-agent
+    // repoPath is only the working tree the agent reads/writes
+    // source files in.
+    const repoPath =
+      options.repoPathForAgent?.(agentIdx) ?? options.cwd;
     try {
       const result = await runAgent({
         issueId: issue.id,
         agentId: agent.id,
         cwd: options.cwd,
+        repoPath,
         config: options.config,
         provider: options.provider,
         adapter: options.adapter,
@@ -173,7 +198,11 @@ export async function runAgentPool(
     }
   }
 
-  async function drain(agent: AgentIdentity, ownBucket: Issue[]): Promise<void> {
+  async function drain(
+    agent: AgentIdentity,
+    agentIdx: number,
+    ownBucket: Issue[],
+  ): Promise<void> {
     // Drain own bucket first, then steal. Each iteration checks the
     // cancellation signal — once it fires, we stop accepting new
     // work but let any in-flight runAgent finish (it's atomic at
@@ -181,7 +210,7 @@ export async function runAgentPool(
     for (const issue of ownBucket) {
       if (options.signal?.aborted) return;
       if (taken.has(issue.id)) continue;
-      await tryIssue(agent, issue);
+      await tryIssue(agent, agentIdx, issue);
     }
     // Work-stealing loop.
     while (true) {
@@ -189,7 +218,7 @@ export async function runAgentPool(
       const idx = stealPile.findIndex((i) => !taken.has(i.id));
       if (idx === -1) break;
       const issue = stealPile[idx]!;
-      await tryIssue(agent, issue);
+      await tryIssue(agent, agentIdx, issue);
     }
   }
 
@@ -199,7 +228,9 @@ export async function runAgentPool(
     .filter(Boolean);
 
   await Promise.all(
-    activeAgents.map((agent) => drain(agent, buckets.get(agent.id) ?? [])),
+    activeAgents.map((agent, agentIdx) =>
+      drain(agent, agentIdx, buckets.get(agent.id) ?? []),
+    ),
   );
 
   // If cancellation fired, surface what we left undone so the UI can

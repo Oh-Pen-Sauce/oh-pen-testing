@@ -56,6 +56,8 @@ import {
 import {
   createGitHubAdapter,
   resolveGitHubToken,
+  addWorktree,
+  removeWorktree,
 } from "@oh-pen-testing/git-github";
 import { resolveScanTargetPath } from "./ohpen-cwd";
 import { ensureProvidersRegistered } from "./providers-bootstrap";
@@ -470,32 +472,88 @@ async function runAutoRemediation(
   // own autonomy gate decides whether each individual issue gets a
   // PR or gets bucketed to "gated".
   //
-  // Parallelism forced to 1 here. The default agent pool runs up to
-  // 4 agents in parallel, but they all share the same cwd /
-  // working-tree, which leads to race conditions: agent A modifies
-  // file X, agent B does `git checkout -b new-branch` (which fails
-  // because the working tree is dirty), or agent A's `git add .`
-  // sweeps up agent B's in-flight changes into A's commit. The
-  // result is the systemic 100%-failure pattern we saw in
-  // production. Until we move each agent into its own git worktree,
-  // serialisation is the only safe option.
-  const result = await runAgentPool({
-    cwd,
-    config,
-    provider,
-    adapter,
-    playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
-    filter: (_issue: Issue) => true,
-    parallelism: 1,
-    logger,
-    signal,
-    onProgress: (event) => {
-      // Mirror progress events into the log for after-the-fact
-      // analysis — gives us a full ordered transcript of what each
-      // agent did per issue.
-      logger.info(`agent_pool.${event.type}`, event);
-    },
-  });
+  // Parallelism: respect the user's `config.agents.parallelism`
+  // setting (default 4). Each parallel agent slot gets its own git
+  // worktree at `<cwd>-wt<N>` so they can write files / create
+  // branches / commit independently — without the working-tree
+  // races that forced parallelism=1 in the prior implementation.
+  // Worktrees share refs via the parent's .git directory, so
+  // branches are visible across all of them; HEADs are independent.
+  const parallelism = Math.max(1, config.agents.parallelism);
+  const worktreeDirs: string[] = [];
+  // Slot 0 always uses the main cwd. Slots 1..N-1 each get their
+  // own worktree. Set up additive workdirs only when parallelism > 1
+  // — single-agent runs avoid the disk footprint and setup cost.
+  if (parallelism > 1) {
+    for (let i = 1; i < parallelism; i++) {
+      const wt = `${cwd}-wt${i}`;
+      try {
+        await addWorktree(cwd, wt, config.git.default_branch);
+        worktreeDirs.push(wt);
+        logger.info("agent_pool.worktree_created", {
+          slot: i,
+          path: wt,
+        });
+      } catch (err) {
+        // If we can't create a worktree (disk full, permission
+        // issue, leftover state from a crash), fall back to
+        // serialised single-agent mode rather than failing the
+        // whole remediation. The user gets slower-but-working.
+        logger.warn("agent_pool.worktree_create_failed", {
+          slot: i,
+          error: (err as Error).message,
+        });
+      }
+    }
+  }
+  // Effective parallelism = main slot + however many worktrees we
+  // actually got. If all worktree creates failed, we fall back to 1.
+  const effectiveParallelism = 1 + worktreeDirs.length;
+  if (effectiveParallelism < parallelism) {
+    logger.warn("agent_pool.parallelism_reduced", {
+      requested: parallelism,
+      effective: effectiveParallelism,
+    });
+  }
+
+  let result;
+  try {
+    result = await runAgentPool({
+      cwd,
+      config,
+      provider,
+      adapter,
+      playbookRoots: [BUNDLED_PLAYBOOKS_DIR],
+      filter: (_issue: Issue) => true,
+      parallelism: effectiveParallelism,
+      // Slot 0 → cwd. Slots 1..N → matching worktree dir.
+      repoPathForAgent: (idx) =>
+        idx === 0 ? cwd : (worktreeDirs[idx - 1] ?? cwd),
+      logger,
+      signal,
+      onProgress: (event) => {
+        // Mirror progress events into the log for after-the-fact
+        // analysis — gives us a full ordered transcript of what each
+        // agent did per issue.
+        logger.info(`agent_pool.${event.type}`, event);
+      },
+    });
+  } finally {
+    // Always tear down worktrees, even if the pool errored. They
+    // share refs with the main repo, so leaving them behind would
+    // accumulate disk + leak old `ohpen/...` branch checkouts.
+    for (const wt of worktreeDirs) {
+      try {
+        await removeWorktree(cwd, wt);
+        logger.info("agent_pool.worktree_removed", { path: wt });
+      } catch (err) {
+        logger.warn("agent_pool.worktree_remove_failed", {
+          path: wt,
+          error: (err as Error).message,
+        });
+      }
+    }
+  }
 
   const prUrls = result.completed
     .map((c) => c.prUrl)

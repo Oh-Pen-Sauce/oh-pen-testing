@@ -89,6 +89,56 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
 }
 
 /**
+ * Add a linked git worktree at `worktreePath`, checked out to
+ * `branch`. Used by parallel auto-remediation: each parallel agent
+ * gets its own worktree so they can write files / create branches
+ * / commit independently without stomping on each other's working
+ * tree.
+ *
+ * `-f` forces creation if the path already exists from a prior
+ * failed run (the worktree might be stale but reusable). simple-git
+ * doesn't have a first-class worktree API yet, so we shell out via
+ * `git.raw`.
+ *
+ * The worktree shares the parent's `.git` directory — refs are
+ * common (every worktree sees every branch), but each worktree's
+ * HEAD is independent. That's exactly what we want for parallel
+ * agents.
+ */
+export async function addWorktree(
+  repoPath: string,
+  worktreePath: string,
+  branch: string,
+): Promise<void> {
+  const git = openRepo(repoPath);
+  await git.raw(["worktree", "add", "-f", worktreePath, branch]);
+}
+
+/**
+ * Remove a worktree previously created by `addWorktree`. `--force`
+ * tolerates uncommitted changes inside it (the agent may have
+ * left mid-edit state) and detached-HEAD situations.
+ *
+ * Idempotent-ish: silently swallows the simple-git error when the
+ * worktree is already gone, so cleanup loops can blast through
+ * stale entries without `try/catch` at the call site.
+ */
+export async function removeWorktree(
+  repoPath: string,
+  worktreePath: string,
+): Promise<void> {
+  const git = openRepo(repoPath);
+  try {
+    await git.raw(["worktree", "remove", "--force", worktreePath]);
+  } catch (err) {
+    // "not a working tree" → already gone, fine.
+    if (!(err as Error).message.includes("not a working tree")) {
+      throw err;
+    }
+  }
+}
+
+/**
  * Force-checkout `branch`, then remove untracked files. The
  * filesystem ends up at exactly `branch`'s state, regardless of
  * what was there before — pending edits, leftover branches with
