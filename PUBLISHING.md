@@ -55,12 +55,23 @@ in your scope.
 pnpm -r exec npm pack --dry-run
 ```
 
-Walks every package and shows what would go in each tarball. Look for:
+Walks every workspace package and shows what would go in each
+tarball. Look for:
 
-- Nothing weird (no source maps leaking secrets, no `.env*`, no
-  node_modules bloat).
+- Nothing weird (no `.env*`, no `node_modules/`, no raw source
+  trees — only `dist/` content + `package.json`).
 - Every package you expect to publish is listed.
-- `@oh-pen-testing/web` is NOT listed — it's private.
+- `@oh-pen-testing/web` IS listed — that's expected. `private: true`
+  blocks `npm publish`, not `npm pack`. To confirm web won't be
+  published, run a real publish dry-run on it:
+
+  ```bash
+  pnpm --filter @oh-pen-testing/web publish --dry-run --no-git-checks
+  ```
+
+  You should see `ERR_PNPM_PRIVATE_PACKAGE_PUBLISH` — that's the
+  protection. The actual publish step (step 5) only targets each
+  package explicitly by filter, so web is never reached anyway.
 
 ---
 
