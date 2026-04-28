@@ -357,7 +357,25 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     }
   }
 
-  const branchName = `ohpen/${issue.id.toLowerCase()}-${slugify(issue.title)}`;
+  // Branch name needs to be UNIQUE PER RUN, not just per issue. The
+  // earlier `ohpen/<id>-<slug>` format collided when an issue was
+  // remediated more than once across separate runs (e.g. user wipes
+  // local state, re-runs the wizard, re-scans, hits the same issue
+  // again). The remote still had the old branch from PR #N, the new
+  // local branch was a fresh one with no fast-forward path, so
+  // `git push` failed with "[rejected] (fetch first)" — and we
+  // can't force-push because that'd either clobber an open PR's
+  // history or leave us unable to open a new PR (GitHub allows at
+  // most one open PR per head branch).
+  //
+  // Suffix: short base36 timestamp. Compact (6 chars), strictly
+  // monotonic, no overlap inside any reasonable lifetime. Branch
+  // names stay readable — `ohpen/issue-004-set-inner-html-lzqx3a`
+  // — and each run produces its own distinct branch + PR pair, so
+  // old runs stay browsable on GitHub without our remediations
+  // overwriting them.
+  const runSuffix = Date.now().toString(36).slice(-6);
+  const branchName = `ohpen/${issue.id.toLowerCase()}-${slugify(issue.title)}-${runSuffix}`;
   const pr = await options.adapter.createRemediationPr({
     repoPath,
     branchName,
