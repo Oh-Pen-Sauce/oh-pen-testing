@@ -24,12 +24,30 @@ Members) before running publish.
 
 ### 2. Enable 2FA for publish (recommended)
 
-```bash
-npm profile enable-2fa auth-and-writes
+**Do this via the npm web UI, not the CLI.** npm deprecated CLI-based
+TOTP enrollment in 2025 — `npm profile enable-2fa auth-and-writes`
+returns `404 — Adding a new TOTP 2FA is no longer supported`.
+
+Visit:
+
+```
+https://www.npmjs.com/settings/<your-username>/tfa
 ```
 
-Every publish after this prompts for an OTP. Worth it — a leaked npm
-token can publish malware to any package in your scope.
+Two methods are offered there:
+
+- **Security key / passkey** (Touch ID, Yubikey, browser passkey).
+  npm now pushes this as the default. Best UX going forward.
+- **Authenticator app (TOTP)** — still allowed via the web UI. Scan
+  the QR with Google Authenticator / 1Password / Authy. After
+  enrollment, `npm publish` prompts for the 6-digit code from the
+  authenticator on the CLI as before.
+
+Set the mode to **"Authentication and writes"** (the equivalent of
+the CLI's `auth-and-writes`).
+
+Worth it — a leaked npm token can publish malware to every package
+in your scope.
 
 ### 3. One-shot dry-run audit
 
