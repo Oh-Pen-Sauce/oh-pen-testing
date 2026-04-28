@@ -17,10 +17,34 @@ You need to do each of these exactly once per machine.
 npm login --scope=@oh-pen-testing --registry=https://registry.npmjs.org/
 ```
 
-First publish auto-claims the `@oh-pen-testing` scope for whoever runs it.
-If the scope is already claimed under an org, add yourself as a member
-via the npm web UI (npmjs.com → Organizations → oh-pen-testing →
-Members) before running publish.
+**Then create the `oh-pen-testing` org on npm.** Personal scopes
+on npm must match your username exactly — since the scope is
+`@oh-pen-testing` (with hyphens) and most usernames don't, you
+need an npm organization with that exact name. Free tier supports
+unlimited public packages.
+
+Visit https://www.npmjs.com/org/create and:
+
+- **Org name:** `oh-pen-testing`
+- **Plan:** Unlimited public packages — Free
+
+Verify:
+
+```bash
+npm org ls oh-pen-testing
+```
+
+Should print your username with role `owner`.
+
+If you skip this, the first `pnpm publish` errors with:
+
+```
+404 Not Found - PUT https://registry.npmjs.org/@oh-pen-testing%2fshared - Scope not found
+```
+
+If the org already exists under someone else's account, ask them
+to add you as a member (npm web UI → Organizations →
+oh-pen-testing → Members) before running publish.
 
 ### 2. Enable 2FA for publish (recommended)
 
