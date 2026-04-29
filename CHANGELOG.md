@@ -5,9 +5,11 @@ All notable changes to Oh Pen Testing are documented here. Format: [Keep a Chang
 ## [1.0.2] — 2026-04-29
 
 ### Fixed
-- **`opt setup` now works from a global npm install.** The `1.0.1` tarball didn't ship the web wizard and the command spawned `pnpm start`, so users hit `ENOENT: no such file or directory, stat '.../node_modules/web'` and `spawn pnpm ENOENT`. Two changes land together:
+- **`opt setup` now works from a global npm install.** The `1.0.1` tarball didn't ship the web wizard and the command spawned `pnpm start`, so users hit `ENOENT: no such file or directory, stat '.../node_modules/web'` and `spawn pnpm ENOENT`. Three changes land together (the third caught during smoke-testing PR #1):
   - `@oh-pen-testing/web` is now a published package and a runtime dependency of `@oh-pen-testing/cli`. The wizard's `.next` build output ships in the tarball.
   - `setup.ts` resolves the web package via Node module resolution (`createRequire` → `@oh-pen-testing/web/package.json`) and spawns `next start` directly using the `next` binary resolved from the web package — no `pnpm` required at runtime. A monorepo-dev fallback path is preserved.
+  - `next.config.ts` → `next.config.mjs`. The published web tarball ships only runtime deps (no `typescript`), and Next 15's TS-config loader was hot-installing `typescript` via pnpm at first `next start`. Plain ESM config skips that detour — the wizard boots immediately even on machines without pnpm. Type safety preserved via a JSDoc `@type {import("next").NextConfig}` annotation.
+- **`CLI_VERSION` in `packages/cli/src/index.ts` now follows package.json.** Hardcoded constant got missed in the 1.0.1 bump, so `opt --version` printed `1.0.0` against an npm-installed `1.0.1`. Now both report `1.0.2`.
 
 ## [0.6.0] — 2026-04-21
 
