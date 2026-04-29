@@ -2,6 +2,13 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.2] — 2026-04-29
+
+### Fixed
+- **`opt setup` now works from a global npm install.** The `1.0.1` tarball didn't ship the web wizard and the command spawned `pnpm start`, so users hit `ENOENT: no such file or directory, stat '.../node_modules/web'` and `spawn pnpm ENOENT`. Two changes land together:
+  - `@oh-pen-testing/web` is now a published package and a runtime dependency of `@oh-pen-testing/cli`. The wizard's `.next` build output ships in the tarball.
+  - `setup.ts` resolves the web package via Node module resolution (`createRequire` → `@oh-pen-testing/web/package.json`) and spawns `next start` directly using the `next` binary resolved from the web package — no `pnpm` required at runtime. A monorepo-dev fallback path is preserved.
+
 ## [0.6.0] — 2026-04-21
 
 M6 — PDF pen-test report (the v1.0 crown jewel, landed ahead of schedule).
