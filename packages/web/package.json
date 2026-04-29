@@ -1,15 +1,25 @@
 {
   "name": "@oh-pen-testing/web",
-  "version": "1.0.0",
-  "private": true,
+  "version": "1.0.2",
+  "description": "Local setup wizard and dashboard for Oh Pen Testing. Shipped as a runtime dependency of @oh-pen-testing/cli — not intended to be installed directly.",
+  "license": "MIT",
   "scripts": {
     "dev": "next dev",
     "dev:local": "next dev -H 127.0.0.1 -p 7676",
     "build": "next build",
     "start": "next start -H 127.0.0.1 -p 7676",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf .next .turbo"
+    "clean": "rm -rf .next .turbo",
+    "prepublishOnly": "next build"
   },
+  "files": [
+    ".next",
+    "public",
+    "next.config.js",
+    "next.config.mjs",
+    "next.config.ts",
+    "package.json"
+  ],
   "dependencies": {
     "@oh-pen-testing/core": "workspace:*",
     "@oh-pen-testing/git-github": "workspace:*",
@@ -36,5 +46,21 @@
     "@types/react-dom": "^19.0.0",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.7.2"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Oh-Pen-Sauce/oh-pen-testing.git",
+    "directory": "packages/web"
+  },
+  "homepage": "https://github.com/Oh-Pen-Sauce/oh-pen-testing#readme",
+  "bugs": {
+    "url": "https://github.com/Oh-Pen-Sauce/oh-pen-testing/issues"
+  },
+  "author": "Oh Pen Sauce",
+  "engines": {
+    "node": ">=22"
   }
 }

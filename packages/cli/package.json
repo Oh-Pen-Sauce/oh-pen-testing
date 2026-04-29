@@ -1,6 +1,6 @@
 {
   "name": "@oh-pen-testing/cli",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Local opensource pen-testing suite. Your code. Your AI. Your terms. `opt` is the CLI entry point.",
   "keywords": [
     "security",
@@ -37,6 +37,7 @@
     "@oh-pen-testing/providers-claude-code-cli": "workspace:*",
     "@oh-pen-testing/providers-ollama": "workspace:*",
     "@oh-pen-testing/shared": "workspace:*",
+    "@oh-pen-testing/web": "workspace:*",
     "commander": "^12.1.0",
     "execa": "^9.5.2",
     "open": "^10.1.0",

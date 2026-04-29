@@ -68,6 +68,9 @@ importers:
       '@oh-pen-testing/shared':
         specifier: workspace:*
         version: link:../shared
+      '@oh-pen-testing/web':
+        specifier: workspace:*
+        version: link:../web
       commander:
         specifier: ^12.1.0
         version: 12.1.0
