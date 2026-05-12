@@ -962,7 +962,7 @@ function ChatHeader({
                 : aiLive
                   ? "#8bd17c"
                   : "#d1b77c",
-              animation: busy ? "typing-bounce 0.9s infinite" : "none",
+              animation: busy ? "typing-pulse 1.2s infinite ease-out" : "none",
             }}
           />
           <span

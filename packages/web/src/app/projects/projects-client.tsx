@@ -32,7 +32,7 @@ export function ProjectsClient({
 }: {
   initialRegistry: ProjectRegistry;
 }) {
-  const [registry, setRegistry] = useState(initialRegistry);
+  const [registry] = useState(initialRegistry);
   const [pending, startTransition] = useTransition();
   const [flash, setFlash] = useState<
     { kind: "ok" | "err"; message: string } | null
@@ -47,12 +47,6 @@ export function ProjectsClient({
     setFlash({ kind, message });
     setTimeout(() => setFlash(null), 5000);
   }
-
-  // No local fetch — after mutations we reload the page so every
-  // server-rendered surface (banner, sidebar, other pages) picks up
-  // the new active project. Uses `setRegistry` anyway to keep the
-  // ProjectRegistry type import non-orphaned at the boundary.
-  void setRegistry;
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();

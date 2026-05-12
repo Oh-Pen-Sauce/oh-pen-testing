@@ -174,9 +174,8 @@ function BoardCard({
       onClick={onSelect}
       className="w-full text-left rounded-md p-2.5 transition-transform hover:-translate-y-px"
       style={{
-        background: "var(--cream)",
+        background: sev.bg,
         border: "1.5px solid var(--ink)",
-        borderLeft: `4px solid ${sev.border}`,
       }}
     >
       <div className="flex items-center gap-1.5 mb-1.5">

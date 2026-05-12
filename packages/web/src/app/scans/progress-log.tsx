@@ -164,11 +164,11 @@ export function ProgressLog({
 }
 
 function LogLine({ event }: { event: ProgressEvent }) {
-  const stripe =
+  const bg =
     event.level === "error"
-      ? "#C8321E"
+      ? "rgba(200, 50, 30, 0.18)"
       : event.level === "warn"
-        ? "#D4A017"
+        ? "rgba(212, 160, 23, 0.12)"
         : "transparent";
   const fg =
     event.level === "error"
@@ -180,7 +180,7 @@ function LogLine({ event }: { event: ProgressEvent }) {
     <div
       className="flex gap-2 px-3 py-[2px]"
       style={{
-        borderLeft: `3px solid ${stripe}`,
+        background: bg,
         color: fg,
       }}
     >
