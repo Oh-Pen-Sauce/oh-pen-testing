@@ -14,6 +14,7 @@ const NAV: Array<{ href: string; label: string; icon: string }> = [
   { href: "/scans", label: "Scans", icon: "🔎" },
   { href: "/settings", label: "Settings", icon: "⚙️" },
   { href: "/setup", label: "Setup", icon: "🧑‍🍳" },
+  { href: "/docs", label: "Docs", icon: "📚" },
 ];
 
 export function Sidebar({
