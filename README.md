@@ -15,23 +15,19 @@ No SaaS. No code leaves your machine. No vendor lock-in. MIT licensed.
 ## Quickstart
 
 ```bash
-# In your project root
-npx oh-pen-testing@latest init
+# One command — scaffolds .ohpentesting/ and opens the web wizard
+npx @oh-pen-testing/cli@latest setup
 
-# Zero config if you have `claude` on PATH (Claude Code CLI session)
-# Otherwise set one of:
-export ANTHROPIC_API_KEY=sk-ant-…
-export GITHUB_TOKEN=ghp_…                   # for PR opening
+# Zero config if you have `claude` on PATH (Claude Code CLI session).
+# Otherwise the wizard walks you through provider + credentials.
+export GITHUB_TOKEN=ghp_…                   # for PR opening (optional at first)
 
-# Scan, triage, remediate, verify
+# After setup completes, scan, triage, remediate, verify:
 opt scan
 opt remediate --all           # agent pool opens PRs for the whole board
 opt approve --issue ISSUE-007 # unblock anything gated by autonomy mode
 opt verify  --issue ISSUE-001 # confirm the fix landed
 opt report  --format pdf      # consultancy-grade pen-test deliverable
-
-# Prefer a UI?
-opt setup   # opens http://127.0.0.1:7676 with the kanban + review queue
 ```
 
 ## What ships
@@ -105,7 +101,7 @@ npm install -g @oh-pen-testing/cli
 That gives you `opt` and `oh-pen-testing` on your PATH. Verify:
 
 ```bash
-opt --version   # 1.0.0
+opt --version   # 1.0.2
 ```
 
 ### npx — try without installing
@@ -148,11 +144,12 @@ Oh Pen Testing is a local tool. **The scan target is whatever directory you laun
 
 ```bash
 cd ~/path/to/your/project
-opt connect    # picks an AI backend (Claude CLI / Anthropic / OpenAI / Ollama)
-opt setup      # opens the web wizard at http://127.0.0.1:7676
+opt setup      # scaffolds .ohpentesting/ and opens the web wizard at http://127.0.0.1:7676
 ```
 
-Marinara (our tomato mascot) walks you through the rest: GitHub wiring, autonomy mode, authorisation ack, then a quick starter scan so you can see it work before turning on the full catalogue.
+Marinara (our tomato mascot) walks you through: AI provider connection, GitHub wiring, autonomy mode, authorisation ack, and a starter scan so you can see it work before turning on the full catalogue.
+
+Prefer the terminal? `opt connect` does the provider setup without the browser, then `opt scan` runs immediately.
 
 ## Documentation
 

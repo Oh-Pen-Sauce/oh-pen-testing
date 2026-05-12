@@ -62,6 +62,8 @@ interface ChatTurn {
     input: Record<string, unknown>;
     description: string;
   };
+  /** Set to true after the user confirmed the action and it succeeded. */
+  actionConfirmed?: boolean;
 }
 
 /**
@@ -81,6 +83,7 @@ interface ChatSnapshot {
     from: "bot" | "user" | "completion";
     text: string;
     pendingAction?: ChatTurn["pendingAction"];
+    actionConfirmed?: boolean;
   }>;
   history: Turn[];
   state: SetupState;
@@ -198,6 +201,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         content: renderMiniMarkdown(t.text),
         text: t.text,
         pendingAction: t.pendingAction,
+        actionConfirmed: t.actionConfirmed,
       })),
     );
     setHistory(snapshot.history);
@@ -222,6 +226,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         // record a text version. Imperfect but beats losing the bubble.
         text: t.text ?? stringifyReactNode(t.content),
         pendingAction: t.pendingAction,
+        actionConfirmed: t.actionConfirmed,
       })),
       history,
       state,
@@ -591,10 +596,12 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         action.id,
         action.input,
       );
-      // Strip the pendingAction so the button disappears.
+      // Strip the pendingAction and mark confirmed so the card is replaced by a "✓ Done" pill.
       setTurns((t) =>
         t.map((x) =>
-          x.id === turnId ? { ...x, pendingAction: undefined } : x,
+          x.id === turnId
+            ? { ...x, pendingAction: undefined, actionConfirmed: outcome.ok }
+            : x,
         ),
       );
       if (outcome.stateDelta) {
@@ -645,6 +652,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
                   key={t.id}
                   content={t.content}
                   pendingAction={t.pendingAction}
+                  actionConfirmed={t.actionConfirmed}
                   onConfirm={(a) => confirmAction(t.id, a)}
                   busy={busy}
                 />
@@ -999,11 +1007,13 @@ function ChatHeader({
 function BotBubble({
   content,
   pendingAction,
+  actionConfirmed,
   onConfirm,
   busy,
 }: {
   content: React.ReactNode;
   pendingAction?: ChatTurn["pendingAction"];
+  actionConfirmed?: boolean;
   onConfirm: (a: { id: string; input: Record<string, unknown> }) => void;
   busy: boolean;
 }) {
@@ -1021,12 +1031,29 @@ function BotBubble({
       </div>
       <div className="max-w-[85%]">
         {/*
-          Action card renders *before* the explanation bubble when an
-          action is attached. This matches the mental model: the thing
-          the user has to act on comes first, with the bubble text as
-          the supporting rationale beneath.
+          Confirmed actions show a small "✓ Done" pill instead of the card.
+          Pending actions show the full card with the "Do it →" button.
+          This matches the mental model: the thing the user has to act on
+          comes first, with the bubble text as the supporting rationale beneath.
         */}
-        {pendingAction && (
+        {actionConfirmed && (
+          <div
+            className="mb-2 inline-flex items-center"
+            style={{
+              background: "var(--basil)",
+              color: "var(--cream)",
+              border: "1.5px solid var(--ink)",
+              borderRadius: "9999px",
+              padding: "3px 10px",
+              fontSize: 11,
+              fontWeight: 700,
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            ✓ Done
+          </div>
+        )}
+        {pendingAction && !actionConfirmed && (
           <div
             className="mb-2 px-3.5 py-3 rounded-[10px] flex items-center justify-between gap-3"
             style={{

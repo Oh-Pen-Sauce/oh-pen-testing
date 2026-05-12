@@ -19,8 +19,7 @@
     "sca",
     "wstg",
     "cwe-top-25",
-    "iac",
-    "asvs"
+    "iac"
   ],
   "scripts": {
     "build": "tsup",

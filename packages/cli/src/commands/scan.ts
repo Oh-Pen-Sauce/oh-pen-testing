@@ -5,6 +5,7 @@ import {
   loadConfig,
   writeConfig,
   ConfigSchema,
+  ConfigError,
   ScopeViolation,
   buildScanCompletedPayload,
   newInstallId,
@@ -43,7 +44,20 @@ export function registerScan(program: Command): void {
         cmd,
       ) => {
       const cwd: string = cmd.parent?.opts().cwd ?? process.cwd();
-      const config = await loadConfig(cwd);
+      let config;
+      try {
+        config = await loadConfig(cwd);
+      } catch (err) {
+        if (err instanceof ConfigError) {
+          // eslint-disable-next-line no-console
+          console.error(pc.red("\n✖ No .ohpentesting/config.yml found."));
+          // eslint-disable-next-line no-console
+          console.error(pc.dim(`  Run ${pc.cyan("opt setup")} (or ${pc.cyan("opt init")}) first.`));
+          process.exitCode = 1;
+          return;
+        }
+        throw err;
+      }
 
       // Principle 1: authorisation gate. Prompt on first scan in any repo,
       // then persist so subsequent scans don't nag.

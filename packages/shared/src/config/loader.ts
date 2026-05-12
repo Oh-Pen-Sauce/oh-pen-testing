@@ -12,7 +12,7 @@ export async function loadConfig(cwd: string): Promise<Config> {
     const e = err as NodeJS.ErrnoException;
     if (e.code === "ENOENT") {
       throw new ConfigError(
-        `No .ohpentesting/config.yml found in ${cwd}. Run \`oh-pen-testing init\` first.`,
+        `No .ohpentesting/config.yml found in ${cwd}. Run \`opt setup\` (or \`opt init\`) first to set up this project.`,
       );
     }
     throw new ConfigError(`Failed to read config: ${e.message}`);
