@@ -131,7 +131,7 @@ export default function InstallPage() {
             Downloads on first run, caches for subsequent runs. Good for a quick
             trial — switch to the global install once you use it regularly.
           </p>
-          <Code>cd /path/to/your/project{"\n"}npx @oh-pen-testing/cli@latest setup</Code>
+          <Code>{`cd /path/to/your/project\nnpx @oh-pen-testing/cli@latest setup`}</Code>
           <p className="text-[13px] text-ink-soft mt-3">
             Note: the web wizard will show an install hint if{" "}
             <code style={{ fontFamily: "var(--font-mono)" }}>opt</code> is not on your PATH.
