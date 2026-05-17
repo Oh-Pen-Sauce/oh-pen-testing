@@ -101,7 +101,7 @@ npm install -g @oh-pen-testing/cli
 That gives you `opt` and `oh-pen-testing` on your PATH. Verify:
 
 ```bash
-opt --version   # 1.0.2
+opt --version   # 1.0.3
 ```
 
 ### npx — try without installing
