@@ -2,20 +2,20 @@
 
 > Your code. Your AI. Your terms.
 
-A free, opensource, locally-run penetration testing suite. Install it in your repo, connect your AI (Claude / OpenAI / Ollama — your credentials, your machine), and it runs OWASP-grade scans, files issues to a kanban board, and has pasta-named agents that open remediation PRs.
+A free, opensource, locally-run penetration testing suite. Install it in your repo, connect your AI (Claude API, Claude Code CLI, or Ollama; your credentials, your machine), and it runs OWASP-grade scans, files issues to a kanban board, and has pasta-named agents that open remediation PRs. OpenAI and OpenRouter providers ship next.
 
 No SaaS. No code leaves your machine. No vendor lock-in. MIT licensed.
 
 [![tests](https://github.com/Oh-Pen-Sauce/oh-pen-testing/actions/workflows/test.yml/badge.svg)](https://github.com/Oh-Pen-Sauce/oh-pen-testing/actions)
 [![release](https://img.shields.io/github/v/release/Oh-Pen-Sauce/oh-pen-testing)](https://github.com/Oh-Pen-Sauce/oh-pen-testing/releases)
-[![license](https://img.shields.io/badge/licence-MIT-blue)](./LICENCE)
+[![license](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 
 ---
 
 ## Quickstart
 
 ```bash
-# One command — scaffolds .ohpentesting/ and opens the web wizard
+# One command: scaffolds .ohpentesting/ and opens the web wizard
 npx @oh-pen-testing/cli@latest setup
 
 # Zero config if you have `claude` on PATH (Claude Code CLI session).
