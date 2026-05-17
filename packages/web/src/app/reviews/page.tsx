@@ -31,11 +31,8 @@ export default async function ReviewsPage() {
         }
       />
 
-      {/* Filter chip row — non-interactive for now, matches the design */}
       <div className="flex gap-2.5 mb-5">
         <Chip active>{pending.length} waiting</Chip>
-        <Chip>Any severity</Chip>
-        <Chip>All agents</Chip>
       </div>
 
       {pending.length === 0 ? (

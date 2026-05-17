@@ -144,6 +144,21 @@ export function InlineTerminal({
         ))}
       </div>
 
+      {/* Hint for users who arrived via npx and don't have `opt` on PATH */}
+      {!running && !done && (
+        <div
+          className="px-4 pb-2 pt-1 text-[11px]"
+          style={{
+            color: "#e6d9bf",
+            opacity: 0.55,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          If <code style={{ opacity: 0.9 }}>opt</code> isn&rsquo;t on PATH, install it first:{" "}
+          <code style={{ opacity: 0.9 }}>npm install -g @oh-pen-testing/cli</code>
+        </div>
+      )}
+
       {/* Run / re-run bar */}
       <div
         className="flex items-center gap-2 px-4 py-2.5"

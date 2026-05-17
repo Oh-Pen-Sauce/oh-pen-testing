@@ -142,22 +142,37 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
     // pre-flight snapshot/restore is the second line of defence.
   }
 
-  // Install pre-commit hook if this is a git repo
+  // Install pre-commit hook if this is a git repo, but skip when a hook
+  // manager (husky, lefthook) is present — those tools own .git/hooks/
+  // via their own config files, and injecting directly would break them.
   const gitHooksDir = path.join(options.cwd, ".git", "hooks");
   if (await dirExists(gitHooksDir)) {
-    const hookPath = path.join(gitHooksDir, "pre-commit");
-    const existing = await readFileIfExists(hookPath);
-    if (existing && existing.includes(PRE_COMMIT_HOOK_MARKER)) {
-      skipped.push(".git/hooks/pre-commit");
-    } else if (existing) {
-      const appended = existing.endsWith("\n") ? existing : existing + "\n";
-      await fs.writeFile(hookPath, appended + "\n" + PRE_COMMIT_HOOK_BODY, "utf-8");
-      await fs.chmod(hookPath, 0o755);
-      created.push(".git/hooks/pre-commit (appended)");
+    const hasHusky = await dirExists(path.join(options.cwd, ".husky"));
+    const hasLefthook =
+      (await fileExists(path.join(options.cwd, "lefthook.yml"))) ||
+      (await fileExists(path.join(options.cwd, ".lefthookrc")));
+
+    if (hasHusky || hasLefthook) {
+      const manager = hasHusky ? "husky" : "lefthook";
+      const configFile = hasHusky ? ".husky/" : (await fileExists(path.join(options.cwd, "lefthook.yml"))) ? "lefthook.yml" : ".lefthookrc";
+      skipped.push(
+        `.git/hooks/pre-commit (${manager} detected — add \`oh-pen-testing check\` to ${configFile} manually)`,
+      );
     } else {
-      await fs.writeFile(hookPath, PRE_COMMIT_HOOK_BODY, "utf-8");
-      await fs.chmod(hookPath, 0o755);
-      created.push(".git/hooks/pre-commit");
+      const hookPath = path.join(gitHooksDir, "pre-commit");
+      const existing = await readFileIfExists(hookPath);
+      if (existing && existing.includes(PRE_COMMIT_HOOK_MARKER)) {
+        skipped.push(".git/hooks/pre-commit");
+      } else if (existing) {
+        const appended = existing.endsWith("\n") ? existing : existing + "\n";
+        await fs.writeFile(hookPath, appended + "\n" + PRE_COMMIT_HOOK_BODY, "utf-8");
+        await fs.chmod(hookPath, 0o755);
+        created.push(".git/hooks/pre-commit (appended)");
+      } else {
+        await fs.writeFile(hookPath, PRE_COMMIT_HOOK_BODY, "utf-8");
+        await fs.chmod(hookPath, 0o755);
+        created.push(".git/hooks/pre-commit");
+      }
     }
   }
 

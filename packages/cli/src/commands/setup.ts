@@ -1,4 +1,6 @@
 import path from "node:path";
+import http from "node:http";
+import net from "node:net";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import type { Command } from "commander";
@@ -11,11 +13,13 @@ import { ohpenPaths } from "@oh-pen-testing/shared";
 export function registerSetup(program: Command): void {
   program
     .command("setup")
-    .description("Launch the local setup wizard (web UI on 127.0.0.1:7676)")
+    .description("One-command setup: scaffolds .ohpentesting/, then opens the web wizard (default port 7676)")
     .option("--no-open", "Don't auto-open the browser")
-    .action(async (opts: { open?: boolean }, cmd) => {
+    .option("--port <number>", "Port for the web wizard", "7676")
+    .action(async (opts: { open?: boolean; port?: string }, cmd) => {
       const cwd: string = cmd.parent?.opts().cwd ?? process.cwd();
       const paths = ohpenPaths(cwd);
+      const port = parseInt(opts.port ?? "7676", 10);
 
       // Scaffold if needed so the web app has a config.yml to edit
       await scaffold({ cwd });
@@ -38,21 +42,33 @@ export function registerSetup(program: Command): void {
         return;
       }
 
+      // Check if the port is already in use before attempting to start
+      if (await isPortInUse(port)) {
+        // eslint-disable-next-line no-console
+        console.error(pc.red(`\n✖ Port ${port} is already in use.`));
+        // eslint-disable-next-line no-console
+        console.error(
+          pc.dim(`  Kill the existing process (lsof -ti :${port} | xargs kill) or use --port to pick another.`),
+        );
+        process.exitCode = 1;
+        return;
+      }
+
       // eslint-disable-next-line no-console
-      console.log(pc.bold("▶ Starting setup wizard at http://127.0.0.1:7676/setup"));
+      console.log(pc.bold(`▶ Starting setup wizard at http://127.0.0.1:${port}/setup`));
       // eslint-disable-next-line no-console
       console.log(pc.dim(`  (Ctrl-C to stop. Config will be written to ${paths.config})`));
 
       const env = {
         ...process.env,
         OHPEN_CWD: cwd,
-        PORT: "7676",
+        PORT: String(port),
         HOSTNAME: "127.0.0.1",
       };
 
       const child: ResultPromise = execa(
         process.execPath,
-        [nextBin, "start", "-H", "127.0.0.1", "-p", "7676"],
+        [nextBin, "start", "-H", "127.0.0.1", "-p", String(port)],
         {
           cwd: webPkgDir,
           env,
@@ -67,16 +83,25 @@ export function registerSetup(program: Command): void {
       process.on("SIGINT", cleanup);
       process.on("SIGTERM", cleanup);
 
-      // Give the server a moment to boot, then open the browser
+      // Poll until the server responds (up to 30 s) then open the browser.
+      // This prevents the race where the browser opens before Next.js is ready.
       if (opts.open !== false) {
-        setTimeout(() => {
-          open("http://127.0.0.1:7676/setup").catch(() => {
+        waitForServer(`http://127.0.0.1:${port}/setup`, 30_000)
+          .then((ready) => {
+            if (ready) {
+              return open(`http://127.0.0.1:${port}/setup`);
+            }
             // eslint-disable-next-line no-console
             console.log(
-              pc.yellow("Couldn't auto-open browser. Visit http://127.0.0.1:7676/setup"),
+              pc.yellow(`Couldn't reach http://127.0.0.1:${port} after 30 s. Open it manually.`),
+            );
+          })
+          .catch(() => {
+            // eslint-disable-next-line no-console
+            console.log(
+              pc.yellow(`Couldn't auto-open browser. Visit http://127.0.0.1:${port}/setup`),
             );
           });
-        }, 2000);
       }
 
       try {
@@ -86,6 +111,50 @@ export function registerSetup(program: Command): void {
         throw err;
       }
     });
+}
+
+/** Returns true if the port is already bound on 127.0.0.1. */
+function isPortInUse(port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once("error", (err: NodeJS.ErrnoException) => {
+      resolve(err.code === "EADDRINUSE");
+    });
+    server.once("listening", () => {
+      server.close(() => resolve(false));
+    });
+    server.listen(port, "127.0.0.1");
+  });
+}
+
+/**
+ * Poll url every 300 ms until a 2xx/3xx response is received or maxMs elapses.
+ * Uses node:http directly to avoid any fetch implementation differences.
+ */
+function waitForServer(url: string, maxMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const deadline = Date.now() + maxMs;
+    function attempt() {
+      http
+        .get(url, (res) => {
+          res.resume(); // drain the response body so the socket closes
+          if (res.statusCode && res.statusCode < 400) {
+            resolve(true);
+          } else {
+            retry();
+          }
+        })
+        .on("error", retry);
+    }
+    function retry() {
+      if (Date.now() >= deadline) {
+        resolve(false);
+        return;
+      }
+      setTimeout(attempt, 300);
+    }
+    attempt();
+  });
 }
 
 function resolveWebRuntime(): { webPkgDir: string; nextBin: string } {

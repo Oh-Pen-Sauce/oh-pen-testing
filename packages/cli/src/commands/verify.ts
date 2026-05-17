@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import pc from "picocolors";
-import { loadConfig, ScopeViolation } from "@oh-pen-testing/shared";
+import { loadConfig, ConfigError, ScopeViolation } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import { resolveProvider, runVerify } from "@oh-pen-testing/core";
 import {
@@ -20,7 +20,20 @@ export function registerVerify(program: Command): void {
     .action(
       async (opts: { issue: string; provider?: string; skipAi?: boolean }, cmd) => {
         const cwd: string = cmd.parent?.opts().cwd ?? process.cwd();
-        const config = await loadConfig(cwd);
+        let config;
+        try {
+          config = await loadConfig(cwd);
+        } catch (err) {
+          if (err instanceof ConfigError) {
+            // eslint-disable-next-line no-console
+            console.error(pc.red("\n✖ No .ohpentesting/config.yml found."));
+            // eslint-disable-next-line no-console
+            console.error(pc.dim(`  Run ${pc.cyan("opt setup")} (or ${pc.cyan("opt init")}) first.`));
+            process.exitCode = 1;
+            return;
+          }
+          throw err;
+        }
 
         if (opts.provider) {
           config.ai.primary_provider = opts.provider as typeof config.ai.primary_provider;

@@ -220,24 +220,32 @@ export default async function Home() {
             {resolvedCount} resolved · {issues.length} total
           </div>
           {issues.length > 0 && (
-            <div
-              className="mt-4 flex gap-[2px] h-2 rounded overflow-hidden"
-              aria-label="severity distribution"
-            >
-              {SEVERITY_ORDER.map((s) => {
-                const count = bySeverity[s] ?? 0;
-                if (!count) return null;
-                return (
-                  <div
-                    key={s}
-                    style={{
-                      flex: count,
-                      background: SEVERITY_STYLE[s].border,
-                    }}
-                    title={`${s}: ${count}`}
-                  />
-                );
-              })}
+            <div className="mt-4">
+              <div
+                className="text-[10px] font-bold tracking-[0.1em] uppercase mb-1.5 opacity-55"
+                style={{ fontFamily: "var(--font-mono)" }}
+              >
+                severity split
+              </div>
+              <div
+                className="flex gap-[2px] h-2 rounded overflow-hidden"
+                aria-label="severity distribution"
+              >
+                {SEVERITY_ORDER.map((s) => {
+                  const count = bySeverity[s] ?? 0;
+                  if (!count) return null;
+                  return (
+                    <div
+                      key={s}
+                      style={{
+                        flex: count,
+                        background: SEVERITY_STYLE[s].border,
+                      }}
+                      title={`${s}: ${count}`}
+                    />
+                  );
+                })}
+              </div>
             </div>
           )}
           <div
@@ -447,7 +455,7 @@ function formatRelative(iso: string): string {
 }
 
 function truncate(s: string, n: number): string {
-  return s.length > n ? `${s.slice(0, n - 1)}…` : s;
+  return s.length > n ? `…${s.slice(-(n - 1))}` : s;
 }
 
 function resolveAgentFromDiscoveredBy(discoveredBy?: string) {

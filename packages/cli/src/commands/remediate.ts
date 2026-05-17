@@ -1,6 +1,6 @@
 import type { Command } from "commander";
 import pc from "picocolors";
-import { loadConfig } from "@oh-pen-testing/shared";
+import { loadConfig, ConfigError } from "@oh-pen-testing/shared";
 import { BUNDLED_PLAYBOOKS_DIR } from "@oh-pen-testing/playbooks-core";
 import {
   resolveProvider,
@@ -39,7 +39,20 @@ export function registerRemediate(program: Command): void {
         cmd,
       ) => {
         const cwd: string = cmd.parent?.opts().cwd ?? process.cwd();
-        const config = await loadConfig(cwd);
+        let config;
+        try {
+          config = await loadConfig(cwd);
+        } catch (err) {
+          if (err instanceof ConfigError) {
+            // eslint-disable-next-line no-console
+            console.error(pc.red("\n✖ No .ohpentesting/config.yml found."));
+            // eslint-disable-next-line no-console
+            console.error(pc.dim(`  Run ${pc.cyan("opt setup")} (or ${pc.cyan("opt init")}) first.`));
+            process.exitCode = 1;
+            return;
+          }
+          throw err;
+        }
 
         if (!opts.all && !opts.issue) {
           // eslint-disable-next-line no-console
