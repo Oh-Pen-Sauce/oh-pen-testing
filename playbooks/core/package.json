@@ -1,6 +1,6 @@
 {
   "name": "@oh-pen-testing/playbooks-core",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "description": "Bundled core playbooks shipped with oh-pen-testing.",
   "main": "./dist/index.js",
