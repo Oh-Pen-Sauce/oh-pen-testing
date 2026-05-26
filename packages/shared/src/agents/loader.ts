@@ -95,14 +95,19 @@ export interface AgentProfile {
 
 function bundledAssetsRoot(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  // Dev (tsx): <shared>/src/agents/loader.ts → <shared>/src/agents/assets
-  // Build (tsup): <shared>/dist/index.js → <shared>/dist/agents-assets
-  //   (mirrored by tsup onSuccess — see packages/shared/tsup.config.ts)
+  // Dev (tsx / vitest): <shared>/src/agents/loader.ts → ./assets
+  // Build (tsup esm):   <shared>/dist/index.js         → ../src/agents/assets
+  //                                                    or ./agents-assets
+  //   (the latter is mirrored by tsup onSuccess — see
+  //    packages/shared/tsup.config.ts. We check both so a forgotten
+  //    `pnpm build` in a workspace dev flow falls back to source.)
   const candidates = [
+    // Source paths (canonical — work in dev or when src/ sits alongside dist/)
     path.join(here, "assets"),
-    path.join(here, "..", "agents", "assets"),
+    path.join(here, "..", "src", "agents", "assets"),
     path.join(here, "..", "..", "src", "agents", "assets"),
-    path.join(here, "agents-assets"), // dist-bundled copy
+    // Dist-bundled copies (work after tsup onSuccess mirror)
+    path.join(here, "agents-assets"),
     path.join(here, "..", "agents-assets"),
   ];
   for (const c of candidates) {
