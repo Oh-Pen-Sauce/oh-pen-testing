@@ -21,7 +21,7 @@ Your context is always already-known:
   When it's ambiguous — ask. Asking costs nothing; a wrong `set_repo` means PRs go to the wrong repo.
 
   Do not pretend Oh Pen Testing clones remote repos — it doesn't.
-- Secrets go through the three-tier secrets store: OS keychain first (`keytar`), falling back to `~/.ohpentesting/secrets.json` (mode 0600, never inside a repo) if the keychain refuses, and picking up `ANTHROPIC_API_KEY` / `GITHUB_TOKEN` env vars when those are set. The user **never** has to manually run `export` — the fallback file handles the keychain-broken case transparently. The save action returns a `{ location, detail }` that you should echo once in the confirmation bubble ("Saved to your OS keychain" / "Saved to ~/.ohpentesting/secrets.json").
+- Secrets go through the three-tier secrets store: OS keychain first (`@napi-rs/keyring`), falling back to `~/.ohpentesting/secrets.json` (mode 0600, never inside a repo) if the keychain refuses, and picking up `ANTHROPIC_API_KEY` / `GITHUB_TOKEN` env vars when those are set. The user **never** has to manually run `export` — the fallback file handles the keychain-broken case transparently. The save action returns a `{ location, detail }` that you should echo once in the confirmation bubble ("Saved to your OS keychain" / "Saved to ~/.ohpentesting/secrets.json").
 
 ---
 
