@@ -204,8 +204,8 @@ export async function resetEverythingAction(
       }
     }
     // Also best-effort nuke the OS keychain entries. We can only
-    // clear via keytar if it loads — on platforms where it doesn't,
-    // the file deletion above covers us anyway.
+    // clear via the keyring binding if it loads — on platforms where
+    // it doesn't, the file deletion above covers us anyway.
     try {
       const dynamicImport = new Function(
         "m",
@@ -215,7 +215,7 @@ export async function resetEverythingAction(
           deletePassword(s: string, a: string): Promise<boolean>;
         };
       }>;
-      const mod = await dynamicImport("keytar");
+      const mod = await dynamicImport("@napi-rs/keyring/keytar");
       for (const account of [
         "anthropic-api-key",
         "openai-api-key",
@@ -232,7 +232,7 @@ export async function resetEverythingAction(
       }
       wiped.push("OS keychain entries (best effort)");
     } catch {
-      /* keytar not available — file deletion is the tier we care about */
+      /* keyring not available — file deletion is the tier we care about */
     }
   }
 

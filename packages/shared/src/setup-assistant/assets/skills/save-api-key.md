@@ -23,7 +23,7 @@ input_schema:
 
 # save_api_key
 
-Stores the API key in the OS keychain via `keytar`. The account name is
+Stores the API key in the OS keychain via `@napi-rs/keyring`. The account name is
 derived from the provider:
 
 | Provider | Keychain account | Env var fallback |

@@ -8,7 +8,7 @@ import path from "node:path";
  *
  * Priority order when **reading**:
  *   1. Environment variable (highest — deliberate CI / Docker flow).
- *   2. OS keychain via `keytar` (native module).
+ *   2. OS keychain via `@napi-rs/keyring` (native module).
  *   3. Local fallback file: ~/.ohpentesting/secrets.json (mode 0600,
  *      never inside a repo → never accidentally committed).
  *
@@ -59,15 +59,17 @@ function fallbackFilePath(): string {
   return path.join(os.homedir(), ".ohpentesting", "secrets.json");
 }
 
-// ─────── dynamic keytar loader ───────
+// ─────── dynamic keyring loader ───────
 
 /**
- * keytar is a native-module dep with notoriously flaky load behaviour
- * (arch mismatches, missing libsecret on Linux, permission dialogs).
- * We wrap every call in a try/catch and surface a nullable module so
- * callers can silently fall through to the file tier.
+ * `@napi-rs/keyring` is a native-module dep with notoriously flaky
+ * load behaviour (arch mismatches, missing libsecret on Linux,
+ * permission dialogs). We wrap every call in a try/catch and surface
+ * a nullable module so callers can silently fall through to the file
+ * tier. The `/keytar` subpath is a drop-in compat shim with the
+ * (unmaintained) `keytar` package's flat function API.
  */
-async function loadKeytar(): Promise<{
+async function loadKeyring(): Promise<{
   getPassword(service: string, account: string): Promise<string | null>;
   setPassword(
     service: string,
@@ -77,8 +79,8 @@ async function loadKeytar(): Promise<{
   deletePassword(service: string, account: string): Promise<boolean>;
 } | null> {
   try {
-    // Indirect dynamic import so TS doesn't pull keytar into the DTS
-    // build graph when keytar isn't installed (e.g. in CI).
+    // Indirect dynamic import so TS doesn't pull the keyring binding
+    // into the DTS build graph when it isn't installed (e.g. in CI).
     const dynamicImport = new Function(
       "m",
       "return import(m)",
@@ -96,7 +98,7 @@ async function loadKeytar(): Promise<{
         ): Promise<boolean>;
       };
     }>;
-    const mod = await dynamicImport("keytar");
+    const mod = await dynamicImport("@napi-rs/keyring/keytar");
     return mod.default;
   } catch {
     return null;
@@ -151,10 +153,10 @@ export async function getSecret(account: string): Promise<GetSecretResult> {
     }
   }
 
-  const keytar = await loadKeytar();
-  if (keytar) {
+  const keyring = await loadKeyring();
+  if (keyring) {
     try {
-      const fromKeychain = await keytar.getPassword(KEYTAR_SERVICE, account);
+      const fromKeychain = await keyring.getPassword(KEYTAR_SERVICE, account);
       if (fromKeychain) {
         return { value: fromKeychain, location: "keychain" };
       }
@@ -189,10 +191,10 @@ export async function setSecret(
   if (!value || value.length < 4) {
     throw new Error("Secret is empty or too short to persist.");
   }
-  const keytar = await loadKeytar();
-  if (keytar) {
+  const keyring = await loadKeyring();
+  if (keyring) {
     try {
-      await keytar.setPassword(KEYTAR_SERVICE, account, value);
+      await keyring.setPassword(KEYTAR_SERVICE, account, value);
       return {
         location: "keychain",
         detail: "Saved to your OS keychain.",
@@ -202,7 +204,7 @@ export async function setSecret(
       // libsecret). Quietly fall through to the file tier.
       // eslint-disable-next-line no-console
       console.warn(
-        `[secrets-store] keytar.setPassword failed (${
+        `[secrets-store] keyring.setPassword failed (${
           (err as Error).message
         }); falling back to ~/.ohpentesting/secrets.json`,
       );
@@ -223,10 +225,10 @@ export async function setSecret(
  * Remove a secret from both tiers. No-op if the secret isn't present.
  */
 export async function deleteSecret(account: string): Promise<void> {
-  const keytar = await loadKeytar();
-  if (keytar) {
+  const keyring = await loadKeyring();
+  if (keyring) {
     try {
-      await keytar.deletePassword(KEYTAR_SERVICE, account);
+      await keyring.deletePassword(KEYTAR_SERVICE, account);
     } catch {
       /* ignore */
     }
