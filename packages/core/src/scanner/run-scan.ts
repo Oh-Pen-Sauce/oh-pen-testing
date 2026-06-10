@@ -50,7 +50,7 @@ export interface RunScanOptions {
   provider: AIProvider;
   playbookRoots: string[];
   logger?: Logger;
-  /** Skip AI confirmation — used by unit tests of the regex layer. */
+  /** Skip AI confirmation, used by unit tests of the regex layer. */
   skipAiConfirm?: boolean;
   /** Optional rate-limit manager; if omitted, one is built from provider.rateLimitStrategy(). */
   rateLimitManager?: RateLimitManager;
@@ -65,8 +65,8 @@ export interface RunScanOptions {
    * between playbooks; when true, it finalises the partial scan
    * record (status=cancelled), keeps any issues already created, and
    * throws ScanCancelled. The caller decides how to surface it. We
-   * don't cancel mid-playbook — that would leave a partially-scanned
-   * playbook in an ambiguous state — but with 31 playbooks and ~1s
+   * don't cancel mid-playbook (that would leave a partially-scanned
+   * playbook in an ambiguous state) but with 31 playbooks and ~1s
    * each, between-playbook is responsive enough.
    */
   signal?: AbortSignal;
@@ -74,7 +74,7 @@ export interface RunScanOptions {
 
 /**
  * Thrown when an in-flight scan is asked to stop. Caller should
- * treat the partial result as valid — issues already created stay
+ * treat the partial result as valid: issues already created stay
  * on disk, the scan record is finalised with status=cancelled.
  */
 export class ScanCancelled extends Error {
@@ -98,7 +98,7 @@ export interface RunScanResult {
   scannedPath: string;
   /**
    * Total playbooks in the bundled catalog BEFORE any filtering.
-   * Lets the UI show "10 of 31 — the rest don't apply to your
+   * Lets the UI show "10 of 31: the rest don't apply to your
    * stack" so users aren't worried that only ~⅓ of playbooks ran.
    */
   playbooksAvailable: number;
@@ -120,7 +120,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
   const { cwd, config, provider, playbookRoots, skipAiConfirm, onlyPlaybookIds } = options;
 
   // Hard gate: refuse to start any scan without explicit authorisation ack.
-  // This is Principle 1 of the PRD — "authorised testing only, you own the
+  // This is Principle 1 of the PRD: "authorised testing only, you own the
   // authorisation". Wizard/CLI must have set this true before we touch a file.
   if (!config.scope.authorisation_acknowledged) {
     throw new ScopeViolation(
@@ -135,7 +135,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
   enforceTimeWindows(config);
 
   // Hard gate: target allowlist. v0.5 is static-only, so the "target" is the
-  // cwd — must be in allowed_targets (if set) or match the default (== cwd).
+  // cwd: must be in allowed_targets (if set) or match the default (== cwd).
   enforceTargetAllowed(config, cwd, cwd);
 
   const scanId = await allocateScanId(cwd);
@@ -170,12 +170,12 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
 
   try {
     const allPlaybooks = await loadPlaybooks(playbookRoots);
-    // Filter stack — each step narrows the set.
+    // Filter stack: each step narrows the set.
     const byLanguage = filterByLanguages(
       allPlaybooks,
       config.project.primary_languages,
     );
-    // onlyPlaybookIds wins over everything else — used by starter scan
+    // onlyPlaybookIds wins over everything else: used by starter scan
     // and by `--only` to restrict a run to a specific subset.
     const byOnly = onlyPlaybookIds
       ? byLanguage.filter((p) => onlyPlaybookIds.includes(p.manifest.id))
@@ -192,7 +192,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     });
 
     // Persist the filter breakdown on the scan record so the
-    // detail page can show "10 of 31 — 21 not applicable to your
+    // detail page can show "10 of 31, 21 not applicable to your
     // stack" later. Without this, there's no way to surface the
     // filter outcome on a past scan; only the in-flight UI knew.
     scan.playbooks_total = allPlaybooks.length;
@@ -207,7 +207,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     const issues: Issue[] = [];
 
     /*
-     * Dedup set — now spans BOTH the current scan AND every prior
+     * Dedup set: now spans BOTH the current scan AND every prior
      * scan whose issues still sit in .ohpentesting/issues/.
      *
      * Key format: <playbookId>::<ruleId>::<file>::<startLine>-<endLine>
@@ -223,7 +223,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     try {
       const existingIssues = await listIssues(cwd);
       for (const existing of existingIssues) {
-        // Extract playbook id from "playbook:<id>/<rule>" — playbook
+        // Extract playbook id from "playbook:<id>/<rule>": playbook
         // ids themselves contain slashes (e.g. owasp-top-10/a03-…)
         // so we strip only the final segment which is the rule id.
         let playbookId = existing.discovered_by;
@@ -241,7 +241,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
         existingIssues: existingIssues.length,
       });
     } catch (err) {
-      // Malformed issues dir shouldn't break the scan — just log and
+      // Malformed issues dir shouldn't break the scan: just log and
       // proceed with empty dedup set.
       logger.warn("scan.cross_scan_dedup_failed", {
         error: (err as Error).message,
@@ -249,7 +249,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
     }
 
     for (const playbook of relevant) {
-      // Cooperative cancellation checkpoint — user clicked "stop
+      // Cooperative cancellation checkpoint: user clicked "stop
       // cooking" mid-scan. We finalise the scan record as cancelled,
       // keep any issues already created, and throw so the caller
       // can update its own state. Issues from playbooks that
@@ -285,7 +285,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             const issueId = await allocateIssueId(cwd);
             const issue: Issue = {
               id: issueId,
-              title: `${f.packageName}${f.installedVersion ? `@${f.installedVersion}` : ""} — ${f.summary}`,
+              title: `${f.packageName}${f.installedVersion ? `@${f.installedVersion}` : ""} - ${f.summary}`,
               severity: f.severity,
               cwe: playbook.manifest.cwe,
               owasp_category: playbook.manifest.owasp_ref,
@@ -411,7 +411,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             confirmed = verdict.confirmed;
             severity = verdict.severity;
             reasoning = verdict.reasoning;
-            // We don't see usage from confirm directly — approximate via provider call chain.
+            // We don't see usage from confirm directly: approximate via provider call chain.
             // confirmCandidate will be extended to return usage in M2.
           } catch (err) {
             if (err instanceof RateLimitError) {
@@ -618,7 +618,7 @@ function buildIssueTitle(
 ): string {
   const base = playbook.manifest.description || playbook.manifest.id;
   const shortRule = ruleId.replace(/-/g, " ");
-  return `${capitalise(shortRule)} in ${file} — ${base}`;
+  return `${capitalise(shortRule)} in ${file} - ${base}`;
 }
 
 function capitalise(s: string): string {

@@ -15,7 +15,7 @@ export function registerCompliance(program: Command): void {
   program
     .command("compliance")
     .description(
-      "Map current issues onto a compliance framework (SOC 2, ISO 27001, PCI-DSS, HIPAA, OWASP-ASVS). Scaffold — not a certified audit.",
+      "Map current issues onto a compliance framework (SOC 2, ISO 27001, PCI-DSS, HIPAA, OWASP-ASVS). Scaffold, not a certified audit.",
     )
     .requiredOption(
       "-f, --framework <id>",

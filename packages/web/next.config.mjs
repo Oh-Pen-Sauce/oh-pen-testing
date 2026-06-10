@@ -3,7 +3,7 @@
 // does to load .ts configs, and which fails on machines without pnpm /
 // in environments where unattended package-install is wrong).
 //
-// Type-safety is preserved via the JSDoc type annotation below — the
+// Type-safety is preserved via the JSDoc type annotation below; the
 // IDE and `tsc --noEmit` still validate the shape against NextConfig.
 
 /** @type {import("next").NextConfig} */

@@ -5,7 +5,7 @@ when_to_use: >
   The user has asked to "point Oh Pen Testing at a different project",
   "scan a different repo", "change the scan target", or any equivalent.
   You MUST call this skill (which is informational only, action:null)
-  rather than calling set_repo — because set_repo changes the PR
+  rather than calling set_repo, because set_repo changes the PR
   target, not the scan target. Getting this wrong silently runs the
   next scan against the same directory while the user thinks you
   moved it.
@@ -29,7 +29,7 @@ them constantly; you must not.
 | Concept | What it is | Where it's set | Changeable at runtime? |
 |---|---|---|---|
 | **Scan target** | The directory the scanner walks | `OHPEN_CWD` env var, or `process.cwd()` the server was launched from | **No.** Requires stopping the server and relaunching from a different dir. |
-| **PR target** (`git.repo` in config) | Which GitHub repo agents open PRs against when they land fixes | `config.git.repo` — set via `set_repo` or the Settings form | Yes, via `set_repo`. |
+| **PR target** (`git.repo` in config) | Which GitHub repo agents open PRs against when they land fixes | `config.git.repo`, set via `set_repo` or the Settings form | Yes, via `set_repo`. |
 
 If you call `set_repo` when the user asked to change the scan target,
 you've changed nothing the user cares about. Worse: their PRs will
@@ -41,7 +41,7 @@ exist but not be where they work). Don't do this.
 When the user asks to change the scan target, reply honestly:
 
 > *"The scan target is whatever directory Oh Pen Testing was launched
-> from — it's hard-wired at server start, I can't change it from
+> from. It's hard-wired at server start, I can't change it from
 > here. To scan a different project:*
 >
 > *1. Stop this web server (Ctrl-C in the terminal where you ran
@@ -54,7 +54,7 @@ When the user asks to change the scan target, reply honestly:
 > so you'll do setup once per repo."*
 >
 > *The banner at the top of every page shows the current scan target
-> in monospace — that's the authoritative answer to "what's being
+> in monospace. That's the authoritative answer to "what's being
 > scanned".*
 
 Set `action: { id: "explain_scan_target", input: {} }` so the UI can
@@ -71,7 +71,7 @@ the PRs go to". Disambiguation signals:
   different repo" → they mean PR target. Call `set_repo` in a fresh
   turn with the new slug.
 - Ambiguous ("point it at a different project") → ask:
-  > *"Two things called 'target' — scan target (which code we read)
+  > *"Two things called 'target': scan target (which code we read)
   > or PR target (which repo the fixes get pushed to)? They're
   > independent."*
 

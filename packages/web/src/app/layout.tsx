@@ -7,10 +7,10 @@ import { ScanTargetBanner } from "../components/trattoria/scan-target-banner";
 
 export const metadata: Metadata = {
   title: "Oh Pen Testing",
-  description: "Local pen-testing suite — your code, your AI, your terms.",
+  description: "Local pen-testing suite: your code, your AI, your terms.",
 };
 
-// Self-hosted Google Fonts via next/font — no runtime @import, no layout
+// Self-hosted Google Fonts via next/font: no runtime @import, no layout
 // shift. Each one binds a CSS variable so the tokens in globals.css
 // (--font-body etc.) resolve to the right face on every surface.
 const inter = Inter({
@@ -56,7 +56,7 @@ export default async function RootLayout({
         <div className="flex min-h-screen">
           <Sidebar projectName={projectName} version="web · v1.0.0" />
           <main className="flex-1 overflow-x-hidden flex flex-col">
-            {/* Scan-target banner — reminds the user what directory the
+            {/* Scan-target banner, reminds the user what directory the
                 scanner walks, and warns loudly when that directory is
                 the Oh Pen Testing source repo itself. */}
             <ScanTargetBanner />

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// scripts/dogfood.mjs — runs the regex layer of Oh Pen Testing against itself.
+// scripts/dogfood.mjs: runs the regex layer of Oh Pen Testing against itself.
 //
 // Goal: confirm that none of our OWASP playbooks flag anything real in our
 // own source tree. Fixture files (playbooks/core/**/tests/positive/*) are
@@ -73,7 +73,7 @@ async function main() {
   }
 
   if (hits.length === 0) {
-    console.log("✓ dogfood clean — no findings in our own source.");
+    console.log("✓ dogfood clean. No findings in our own source.");
     process.exit(0);
   }
 

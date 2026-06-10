@@ -29,7 +29,7 @@ export default async function AgentDetailPage({
   return (
     <div>
       <PageHeader
-        kicker={`09 — La Squadra · ${meta.name.toLowerCase()}`}
+        kicker={`09 – La Squadra · ${meta.name.toLowerCase()}`}
         title={
           <>
             <span

@@ -51,18 +51,18 @@ Every regex playbook ships with positive + negative test fixtures enforced in CI
 
 ### 4 remediation agents
 
-- **Marinara** 🍅 — injection, secrets, input-validation
-- **Carbonara** 🥓 — crypto, secrets, TLS
-- **Alfredo** 🧀 — auth, access-control, session
-- **Pesto** 🌿 — dependencies, supply-chain
+- **Marinara** 🍅: injection, secrets, input-validation
+- **Carbonara** 🥓: crypto, secrets, TLS
+- **Alfredo** 🧀: auth, access-control, session
+- **Pesto** 🌿: dependencies, supply-chain
 
 They run in parallel with a work-stealing queue so critical findings get picked up first.
 
 ### 3 autonomy modes
 
-- **Careful** — every fix requires your approval
-- **Recommended** (default) — auto-PR for non-critical; block on auth / secrets-rotation / schema migrations / large diffs
-- **YOLO** — auto-PR for everything except the hard triggers
+- **Careful**: every fix requires your approval
+- **Recommended** (default): auto-PR for non-critical; block on auth / secrets-rotation / schema migrations / large diffs
+- **YOLO**: auto-PR for everything except the hard triggers
 
 ### BYO AI, BYO git
 
@@ -78,13 +78,13 @@ They run in parallel with a work-stealing queue so critical findings get picked 
 
 ## Principles (non-negotiable)
 
-1. **Authorised testing only** — scan refuses without explicit ack
-2. **Local-first** — no telemetry, no phoning home
-3. **BYO AI** — your credentials, your machine
-4. **AI for reasoning, not unchecked power** — deterministic code discovers + applies; AI reasons + explains
-5. **Evidence first, interpretation second** — scanner output separated from AI analysis in the UI
-6. **Human review for remediation** — agents draft PRs; humans merge
-7. **Single-user local tool in v1.0** — multi-user enterprise is a v2.0 decision
+1. **Authorised testing only**: scan refuses without explicit ack
+2. **Local-first**: no telemetry, no phoning home
+3. **BYO AI**: your credentials, your machine
+4. **AI for reasoning, not unchecked power**: deterministic code discovers + applies; AI reasons + explains
+5. **Evidence first, interpretation second**: scanner output separated from AI analysis in the UI
+6. **Human review for remediation**: agents draft PRs; humans merge
+7. **Single-user local tool in v1.0**: multi-user enterprise is a v2.0 decision
 
 See [PRD.md](./PRD.md) for the full spec and [FUTURE_FEATURES.md](./FUTURE_FEATURES.md) for v1.0+ roadmap.
 
@@ -92,7 +92,7 @@ See [PRD.md](./PRD.md) for the full spec and [FUTURE_FEATURES.md](./FUTURE_FEATU
 
 **Prerequisites:** Node.js 22+ (use [nodejs.org](https://nodejs.org) or `brew install node@22`). That's it.
 
-### npm — one-liner
+### npm: one-liner
 
 ```bash
 npm install -g @oh-pen-testing/cli
@@ -104,7 +104,7 @@ That gives you `opt` and `oh-pen-testing` on your PATH. Verify:
 opt --version   # prints your installed version
 ```
 
-### npx — try without installing
+### npx: try without installing
 
 ```bash
 cd /path/to/your/project
@@ -113,14 +113,14 @@ npx @oh-pen-testing/cli@latest setup
 
 Downloads on first run, caches for subsequent invocations. The bundle includes the Next.js web wizard, so the first install pulls a few hundred MB. After that, the tool runs entirely offline.
 
-### Homebrew *(coming soon — tap pending publish)*
+### Homebrew *(coming soon: tap pending publish)*
 
 ```bash
 brew tap oh-pen-sauce/tap
 brew install oh-pen-testing
 ```
 
-### Docker *(coming soon — image pending push to GHCR)*
+### Docker *(coming soon: image pending push to GHCR)*
 
 ```bash
 docker run --rm -v "$PWD":/workspace -w /workspace \
@@ -140,7 +140,7 @@ cd packages/cli && npm link
 
 ## First run
 
-Oh Pen Testing is a local tool. **The scan target is whatever directory you launch it from** — not something it clones remotely. So `cd` into the project you want to scan first:
+Oh Pen Testing is a local tool. **The scan target is whatever directory you launch it from**, not something it clones remotely. So `cd` into the project you want to scan first:
 
 ```bash
 cd ~/path/to/your/project
@@ -153,10 +153,10 @@ Prefer the terminal? `opt connect` does the provider setup without the browser, 
 
 ## Documentation
 
-- [docs/getting-started.md](./docs/getting-started.md) — zero-to-first-scan
-- [docs/playbook-authoring.md](./docs/playbook-authoring.md) — write your own playbook
-- [docs/architecture.md](./docs/architecture.md) — how the monorepo fits together
-- [docs/provider-setup.md](./docs/provider-setup.md) — Claude, OpenAI, Ollama configuration
+- [docs/getting-started.md](./docs/getting-started.md): zero-to-first-scan
+- [docs/playbook-authoring.md](./docs/playbook-authoring.md): write your own playbook
+- [docs/architecture.md](./docs/architecture.md): how the monorepo fits together
+- [docs/provider-setup.md](./docs/provider-setup.md): Claude, OpenAI, Ollama configuration
 
 ## Contributing
 
@@ -168,4 +168,4 @@ See [SECURITY.md](./SECURITY.md).
 
 ## Licence
 
-MIT. Free forever. Donations welcome — [oh-pen-sauce.com](https://oh-pen-sauce.com).
+MIT. Free forever. Donations welcome: [oh-pen-sauce.com](https://oh-pen-sauce.com).

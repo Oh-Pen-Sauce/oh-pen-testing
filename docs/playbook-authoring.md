@@ -36,7 +36,7 @@ rules:
     require_ai_confirm: true             # if false, regex hit → issue directly
 ```
 
-## Regex rules — battle-tested patterns
+## Regex rules: battle-tested patterns
 
 | Goal | Pattern |
 |---|---|
@@ -45,7 +45,7 @@ rules:
 | Match a Python f-string with variable interpolation (any quote style) | `f(["'])[^"']*\{[^}]+\}[^"']*\1` |
 | Match an assignment where the key might be quoted (JSON/dict style) | `["'` + "`" + `]?keyname["'` + "`" + `]?\s*[:=]` |
 
-**Gotcha:** YAML single-quoted strings allow `'` via `''` (doubled) but backslashes are literal — good for regex. YAML parses keys containing `:` as nested maps; **always quote** descriptions containing colons. The fixture-gate picks up broken YAML fast.
+**Gotcha:** YAML single-quoted strings allow `'` via `''` (doubled) but backslashes are literal, which is good for regex. YAML parses keys containing `:` as nested maps; **always quote** descriptions containing colons. The fixture-gate picks up broken YAML fast.
 
 ## scan.prompt.md
 
@@ -62,10 +62,10 @@ Do NOT confirm when:
 - <known false-positive pattern>
 
 Severity:
-- `critical` — <what>
-- `high` — <what>
-- `medium` — <what>
-- `low` — <what>
+- `critical`: <what>
+- `high`: <what>
+- `medium`: <what>
+- `low`: <what>
 ```
 
 The AI response is constrained to `{ confirmed: bool, severity: ..., reasoning: string }` by the scanner's JSON schema. Don't ask for free-form output.
@@ -75,9 +75,9 @@ The AI response is constrained to `{ confirmed: bool, severity: ..., reasoning: 
 Prepended to the remediation prompt. Tell the agent:
 
 1. **The preferred fix pattern** with a concrete code example in the target language.
-2. **What not to touch** — reformatting, adjacent bugs, style changes.
+2. **What not to touch**: reformatting, adjacent bugs, style changes.
 3. **Env var name** (if the fix introduces a new env var).
-4. **When to set `auto_fixable: false`** — if the fix requires scaffolding (e.g. installing a new dependency) the agent can't do safely.
+4. **When to set `auto_fixable: false`**: if the fix requires scaffolding (e.g. installing a new dependency) the agent can't do safely.
 
 ## Fixtures
 
@@ -111,6 +111,6 @@ No `rules:`, no fixtures. The runtime skips auditors whose manifest file (packag
 
 ## Getting it into the core library
 
-1. Draft under your repo's `.ohpentesting/playbooks/local/` first — useful for you immediately.
+1. Draft under your repo's `.ohpentesting/playbooks/local/` first: useful for you immediately.
 2. Open a PR against `oh-pen-testing` moving it to `playbooks/core/<category>/`.
 3. The auto-fixture-gate will confirm it works; maintainers review prompts for tone + accuracy.

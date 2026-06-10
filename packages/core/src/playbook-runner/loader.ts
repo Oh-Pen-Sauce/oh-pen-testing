@@ -59,7 +59,7 @@ export async function loadPlaybooks(roots: string[]): Promise<LoadedPlaybook[]> 
       );
       const manifest = PlaybookManifestSchema.parse(parseYaml(manifestRaw));
       if (seenIds.has(manifest.id)) {
-        // Local overrides core — skip if we already have one
+        // Local overrides core: skip if we already have one
         continue;
       }
       seenIds.add(manifest.id);

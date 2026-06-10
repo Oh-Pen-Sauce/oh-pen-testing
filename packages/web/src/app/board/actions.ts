@@ -9,8 +9,8 @@ import { getIssue, readSourceFileSlice, updateIssue } from "../../lib/repo";
 import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 
 /**
- * Slim snippet bundle the slide-in panel asks for on demand —
- * lighter than re-fetching the whole issue, and lets us keep the
+ * Slim snippet bundle the slide-in panel asks for on demand.
+ * Lighter than re-fetching the whole issue, and lets us keep the
  * code preview hidden until the user opens the panel.
  */
 export interface IssueSnippet {
@@ -40,7 +40,7 @@ export async function fetchIssueSnippetAction(
       highlight: issue.location.line_range,
     };
   } catch {
-    // Source file no longer present — let the UI render its empty
+    // Source file no longer present. Let the UI render its empty
     // state without exploding the panel.
     return null;
   }
@@ -70,7 +70,7 @@ export async function changeIssueStatusAction(
 /**
  * Delete an issue from the board. Removes the JSON file at
  * `.ohpentesting/issues/<id>.json` on disk. No soft-delete, no
- * trash — the file is gone. Revalidates the board so the card
+ * trash, the file is gone. Revalidates the board so the card
  * disappears from the UI.
  *
  * The primary use case is clearing false positives during beta
@@ -90,7 +90,7 @@ export async function deleteIssueAction(id: string): Promise<void> {
   } catch (err) {
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "ENOENT") {
-      // Already gone — treat as success so the UI can just remove
+      // Already gone, treat as success so the UI can just remove
       // the stale card without surfacing an error.
       revalidatePath("/board");
       return;
@@ -123,7 +123,7 @@ export async function deleteAllIssuesAction(): Promise<{ deleted: number }> {
       }
     }
   } catch {
-    /* issuesDir might not exist — deleted stays 0 */
+    /* issuesDir might not exist, deleted stays 0 */
   }
   revalidatePath("/board");
   revalidatePath("/scans");

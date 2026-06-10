@@ -70,7 +70,7 @@ export function registerScanDynamic(program: Command): void {
 
         // eslint-disable-next-line no-console
         console.log(
-          pc.green(`\n✔ Dynamic scan ${scanId} complete — ${findings.length} finding(s)`),
+          pc.green(`\n✔ Dynamic scan ${scanId} complete: ${findings.length} finding(s)`),
         );
         for (const f of findings) {
           const colour = f.severity === "critical" || f.severity === "high"

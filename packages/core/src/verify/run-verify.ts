@@ -46,7 +46,7 @@ export interface VerifyResult {
  * issue's location. Writes `verification` metadata back on the issue and
  * transitions status → `verified` when there are zero hits remaining.
  *
- * Honours scope gates the same way runScan does — we won't re-verify during
+ * Honours scope gates the same way runScan does: we won't re-verify during
  * a blocked time window or outside the allowed_targets list.
  */
 export async function runVerify(
@@ -70,7 +70,7 @@ export async function runVerify(
     .replace(/^playbook:/, "")
     .split("/")
     .reduce<string[]>((acc, part, idx, arr) => {
-      // discovered_by format: "playbook:<playbookId>/<ruleId>" — playbookId
+      // discovered_by format: "playbook:<playbookId>/<ruleId>"; playbookId
       // may itself contain a slash (e.g. secrets/hardcoded-secrets-scanner).
       // Take everything except the last segment.
       if (idx < arr.length - 1) {
@@ -100,7 +100,7 @@ export async function runVerify(
   try {
     content = await fs.readFile(abs, "utf-8");
   } catch {
-    // File deleted or moved as part of the fix — treat as zero hits.
+    // File deleted or moved as part of the fix: treat as zero hits.
     content = "";
   }
   const walkedFile: WalkedFile = {
@@ -141,7 +141,7 @@ export async function runVerify(
         });
         if (verdict.confirmed) hitsRemaining += 1;
       } catch {
-        // On error, be conservative — count as remaining.
+        // On error, be conservative: count as remaining.
         hitsRemaining += 1;
       }
     }

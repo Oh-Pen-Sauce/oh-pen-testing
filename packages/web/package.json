@@ -1,7 +1,7 @@
 {
   "name": "@oh-pen-testing/web",
   "version": "1.0.3",
-  "description": "Local setup wizard and dashboard for Oh Pen Testing. Shipped as a runtime dependency of @oh-pen-testing/cli — not intended to be installed directly.",
+  "description": "Local setup wizard and dashboard for Oh Pen Testing. Shipped as a runtime dependency of @oh-pen-testing/cli: not intended to be installed directly.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",

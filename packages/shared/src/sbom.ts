@@ -3,11 +3,11 @@ import path from "node:path";
 import { createHash } from "node:crypto";
 
 /**
- * SBOM generators — CycloneDX 1.5 (JSON) and SPDX 2.3 (JSON).
+ * SBOM generators: CycloneDX 1.5 (JSON) and SPDX 2.3 (JSON).
  *
  * We don't run a full dependency-resolver here; we read package-lock.json,
  * pip's installed metadata, and Gemfile.lock to enumerate direct + transitive
- * deps. This is the pragmatic 80% — users who want cryptographic
+ * deps. This is the pragmatic 80%: users who want cryptographic
  * verification of the SBOM can pipe it through cosign / sigstore.
  */
 
@@ -189,7 +189,7 @@ export async function buildSpdx(input: BuildSbomInput): Promise<string> {
 }
 
 function makeUuid(): string {
-  // crypto.randomUUID would work but is Node 19+ only — avoid version lock-in
+  // crypto.randomUUID would work but is Node 19+ only, so avoid version lock-in
   const bytes = createHash("sha256")
     .update(String(Date.now()) + Math.random())
     .digest("hex");

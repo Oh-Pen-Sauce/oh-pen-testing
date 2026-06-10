@@ -11,7 +11,7 @@ import {
 /**
  * Load the durable setup-assistant bundle from disk.
  *
- * The bundle lives in `./assets/` — `memory.md` + `skills/*.md`. Each
+ * The bundle lives in `./assets/`: `memory.md` + `skills/*.md`. Each
  * skill file carries YAML frontmatter describing its id, description,
  * and input schema; the markdown body is the instructional content the
  * AI reads.
@@ -75,7 +75,7 @@ function loadSkillFile(filePath: string): Skill {
 }
 
 /**
- * Synchronously load the bundle. Result is memoised — safe to call on
+ * Synchronously load the bundle. Result is memoised, safe to call on
  * every request.
  */
 export function loadSetupAssistantBundle(): SetupAssistantBundle {
@@ -105,7 +105,7 @@ export function loadSetupAssistantBundle(): SetupAssistantBundle {
 }
 
 /**
- * For tests — clear the cache so reload picks up edits.
+ * For tests: clear the cache so reload picks up edits.
  */
 export function __clearSetupAssistantCache(): void {
   cached = null;

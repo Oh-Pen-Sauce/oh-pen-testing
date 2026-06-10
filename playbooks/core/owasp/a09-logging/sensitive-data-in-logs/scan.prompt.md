@@ -7,6 +7,6 @@ Do NOT confirm when:
 - A structured logger has explicit redaction configured and the field is in the redaction list.
 
 Severity:
-- `critical` — password / access token written to any persistent log.
-- `high` — session id / API key.
-- `medium` — credit-card number already truncated but still in log.
+- `critical`: password / access token written to any persistent log.
+- `high`: session id / API key.
+- `medium`: credit-card number already truncated but still in log.

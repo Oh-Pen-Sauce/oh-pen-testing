@@ -8,5 +8,5 @@ Do NOT confirm when:
 - `eval` is over a known-literal expression in a test harness.
 
 Severity:
-- `critical` — pickle.loads / eval / node-serialize.unserialize on request input.
-- `high` — yaml.load without SafeLoader on file input.
+- `critical`: pickle.loads / eval / node-serialize.unserialize on request input.
+- `high`: yaml.load without SafeLoader on file input.

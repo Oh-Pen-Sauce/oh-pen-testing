@@ -7,6 +7,6 @@ Redact or omit.
   `logger.info({ hasPassword: Boolean(password) }, "login attempt")`.
 - For credit-card / PII: mask (`****-****-****-1234`) before logging.
 
-Never log raw passwords or tokens even in "debug" — prod-debug is still prod.
+Never log raw passwords or tokens even in "debug". Prod-debug is still prod.
 
 `env_var_name`: none.

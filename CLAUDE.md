@@ -1,4 +1,4 @@
-# Oh Pen Testing — repo-local primer
+# Oh Pen Testing: repo-local primer
 
 This file auto-loads whenever a Claude session opens in this repo.
 
@@ -10,14 +10,14 @@ lives in commit log + [NOTES.md](./NOTES.md).
 
 ## Layout (pnpm workspace + turborepo)
 
-- `packages/cli/` — the `opt` / `oh-pen-testing` binary users install
-- `packages/web/` — Next.js web UI (served by `opt setup`)
-- `packages/core/` — scanner, agent pool, dynamic runner, provider router
-- `packages/shared/` — config schema, secrets store, SARIF/PDF/SBOM builders, setup-assistant bundle
-- `packages/rate-limit/` — cost/session budget manager
-- `packages/providers/{anthropic,claude-code-cli,ollama}/` — AI backends
-- `packages/git-adapters/{github,gitlab,bitbucket}/` — PR plumbing
-- `playbooks/core/` — bundled rules under `{secrets,owasp,sca,wstg,cwe-top-25,iac,asvs}/`
+- `packages/cli/`: the `opt` / `oh-pen-testing` binary users install
+- `packages/web/`: Next.js web UI (served by `opt setup`)
+- `packages/core/`: scanner, agent pool, dynamic runner, provider router
+- `packages/shared/`: config schema, secrets store, SARIF/PDF/SBOM builders, setup-assistant bundle
+- `packages/rate-limit/`: cost/session budget manager
+- `packages/providers/{anthropic,claude-code-cli,ollama}/`: AI backends
+- `packages/git-adapters/{github,gitlab,bitbucket}/`: PR plumbing
+- `playbooks/core/`: bundled rules under `{secrets,owasp,sca,wstg,cwe-top-25,iac,asvs}/`
   Each playbook: `manifest.yml` + `scan.prompt.md` + `remediate.prompt.md` + `tests/{positive,negative}/*`
 
 ## Golden rules
@@ -59,12 +59,12 @@ Three-tier secrets store in `packages/shared/src/secrets-store.ts`:
 env var → OS keychain → `~/.ohpentesting/secrets.json` (mode 0600,
 user-only, outside any repo). Never read or write secrets any other
 way. Never log their values. The chat UI masks token-shaped user
-input before display — preserve that invariant.
+input before display; preserve that invariant.
 
 ### 4. The setup-assistant bundle is the product
 
-`packages/shared/src/setup-assistant/assets/` — memory.md + 9 skill
-markdown files — is a portable artifact. Any AI that can read
+`packages/shared/src/setup-assistant/assets/`, memory.md + 9 skill
+markdown files, is a portable artifact. Any AI that can read
 markdown + emit JSON can run onboarding. Keep it provider-agnostic:
 no Claude-specific phrasing, no OpenAI-specific calls. Skill
 frontmatter must stay schema-valid (checked by
@@ -80,8 +80,8 @@ suite stays passing as an automatic invariant.
 ## Release
 
 `pnpm turbo run build` + `pnpm test` must stay green. When bumping
-versions, use `pnpm -r` so all published packages move together —
-see [PUBLISHING.md](./PUBLISHING.md) for the full release runbook
+versions, use `pnpm -r` so all published packages move together.
+See [PUBLISHING.md](./PUBLISHING.md) for the full release runbook
 including dependency-order publish.
 
 ### Publish state: LIVE on npm

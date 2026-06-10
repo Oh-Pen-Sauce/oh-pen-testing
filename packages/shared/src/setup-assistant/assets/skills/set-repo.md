@@ -2,7 +2,7 @@
 id: set_repo
 name: Set PR target GitHub repo (owner/name)
 when_to_use: >
-  The user has confirmed which repo PRs should go to — either by
+  The user has confirmed which repo PRs should go to, either by
   accepting the detected origin or by explicitly overriding it with a
   full acknowledgement that they're choosing a different repo than the
   scan folder's origin. This is the PR target, NOT the scan target.
@@ -20,7 +20,7 @@ input_schema:
 
 # set_repo
 
-Writes `git.repo` to `config.yml`. This is the **PR target** — where
+Writes `git.repo` to `config.yml`. This is the **PR target**: where
 agents open pull requests when they land fixes. It is NOT the scan
 target (that's cwd, fixed at server start; see `explain_scan_target`).
 
@@ -40,8 +40,8 @@ Before calling `set_repo`, you should usually have already called
 
 ## Validation rules
 
-- Must match `owner/name` — single slash, alphanumeric + `._-` on either side.
-- Do not accept a full URL (`https://github.com/foo/bar`) directly — ask the user to strip it, or do that stripping yourself before calling.
+- Must match `owner/name`: single slash, alphanumeric + `._-` on either side.
+- Do not accept a full URL (`https://github.com/foo/bar`) directly. Ask the user to strip it, or do that stripping yourself before calling.
 - Case-sensitive is fine; GitHub normalises at their side.
 
 ## Mismatch handling (hard rule)
@@ -50,7 +50,7 @@ If the user pastes `owner/name` that differs from what
 `detect_repo` returned, **do not immediately call `set_repo`**.
 Reply first with a confirmation bubble:
 
-> "Heads up — the folder I'm scanning has git origin
+> "Heads up: the folder I'm scanning has git origin
 > `<detected>`, but you said `<user-pasted>`. If I set the PR
 > target to `<user-pasted>`, PRs will open on a repo I'm not reading
 > code from. That's legitimate for fork → upstream flows, but it's
@@ -63,5 +63,5 @@ Only after the user explicitly re-confirms the override do you call
 
 ## After this action lands
 
-Immediately ask for the GitHub PAT in the next `say` — don't call
+Immediately ask for the GitHub PAT in the next `say`; don't call
 `save_github_token` yet, you need the token from the user first.

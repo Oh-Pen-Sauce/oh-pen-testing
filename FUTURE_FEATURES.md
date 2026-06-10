@@ -1,10 +1,10 @@
-# Oh Pen Testing — Future Features
+# Oh Pen Testing: Future Features
 
 Features intentionally deferred from v0.5 to keep the MVP shippable. Each item here is a v1.0+ candidate, not an abandoned idea.
 
 ---
 
-## v1.0 — the "pen test consultancy replacement" release
+## v1.0: the "pen test consultancy replacement" release
 
 ### Dynamic testing suite
 Run real attack traffic against a deployed instance (dev/staging only, with user confirmation). Captures runtime vulns static analysis misses:
@@ -23,7 +23,7 @@ The crown jewel of v1.0. One command (`oh-pen-testing report --format pdf`) prod
 - Methodology section (which standards were tested, which tools, how)
 - Per-issue detail: description, evidence, impact, remediation, verification
 - "Before/after" diffs for every fixed issue
-- Residual risks section (what we scanned and found nothing — a negative result is still a result)
+- Residual risks section (what we scanned and found nothing; a negative result is still a result)
 - Signature page: tool version, scan timestamps, commit SHA, playbook checksums
 - Professional typography, cover page, TOC
 
@@ -57,10 +57,10 @@ v1.0 ships 3 dedicated CWE Top 25 playbooks (open redirect, path traversal, unre
 
 ---
 
-## v2.0 — specialised domains
+## v2.0: specialised domains
 
 ### Docker Compose quickstart for team self-hosting
-Single-machine shared install for teams who want to run Oh Pen Testing once and have a small group use it — without going full enterprise (no RBAC, no SSO, no hosted plane).
+Single-machine shared install for teams who want to run Oh Pen Testing once and have a small group use it, without going full enterprise (no RBAC, no SSO, no hosted plane).
 
 - `docker-compose.yml` in the repo with two services: the core engine + the web UI on `:7676`.
 - Named volumes for `.ohpentesting/` state + OS-keychain-equivalent Docker secrets for credentials.
@@ -97,7 +97,7 @@ Software Bill of Materials output (CycloneDX, SPDX formats). Signed SBOMs for su
 
 ---
 
-## v2.5+ — ecosystem & maturity
+## v2.5+: ecosystem & maturity
 
 ### IDE integrations
 - VS Code extension: inline findings as diagnostics, one-click remediation, "explain this vuln" hover
@@ -145,12 +145,12 @@ For trivial CVE bumps with passing tests, optionally auto-merge without human re
 
 ## Speculative / long-tail
 
-- **Red-team simulation mode** — orchestrates multi-step attacks, not just isolated findings. E.g. "combine CVE in dep A with XSS in page B to achieve account takeover."
-- **Bug bounty submission helper** — formats findings for HackerOne/Bugcrowd templates (for use against *your own* disclosed programs).
-- **Attestation: "Scanned with Oh Pen Testing v1.2.3"** — embeddable badge + verifiable JSON proof that a specific commit passed a specific playbook version.
-- **Federated learning on findings** — users opt in to anonymously contribute finding patterns to improve core playbooks. Hard privacy story; needs careful design.
-- **Non-English UX** — i18n for setup wizard, reports, PR templates. Contributor-driven.
-- **Voice-readable reports** — "play executive summary to the board" accessibility feature.
+- **Red-team simulation mode**: orchestrates multi-step attacks, not just isolated findings. E.g. "combine CVE in dep A with XSS in page B to achieve account takeover."
+- **Bug bounty submission helper**: formats findings for HackerOne/Bugcrowd templates (for use against *your own* disclosed programs).
+- **Attestation: "Scanned with Oh Pen Testing v1.2.3"**: embeddable badge + verifiable JSON proof that a specific commit passed a specific playbook version.
+- **Federated learning on findings**: users opt in to anonymously contribute finding patterns to improve core playbooks. Hard privacy story; needs careful design.
+- **Non-English UX**: i18n for setup wizard, reports, PR templates. Contributor-driven.
+- **Voice-readable reports**: "play executive summary to the board" accessibility feature.
 
 ---
 
@@ -164,4 +164,4 @@ For trivial CVE bumps with passing tests, optionally auto-merge without human re
 
 ---
 
-_Last updated: 2026-04-20. Keep this file append-only and dated; features leave when they ship into a version, not when they're abandoned — abandoned ideas move to an `ARCHIVE.md`._
+_Last updated: 2026-04-20. Keep this file append-only and dated; features leave when they ship into a version, not when they're abandoned. Abandoned ideas move to an `ARCHIVE.md`._

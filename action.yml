@@ -61,7 +61,7 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         opt init --force --languages=typescript,javascript,python
-        # CI runs are always authorised — the repo owner invoked the action
+        # CI runs are always authorised: the repo owner invoked the action
         node -e "
           const { loadConfig, writeConfig } = require('@oh-pen-testing/shared');
           (async () => {

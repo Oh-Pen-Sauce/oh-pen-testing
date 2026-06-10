@@ -7,7 +7,7 @@ import path from "node:path";
  *
  * Uses a user-supplied token (their GitHub PAT) injected into the
  * clone URL. We do NOT write the token to the cloned repo's git
- * config afterwards — `git pull` inside the clone will need auth
+ * config afterwards: `git pull` inside the clone will need auth
  * again, which we'll add when the refresh feature lands. For now,
  * the clone itself auths via embedded URL and that's it.
  *
@@ -25,9 +25,9 @@ export interface CloneOptions {
   token?: string;
   /** Default true. */
   shallow?: boolean;
-  /** Host — only 'github' supported right now. */
+  /** Host: only 'github' supported right now. */
   host?: "github" | "gitlab" | "bitbucket";
-  /** Timeout in ms — default 5 minutes. */
+  /** Timeout in ms, default 5 minutes. */
   timeoutMs?: number;
 }
 
@@ -51,7 +51,7 @@ export async function cloneGitHubRepo(
     };
   }
 
-  // Bail if the dest already exists AND looks like a git repo — the
+  // Bail if the dest already exists AND looks like a git repo: the
   // user probably added an existing clone via "I already cloned it,
   // just use this path". Don't clobber their work.
   try {
@@ -62,12 +62,12 @@ export async function cloneGitHubRepo(
       detail: `Reusing existing clone at ${destDir} (already a git repo).`,
     };
   } catch {
-    /* doesn't exist or isn't a git repo — proceed with clone */
+    /* doesn't exist or isn't a git repo: proceed with clone */
   }
 
   await fs.mkdir(path.dirname(destDir), { recursive: true });
 
-  // Compose the auth URL. Never log it — it contains the token.
+  // Compose the auth URL. Never log it: it contains the token.
   // Use `x-access-token:` as the username, which GitHub accepts for
   // any token type (classic or fine-grained).
   const baseUrl = token
@@ -95,7 +95,7 @@ export async function cloneGitHubRepo(
     };
   }
 
-  // Rewrite origin URL to remove the token — leaving it means the
+  // Rewrite origin URL to remove the token: leaving it means the
   // token ends up in the clone's .git/config on disk, which is
   // exactly the kind of long-lived plaintext secret we're trying to
   // avoid. Future `git pull` calls from the app will re-inject via
@@ -121,14 +121,14 @@ export async function refreshClone(
   destDir: string,
   token?: string,
 ): Promise<CloneResult> {
-  // Sanity check — is this actually a git repo?
+  // Sanity check: is this actually a git repo?
   try {
     await fs.access(path.join(destDir, ".git"));
   } catch {
     return {
       ok: false,
       destDir,
-      detail: `${destDir} isn't a git repo — re-add the project.`,
+      detail: `${destDir} isn't a git repo. Re-add the project.`,
     };
   }
 
@@ -148,7 +148,7 @@ export async function refreshClone(
   }
 
   // Hard-reset to FETCH_HEAD so any local edits to the clone get
-  // wiped — the clone is disposable by design.
+  // wiped: the clone is disposable by design.
   const reset = await runGit(
     ["-C", destDir, "reset", "--hard", "FETCH_HEAD"],
     15_000,

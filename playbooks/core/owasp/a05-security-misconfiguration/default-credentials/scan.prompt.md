@@ -10,6 +10,6 @@ Do NOT confirm when:
 - It's a seed in a test fixture AND the file path contains `test`.
 
 Severity:
-- `critical` — default creds in a deployment config or DB init script.
-- `high` — default creds in source that runs in any environment.
-- `medium` — default creds in a `.env.example` that's committed; users might copy it verbatim.
+- `critical`: default creds in a deployment config or DB init script.
+- `high`: default creds in source that runs in any environment.
+- `medium`: default creds in a `.env.example` that's committed; users might copy it verbatim.

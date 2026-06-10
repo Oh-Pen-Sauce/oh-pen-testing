@@ -10,12 +10,12 @@ export const dynamic = "force-dynamic";
 export default async function ReviewsPage() {
   const [issues, config] = await Promise.all([listIssues(), safeLoadConfig()]);
   const pending = issues.filter((i) => i.status === "pending_approval");
-  const autonomy = config?.agents.autonomy ?? "—";
+  const autonomy = config?.agents.autonomy ?? "–";
 
   return (
     <div>
       <PageHeader
-        kicker="03 — Tavolo del Capo"
+        kicker="03 – Tavolo del Capo"
         title={<>Reviews</>}
         sub={
           <>

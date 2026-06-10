@@ -25,7 +25,7 @@ interface Column {
   issues: Issue[];
 }
 
-// Italian kitchen subtitles per column — copy lifted from the handoff.
+// Italian kitchen subtitles per column, copy lifted from the handoff.
 const COLUMN_NOTE: Record<string, string> = {
   backlog: "fresh from the oven",
   ready: "plated, waiting",
@@ -57,7 +57,7 @@ export function BoardClient({ columns }: { columns: Column[] }) {
 
   return (
     <>
-      {/* Bulk clear — only shown when there's actually something to clear.
+      {/* Bulk clear, only shown when there's actually something to clear.
           Most useful during beta testing when re-running scans keeps
           creating "ghost" duplicates the cross-scan dedup hasn't caught
           (new playbook, schema change, etc.). */}
@@ -138,8 +138,8 @@ export function BoardClient({ columns }: { columns: Column[] }) {
           issue={selected}
           onClose={() => setSelected(null)}
           onChange={async (status) => {
-            // Status change is a non-destructive metadata update —
-            // keep the panel open so the user can keep reading or
+            // Status change is a non-destructive metadata update.
+            // Keep the panel open so the user can keep reading or
             // run another action. Optimistically update local state.
             await changeIssueStatusAction(selected.id, status);
             setSelected({ ...selected, status });
@@ -147,7 +147,7 @@ export function BoardClient({ columns }: { columns: Column[] }) {
           onDelete={async () => {
             if (
               !confirm(
-                `Delete ${selected.id}? This removes the issue file from .ohpentesting/issues/ — no trash, no undo. Use "Won't fix" status if you just want to hide it.`,
+                `Delete ${selected.id}? This removes the issue file from .ohpentesting/issues/: no trash, no undo. Use "Won't fix" status if you just want to hide it.`,
               )
             )
               return;
@@ -197,7 +197,7 @@ function BoardCard({
         >
           {issue.location.file}
         </code>
-        {/* PR-opened badge — small, scannable visual cue that the
+        {/* PR-opened badge: small, scannable visual cue that the
             agent has already cooked a remediation for this card.
             Hovering reveals the URL. */}
         {issue.linked_pr && (
@@ -230,7 +230,7 @@ function BoardCard({
 }
 
 /**
- * Slide-in panel — self-contained issue detail with inline actions.
+ * Slide-in panel: self-contained issue detail with inline actions.
  *
  * Used to be a thin shell that linked out to /issue/[id] for the
  * actual approve/remediate buttons. Reviewers had to navigate away
@@ -243,8 +243,8 @@ function BoardCard({
  *   - Has the right context-sensitive primary action button right
  *     there: "Approve & open PR" for pending_approval, "Remediate
  *     now" for backlog/ready, "View PR ↗" once the PR is open
- *   - Runs that action inline — spinner, then green "PR opened
- *     #1234 ↗" panel or red error — without closing the slide-in
+ *   - Runs that action inline: spinner, then green "PR opened
+ *     #1234 ↗" panel or red error, without closing the slide-in
  *   - Re-fetches the issue from the server post-action so the slide
  *     reflects the new status without a full page reload
  *
@@ -293,8 +293,8 @@ function IssuePanel({
     return () => window.clearInterval(handle);
   }, [running]);
 
-  // Fetch the code snippet on first open. Cheap — it's just file slice
-  // I/O — but we keep it lazy so the kanban itself stays snappy.
+  // Fetch the code snippet on first open. Cheap; it's just file slice
+  // I/O, but we keep it lazy so the kanban itself stays snappy.
   useEffect(() => {
     let cancelled = false;
     setSnippetLoading(true);
@@ -464,7 +464,7 @@ function IssuePanel({
           </code>
         </div>
 
-        {/* Impact ribbon — "what happens if we don't fix this." */}
+        {/* Impact ribbon: "what happens if we don't fix this." */}
         {issue.vulnerability_impact && (
           <div
             className="rounded-lg p-3 mb-4 text-[13px] leading-snug"
@@ -487,7 +487,7 @@ function IssuePanel({
           </div>
         )}
 
-        {/* Code snippet — the actual matched lines, with the finding
+        {/* Code snippet: the actual matched lines, with the finding
             range highlighted. Lazy-loaded after the panel opens. */}
         {snippet ? (
           <div className="mb-4">
@@ -537,7 +537,7 @@ function IssuePanel({
           </div>
         ) : null}
 
-        {/* AI analysis — short paragraph; the long version is on the
+        {/* AI analysis: short paragraph; the long version is on the
             full-detail page. */}
         <div className="mb-4">
           <div className="kicker mb-1">Analysis</div>
@@ -563,7 +563,7 @@ function IssuePanel({
                   color: "var(--basil-dark)",
                 }}
               >
-                ✓ Fix made — PR open
+                ✓ Fix made, PR open
               </div>
               <a
                 href={issue.linked_pr}
@@ -587,7 +587,7 @@ function IssuePanel({
           </div>
         )}
 
-        {/* Live progress hint — visible only while remediation /
+        {/* Live progress hint: visible only while remediation /
             approval is running. The server action does AI patch +
             Nonna review + git push + PR API call, all serial, all
             blocking, and typically takes 30-90 seconds. Without
@@ -614,28 +614,28 @@ function IssuePanel({
                 style={{ background: "var(--sauce)" }}
                 aria-hidden
               />
-              Working — {Math.floor(runningElapsedMs / 1000)}s elapsed
+              Working: {Math.floor(runningElapsedMs / 1000)}s elapsed
             </div>
             <div className="text-ink">
               {runningElapsedMs < 15_000
                 ? "Marinara is reading the file and asking the AI for a patch."
                 : runningElapsedMs < 45_000
-                  ? "AI patch in flight — Nonna will review it before the PR opens."
+                  ? "AI patch in flight. Nonna will review it before the PR opens."
                   : runningElapsedMs < 90_000
                     ? "Still cooking. Long files or large diffs can stretch to ~90s."
-                    : "Taking longer than usual. If this hits 3 minutes, the AI provider may be rate-limited or stalling — close the panel and check /scans for the structured log."}
+                    : "Taking longer than usual. If this hits 3 minutes, the AI provider may be rate-limited or stalling. Close the panel and check /scans for the structured log."}
             </div>
             <div
               className="text-[11px] mt-1.5"
               style={{ color: "var(--ink-soft)" }}
             >
-              Don&rsquo;t close this panel — closing cancels the request.
+              Don&rsquo;t close this panel. Closing cancels the request.
               Anything the agent has already written is kept.
             </div>
           </div>
         )}
 
-        {/* Inline action result — appears RIGHT after a remediate run.
+        {/* Inline action result: appears RIGHT after a remediate run.
             Stays visible until the user closes the panel or runs
             something else, so they don't miss it. */}
         {result && result.ok && (
@@ -696,7 +696,7 @@ function IssuePanel({
           </div>
         )}
 
-        {/* Primary CTA — context-sensitive based on issue.status. */}
+        {/* Primary CTA: context-sensitive based on issue.status. */}
         {primaryAction && (
           <div className="mb-4">
             <button
@@ -735,7 +735,7 @@ function IssuePanel({
           </div>
         )}
 
-        {/* Secondary actions — status-change pills + delete + full
+        {/* Secondary actions: status-change pills + delete + full
             detail link, tucked behind a disclosure so they don't
             compete with the primary CTA. */}
         <div
@@ -835,7 +835,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
  *
  * Two-stage lookup:
  *   1. If issue.assignee is set (the agent has already picked this up
- *      during a remediation pass), use that — it's the source of
+ *      during a remediation pass), use that: it's the source of
  *      truth straight from the agent pool.
  *   2. Otherwise predict who WILL pick it up using the same rules
  *      pickAgentForPlaybook() in core uses, so the kanban shows the
@@ -843,16 +843,16 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
  *
  * The previous heuristic split discovered_by on "/" and only looked
  * at the FIRST segment ("owasp", "cwe-top-25", "iac", "wstg"), none
- * of which match agent specialty regexes — so every card defaulted
+ * of which match agent specialty regexes, so every card defaulted
  * to Marinara. This is mirror of pickAgentForPlaybook in
  * packages/core/src/agent/agents.ts; if the rules diverge, fix both.
  */
 function agentFromIssue(issue: Issue) {
-  // 1. Real assignment — once an agent has touched the issue.
+  // 1. Real assignment: once an agent has touched the issue.
   if (issue.assignee && issue.assignee in AGENT_BY_ID) {
     return agentById(issue.assignee);
   }
-  // 2. Predicted assignment — based on full playbook id + OWASP cat.
+  // 2. Predicted assignment: based on full playbook id + OWASP cat.
   const playbookId = (issue.remediation?.strategy ?? "").toLowerCase();
   const cat = (issue.owasp_category ?? "").toLowerCase();
   if (

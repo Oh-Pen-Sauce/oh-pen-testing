@@ -22,7 +22,7 @@ export const ScanRunSchema = z.object({
   playbooks_skipped: z.number().int().nonnegative().default(0),
   /**
    * Total playbooks in the bundled catalog at scan time, BEFORE any
-   * filtering. Helps the scan detail page show "10 of 31 — rest
+   * filtering. Helps the scan detail page show "10 of 31, rest
    * didn't apply" so users don't worry about coverage. Optional
    * because pre-existing scan records on disk don't have it; the
    * UI falls back to playbooks_run + playbooks_skipped when absent.

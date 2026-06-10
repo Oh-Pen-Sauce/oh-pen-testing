@@ -9,7 +9,7 @@ import {
 
 /**
  * Issue-detail action bar. Mirrors the slide-in panel's primary CTA
- * logic so the two surfaces stay coherent — clicking from /board's
+ * logic so the two surfaces stay coherent: clicking from /board's
  * slide-in or from /issue/[id] should give the same options for the
  * same issue.
  */
@@ -21,7 +21,7 @@ export function IssueActions({
   autonomy,
 }: {
   issueId: string;
-  /** Current issue status — drives which primary CTA we render. */
+  /** Current issue status: drives which primary CTA we render. */
   status: string;
   canRemediate: { allowed: boolean; reason?: string };
   severity: string;
@@ -71,7 +71,7 @@ export function IssueActions({
       setResult({
         ok: res.verified,
         message: res.verified
-          ? "✓ Verified — 0 hits remaining. Status updated."
+          ? "✓ Verified. 0 hits remaining. Status updated."
           : `⚠ ${res.hitsRemaining} hit(s) still present. Issue stays open.`,
       });
     } catch (err) {

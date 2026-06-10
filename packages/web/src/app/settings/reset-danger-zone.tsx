@@ -6,7 +6,7 @@ import { resetEverythingAction, type ResetOptions } from "./actions";
 /**
  * Beta-testing affordance: wipe Oh Pen Testing's state so the user
  * can re-run the whole setup flow. We'll likely remove this before
- * v1.0 ships publicly — real users shouldn't need this button,
+ * v1.0 ships publicly. Real users shouldn't need this button,
  * CLI flags (`opt init --force`) are the right surface.
  *
  * Four checkboxes so testers can keep some state between runs
@@ -23,13 +23,13 @@ export function ResetDangerZone() {
   >(null);
 
   // Defaults: nuke config + history, preserve secrets + projects.
-  // This is the most common "test the wizard again" loop — the
+  // This is the most common "test the wizard again" loop; the
   // user doesn't need to repaste their PAT every time.
   const [resetConfig, setResetConfig] = useState(true);
   const [wipeHistory, setWipeHistory] = useState(true);
   const [wipeSecrets, setWipeSecrets] = useState(false);
   const [wipeProjects, setWipeProjects] = useState(false);
-  // wipeClones is the heaviest reset — actually deletes the cloned
+  // wipeClones is the heaviest reset: actually deletes the cloned
   // repo directories. Off by default; users opt-in when their
   // clones have picked up dirty git state from prior failed runs.
   // Implies wipeProjects (you can't keep a registry that points at
@@ -72,7 +72,7 @@ export function ResetDangerZone() {
         return;
       }
       // Clear the setup chat's sessionStorage snapshot so the wizard
-      // re-bootstraps fresh — otherwise the user sees stale chat
+      // re-bootstraps fresh; otherwise the user sees stale chat
       // turns from a completed setup that no longer has a config.
       try {
         window.sessionStorage.removeItem("oh-pen-testing:setup-chat-v1");
@@ -134,7 +134,7 @@ export function ResetDangerZone() {
               }}
             >
               Reset Oh Pen Testing state to re-run the setup flow from
-              scratch. Temporary — will be removed before v1.0.
+              scratch. Temporary, will be removed before v1.0.
             </div>
           </div>
         </button>
@@ -152,7 +152,7 @@ export function ResetDangerZone() {
               }}
             >
               <strong>⚠ Irreversible.</strong> Files are deleted outright,
-              no trash. Use for beta-test re-runs only — clicking this on
+              no trash. Use for beta-test re-runs only. Clicking this on
               a real project means you&rsquo;ll redo setup and lose every
               issue the scanner has flagged.
             </div>

@@ -14,21 +14,21 @@ import {
 import { Btn } from "../../../components/trattoria/button";
 
 /**
- * Agent detail page — three panels:
+ * Agent detail page, three panels:
  *
- *   1. Memory — persona + confirmation heuristics. View + edit.
+ *   1. Memory: persona + confirmation heuristics. View + edit.
  *      Edits land in .ohpentesting/agents/<id>/memory.md, falling
  *      back to the bundled asset when no override exists.
  *
- *   2. Assigned playbooks — which scanner rules this agent owns.
+ *   2. Assigned playbooks: which scanner rules this agent owns.
  *      Editable as a newline-separated list; any AI reading the
  *      agent bundle + scanner can route findings accordingly.
  *
- *   3. Custom skills — user-authored markdown files the agent
- *      references at runtime. Create, edit, delete — everything
+ *   3. Custom skills: user-authored markdown files the agent
+ *      references at runtime. Create, edit, delete: everything
  *      project-local under .ohpentesting/agents/<id>/skills/.
  *
- * Every editable section carries a clear "source" chip — bundled
+ * Every editable section carries a clear "source" chip: bundled
  * (read-only default) vs project (overridden). Revert any override
  * to go back to defaults.
  */
@@ -283,7 +283,7 @@ function PlaybooksPanel({
             style={{ fontFamily: "var(--font-mono)" }}
           >
             One id per line. IDs look like{" "}
-            <code>{"<category>/<playbook>"}</code> —{" "}
+            <code>{"<category>/<playbook>"}</code>:{" "}
             <a
               href="/playbooks"
               className="underline"
@@ -452,7 +452,7 @@ function SkillsPanel({
 
       {profile.customSkills.length === 0 && !creating ? (
         <div className="text-[13px] italic text-ink-soft">
-          No custom skills yet — click{" "}
+          No custom skills yet. Click{" "}
           <strong>+ New skill</strong> to author one.
         </div>
       ) : (

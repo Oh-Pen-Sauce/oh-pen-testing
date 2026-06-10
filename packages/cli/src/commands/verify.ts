@@ -59,7 +59,7 @@ export function registerVerify(program: Command): void {
             // eslint-disable-next-line no-console
             console.log(
               pc.green(
-                `✔ ${result.issue.id} verified — 0 hits remaining in ${result.issue.location.file}`,
+                `✔ ${result.issue.id} verified: 0 hits remaining in ${result.issue.location.file}`,
               ),
             );
             // eslint-disable-next-line no-console

@@ -111,7 +111,7 @@ export function Sidebar({
                 boxShadow: active ? "2px 2px 0 var(--ink)" : undefined,
                 textDecoration: "none",
               }}
-              title={`Open ${a.name}'s profile — memory, assigned playbooks, custom skills`}
+              title={`Open ${a.name}'s profile: memory, assigned playbooks, custom skills`}
             >
               <div
                 className="w-[22px] h-[22px] rounded-full flex items-center justify-center text-[12px] shrink-0"

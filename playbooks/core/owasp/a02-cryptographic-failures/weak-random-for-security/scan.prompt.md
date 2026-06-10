@@ -11,7 +11,7 @@ Do NOT confirm when:
 - In a test fixture or seeded with a fixed value.
 
 Severity:
-- `critical` — session/auth token, password reset URL.
-- `high` — OTP, invite code.
-- `medium` — non-public random identifier.
-- `low` — ambiguous.
+- `critical`: session/auth token, password reset URL.
+- `high`: OTP, invite code.
+- `medium`: non-public random identifier.
+- `low`: ambiguous.

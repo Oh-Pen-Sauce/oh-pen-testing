@@ -7,7 +7,7 @@ export * from "./logger.js";
 export * from "./paths.js";
 export * from "./provider/types.js";
 export * from "./sarif.js";
-// NOTE: ./pdf-report intentionally not re-exported here — it dynamic-imports
+// NOTE: ./pdf-report intentionally not re-exported here; it dynamic-imports
 // pdfkit, which Turbopack tries to statically resolve when bundling the web
 // app. Consumers that need PDF generation import from
 // `@oh-pen-testing/shared/pdf-report` instead.

@@ -8,7 +8,7 @@ languages: [javascript, typescript, python]
 authors: [oh-pen-testing-core]
 description: "Detects unsafe deserialisation: eval, pickle.loads on untrusted input, yaml.load without SafeLoader, node-serialize."
 impact: |
-  Unsafe deserialisation is a direct path to remote code execution — Python's pickle format can embed arbitrary bytecode that executes on load, and JavaScript's eval() or node-serialize's unserialize() run whatever they're handed. An attacker who can control the serialised payload can spawn a reverse shell, read environment variables, or pivot to internal services with no further preconditions. This class of vulnerability is particularly severe because the exploit often bypasses input validation entirely: the malicious payload triggers during deserialisation, before any application logic runs.
+  Unsafe deserialisation is a direct path to remote code execution. Python's pickle format can embed arbitrary bytecode that executes on load, and JavaScript's eval() or node-serialize's unserialize() run whatever they're handed. An attacker who can control the serialised payload can spawn a reverse shell, read environment variables, or pivot to internal services with no further preconditions. This class of vulnerability is particularly severe because the exploit often bypasses input validation entirely: the malicious payload triggers during deserialisation, before any application logic runs.
 risky: false
 requires_ai: true
 type: regex
@@ -29,7 +29,7 @@ rules:
     flags: gs
     require_ai_confirm: true
   - id: node-serialize-unserialize
-    description: "node-serialize package unserialize() — known RCE vector."
+    description: "node-serialize package unserialize(), a known RCE vector."
     pattern: 'unserialize\s*\(\s*(?!["''`])'
     flags: g
     require_ai_confirm: true

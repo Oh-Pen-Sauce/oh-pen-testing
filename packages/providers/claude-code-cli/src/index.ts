@@ -24,7 +24,7 @@ export const DEFAULT_WINDOW_HOURS = 5;
 export interface ClaudeCodeCliProviderOptions {
   /** Path to the `claude` binary; defaults to `claude` on PATH. */
   bin?: string;
-  /** Override model — not all CLI versions support this; passed as env OHPEN_MODEL if set. */
+  /** Override model. Not all CLI versions support this; passed as env OHPEN_MODEL if set. */
   model?: string;
   /** Pre-detected flags; when omitted, detected at first call. */
   flags?: ClaudeCliFlags;
@@ -152,7 +152,7 @@ export function createClaudeCodeCliProvider(
               yield { deltaText: obj.result };
             }
           } catch {
-            // Non-JSON line — treat as plain text delta
+            // Non-JSON line, treat as plain text delta
             yield { deltaText: line };
           }
         }

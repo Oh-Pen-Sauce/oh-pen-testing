@@ -7,7 +7,7 @@ import type { ProgressEvent } from "../../lib/active-scan";
  * Live event log shown during a running scan or auto-remediation.
  *
  * Reads ProgressEvent[] off the active-scan singleton (server polls
- * already populate this — no extra fetch). Each event is a
+ * already populate this, no extra fetch). Each event is a
  * pre-formatted human-readable line with a level (info/warn/error)
  * and a category tag for the colour stripe down the left edge.
  *
@@ -17,7 +17,7 @@ import type { ProgressEvent } from "../../lib/active-scan";
  */
 export function ProgressLog({
   events,
-  /** Whether the underlying run is still active — drives auto-scroll behaviour. */
+  /** Whether the underlying run is still active; drives auto-scroll behaviour. */
   live,
   /**
    * Default open state. We default to closed for "completed/failed"
@@ -34,7 +34,7 @@ export function ProgressLog({
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
   // Auto-scroll on new events while live + open. We don't auto-
-  // scroll once the run has stopped — letting the user freeze the
+  // scroll once the run has stopped, letting the user freeze the
   // view at whatever point they were reading.
   useEffect(() => {
     if (!open || !live) return;

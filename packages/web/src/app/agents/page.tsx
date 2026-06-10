@@ -20,12 +20,12 @@ export default async function AgentsIndexPage() {
   return (
     <div>
       <PageHeader
-        kicker="09 — La Squadra"
+        kicker="09 – La Squadra"
         title={<>Agent roster</>}
         sub={
           <>
             Click an agent to inspect their memory, assigned playbooks, and
-            custom skills — and customise any of them for this project.
+            custom skills, and customise any of them for this project.
             Overrides land under{" "}
             <code
               className="px-1 rounded"

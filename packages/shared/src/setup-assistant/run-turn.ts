@@ -27,7 +27,7 @@ import {
  *   4. We validate the reply against AssistantReplySchema, then do an
  *      extra validation pass on `action.input` using a Zod schema
  *      derived from the skill's `input_schema`. If either fails we
- *      return a safe fallback rather than throwing — the UI should
+ *      return a safe fallback rather than throwing. The UI should
  *      keep the conversation alive even when the model misbehaves.
  *
  * No provider-specific logic lives here. Anything that implements
@@ -49,7 +49,7 @@ export interface RunSetupTurnResult {
   actionValid: boolean;
   /** Populated when actionValid is false. */
   actionError?: string;
-  /** Raw model text — stashed for debug. */
+  /** Raw model text, stashed for debug. */
   raw: string;
 }
 
@@ -58,7 +58,7 @@ const SYSTEM_TAIL = `
 
 ## Output contract (strict)
 
-On every turn you MUST reply with a single JSON object — no prose, no
+On every turn you MUST reply with a single JSON object: no prose, no
 markdown code fences, no trailing commentary. The shape is:
 
 {
@@ -76,7 +76,7 @@ markdown code fences, no trailing commentary. The shape is:
 
 function renderSkill(skill: Skill): string {
   return [
-    `### Skill: ${skill.id} — ${skill.name}`,
+    `### Skill: ${skill.id}: ${skill.name}`,
     ``,
     `**When to use:** ${skill.whenToUse}`,
     ``,
@@ -165,7 +165,7 @@ function conversationToMessages(turns: Turn[]): CompletionMessage[] {
 
 /**
  * Best-effort JSON extraction. Prefers the first balanced `{...}` block
- * in the text — handles cases where the model prepends stray prose even
+ * in the text. Handles cases where the model prepends stray prose even
  * though it was told not to.
  */
 function extractJsonObject(text: string): string | null {
@@ -252,7 +252,7 @@ export async function runSetupAssistantTurn(
     system,
     messages,
     // Teacher-mode walkthroughs (multi-step PAT / install guides) can
-    // run long — give the model enough headroom to emit a complete
+    // run long, so give the model enough headroom to emit a complete
     // numbered list + trailing question without getting clipped.
     maxTokens: 1500,
     temperature: 0.4,
@@ -263,7 +263,7 @@ export async function runSetupAssistantTurn(
   if (!jsonText) {
     return {
       reply: {
-        say: "Sorry — I got confused for a second. Mind saying that again?",
+        say: "Sorry, I got confused for a second. Mind saying that again?",
         action: null,
       },
       actionValid: false,
@@ -278,7 +278,7 @@ export async function runSetupAssistantTurn(
   } catch (err) {
     return {
       reply: {
-        say: "Sorry — I got confused for a second. Mind saying that again?",
+        say: "Sorry, I got confused for a second. Mind saying that again?",
         action: null,
       },
       actionValid: false,
@@ -291,7 +291,7 @@ export async function runSetupAssistantTurn(
   if (!replyParse.success) {
     return {
       reply: {
-        say: "Sorry — I got confused for a second. Mind saying that again?",
+        say: "Sorry, I got confused for a second. Mind saying that again?",
         action: null,
       },
       actionValid: false,

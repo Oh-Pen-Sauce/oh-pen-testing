@@ -111,7 +111,7 @@ export default function InstallPage() {
         >
           brew install node@22
         </code>
-        . That&rsquo;s it — no Docker, no Python, no system deps.
+        . That&rsquo;s it. No Docker, no Python, no system deps.
       </Note>
 
       <div className="grid gap-4">
@@ -129,7 +129,7 @@ export default function InstallPage() {
         <Card title="Try without installing (npx)">
           <p className="text-[14px] text-ink-soft mb-3 leading-relaxed">
             Downloads on first run, caches for subsequent runs. Good for a quick
-            trial — switch to the global install once you use it regularly.
+            trial; switch to the global install once you use it regularly.
           </p>
           <Code>{`cd /path/to/your/project\nnpx @oh-pen-testing/cli@latest setup`}</Code>
           <p className="text-[13px] text-ink-soft mt-3">

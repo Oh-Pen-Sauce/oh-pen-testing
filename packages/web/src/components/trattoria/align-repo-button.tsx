@@ -7,7 +7,7 @@ import { alignRepoWithScanTargetAction } from "../../app/setup/assistant-actions
  * One-click "Fix: use <detected> instead" button for the scan-target
  * banner. When the banner detects that `config.git.repo` doesn't
  * match the actual git origin of the scan folder, clicking this
- * rewrites `git.repo` to match — so PRs will land on the same repo
+ * rewrites `git.repo` to match, so PRs will land on the same repo
  * the scanner is reading from.
  *
  * Refuses gracefully (error toast) if no GitHub origin is detectable,

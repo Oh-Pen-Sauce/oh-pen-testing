@@ -60,7 +60,7 @@ export async function probeProviderAction(
         : `Ollama unreachable at ${DEFAULT_OLLAMA_BASE_URL}. Start it with \`ollama serve\`.`,
     };
   }
-  // API-key providers: no probe — just confirm ready
+  // API-key providers: no probe, just confirm ready
   return { ok: true, detail: "Ready. You'll enter the API key in the next step." };
 }
 
@@ -82,7 +82,7 @@ export async function saveApiKeyAction(
   if (!secret || secret.length < 10) {
     throw new Error("API key looks invalid (too short).");
   }
-  // setSecret walks the tiers — keychain first, local file fallback,
+  // setSecret walks the tiers: keychain first, local file fallback,
   // never forces the user to open a terminal and `export`.
   return await setSecret(account, secret);
 }

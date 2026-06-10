@@ -38,7 +38,7 @@ export async function createLogger(
       ...(data ?? {}),
     };
     handle.appendFile(JSON.stringify(record) + "\n").catch(() => {
-      // swallow — logger must not crash the scanner
+      // swallow: logger must not crash the scanner
     });
     if (pretty) {
       const tag = `[${level.toUpperCase()}]`;

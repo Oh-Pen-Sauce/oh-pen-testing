@@ -4,7 +4,7 @@ name: Troubleshoot Claude Code CLI
 when_to_use: >
   `probe_provider` for claude-code-cli returned ok:false, or the user is
   trying to install/fix Claude CLI rather than switch providers. This
-  skill has no action — it's purely reference content you draw from
+  skill has no action; it's purely reference content you draw from
   when composing `say`.
 input_schema:
   type: object
@@ -16,7 +16,7 @@ input_schema:
 
 The detection runs `claude --version`. If that fails, walk the user
 through install / PATH / session issues in the order below. Stop after
-the first fix that sticks — don't read the whole chapter aloud.
+the first fix that sticks; don't read the whole chapter aloud.
 
 ---
 
@@ -29,7 +29,7 @@ brew install anthropic/claude/claude
 ```
 
 If the user doesn't have Homebrew, direct them to
-**[brew.sh](https://brew.sh)** first (one-line shell install) — or use
+**[brew.sh](https://brew.sh)** first (one-line shell install), or use
 the direct download route below.
 
 ### Direct download (macOS + Linux + Windows)
@@ -44,7 +44,7 @@ the direct download route below.
 curl -fsSL https://claude.ai/install.sh | sh
 ```
 
-### After install — sign in once
+### After install: sign in once
 
 The first time they run `claude` interactively it'll open a browser for
 OAuth. Walk them through:
@@ -62,7 +62,7 @@ quit the `claude` session. Their auth token is now cached.
 
 Symptom: `probe_provider` returns *"Not found on PATH"* / *"spawn claude ENOENT"*.
 
-### Check 1 — is it actually installed?
+### Check 1: is it actually installed?
 
 Ask the user to run **in the same terminal they launched Oh Pen Testing from**:
 
@@ -73,13 +73,13 @@ which claude
 - Prints a path (`/opt/homebrew/bin/claude`, `~/.claude/local/claude`, etc.) → **Go to Check 2.**
 - Prints nothing → they don't have it. Go to Install above.
 
-### Check 2 — is Oh Pen Testing's process using the same PATH?
+### Check 2: is Oh Pen Testing's process using the same PATH?
 
 The `next dev` server spawned by an IDE (VS Code, JetBrains) often
 inherits a stripped-down PATH that doesn't include Homebrew. The fix
 is usually one of:
 
-**Fix A — Run the setup from a terminal, not the IDE.** Close the web
+**Fix A: Run the setup from a terminal, not the IDE.** Close the web
 server, open a new terminal in the repo, and run:
 
 ```bash
@@ -89,7 +89,7 @@ opt connect --provider claude-code-cli
 The CLI sees the real PATH. It writes the config, and when you reload
 the web UI, Marinara picks it up.
 
-**Fix B — Add claude to the web server's PATH.** If the IDE route is
+**Fix B: Add claude to the web server's PATH.** If the IDE route is
 non-negotiable, export the PATH in the shell env the IDE uses:
 
 ```bash
@@ -101,10 +101,10 @@ Then restart the IDE so the new PATH propagates.
 Note: Oh Pen Testing's detector *does* probe common install locations
 (Homebrew, `~/.local/bin`, `~/.claude/local`, `~/.npm-global`, `~/.bun`)
 when PATH comes up empty. If detection *still* fails after all that,
-the binary is somewhere unusual — ask the user what `which claude`
+the binary is somewhere unusual: ask the user what `which claude`
 prints so I can share it with the next step.
 
-### Check 3 — session expired
+### Check 3: session expired
 
 Symptom: `claude --version` works, but the provider throws during a
 real completion call.
@@ -113,10 +113,10 @@ real completion call.
 claude
 ```
 
-Sign back in when it prompts. Their cached token has aged out — Claude
+Sign back in when it prompts. Their cached token has aged out. Claude
 Max sessions roll over every few weeks.
 
-### Check 4 — rate limited
+### Check 4: rate limited
 
 Claude Max has a rolling 5-hour window (~45 messages for Sonnet). If
 the user is right at the cap, the CLI will reply but Oh Pen Testing

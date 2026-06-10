@@ -31,7 +31,7 @@ describe("renderMiniMarkdown", () => {
     expect(out).toContain(">github</a>");
   });
 
-  it("drops javascript: hrefs — never emits a clickable anchor", () => {
+  it("drops javascript: hrefs, never emits a clickable anchor", () => {
     const out = html("[xss](javascript:alert(1))");
     // Security property: no anchor tag means no click vector. The raw
     // url may leak into the text fallback but it cannot execute.

@@ -33,7 +33,7 @@ export function registerInit(program: Command): void {
       }
       for (const file of result.skipped) {
         // eslint-disable-next-line no-console
-        console.log(`  ${pc.gray("skipped")} ${file} (already exists — use --force to overwrite)`);
+        console.log(`  ${pc.gray("skipped")} ${file} (already exists, use --force to overwrite)`);
       }
 
       const config = await loadConfig(cwd);
@@ -51,7 +51,7 @@ export function registerInit(program: Command): void {
       if (provider === "claude-code-cli") {
         // eslint-disable-next-line no-console
         console.log(
-          `  1. ${pc.dim("(no API key needed — uses your local `claude` CLI session)")}`,
+          `  1. ${pc.dim("(no API key needed: uses your local `claude` CLI session)")}`,
         );
         // eslint-disable-next-line no-console
         console.log(`  2. Run ${pc.cyan("opt scan")}`);

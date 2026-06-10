@@ -45,7 +45,7 @@ async function loadFixtureFiles(
   return out;
 }
 
-describe("playbook fixture gate — every playbook must satisfy its fixtures", async () => {
+describe("playbook fixture gate: every playbook must satisfy its fixtures", async () => {
   const playbooks = await loadPlaybooks([PLAYBOOKS_ROOT]);
   const regexPlaybooks = playbooks.filter(
     (p) => p.manifest.type === "regex",
@@ -70,7 +70,7 @@ describe("playbook fixture gate — every playbook must satisfy its fixtures", a
           // Playbooks without fixtures are skipped (and flagged).
           // eslint-disable-next-line no-console
           console.warn(
-            `[fixture-gate] ${playbook.manifest.id}: no positive fixtures — add some under ${positiveDir}`,
+            `[fixture-gate] ${playbook.manifest.id}: no positive fixtures. Add some under ${positiveDir}`,
           );
           return;
         }

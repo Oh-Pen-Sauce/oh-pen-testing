@@ -1,4 +1,4 @@
-# Oh Pen Testing — all-in-one container
+# Oh Pen Testing: all-in-one container
 #
 # Ships the CLI and the web UI. Mount your project at /workspace and the
 # container will read/write .ohpentesting/ there. Defaults to serving the
@@ -15,7 +15,7 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 
-# Dependency install — copy manifests first for layer caching
+# Dependency install: copy manifests first for layer caching
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
 COPY packages/ ./packages/
 COPY playbooks/ ./playbooks/

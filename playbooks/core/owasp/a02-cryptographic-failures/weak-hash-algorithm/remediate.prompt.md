@@ -7,7 +7,7 @@ Replace with a modern algorithm appropriate to the use:
 - Token generation → switch to `crypto.randomBytes` or `secrets.token_urlsafe`; hashing isn't the right primitive.
 - File integrity against adversaries → `sha256` minimum.
 
-Do not just upgrade the hash name without reading the code — if the purpose was password hashing, the fix is an entirely different API.
+Do not just upgrade the hash name without reading the code. If the purpose was password hashing, the fix is an entirely different API.
 
 `env_var_name`: none.
 `env_example_addition`: none.

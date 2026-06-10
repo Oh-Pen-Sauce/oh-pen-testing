@@ -17,7 +17,7 @@ import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 /**
  * Server-side bridge between the /agents UI and the agents loader
  * in @oh-pen-testing/shared. Every write is scoped to the current
- * scan target (active managed project, else cwd) — overrides live
+ * scan target (active managed project, else cwd). Overrides live
  * under `.ohpentesting/agents/<id>/` inside that project.
  */
 

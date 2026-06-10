@@ -7,7 +7,7 @@ import path from "node:path";
  * Three-tier secrets store for Oh Pen Testing.
  *
  * Priority order when **reading**:
- *   1. Environment variable (highest — deliberate CI / Docker flow).
+ *   1. Environment variable (highest, a deliberate CI / Docker flow).
  *   2. OS keychain via `keytar` (native module).
  *   3. Local fallback file: ~/.ohpentesting/secrets.json (mode 0600,
  *      never inside a repo → never accidentally committed).
@@ -21,7 +21,7 @@ import path from "node:path";
  * directory, chmod'd 0600. This is not as strong as the OS
  * keychain (which encrypts at rest and requires Touch ID / sudo on
  * macOS), but it's the same threat model as config.yml and the
- * user's own ~/.ssh/ — only the logged-in user can read it. We
+ * user's own ~/.ssh/: only the logged-in user can read it. We
  * never write it into the project's .ohpentesting/ directory,
  * which would risk a git-commit leak.
  */
@@ -131,7 +131,7 @@ async function writeFallbackFile(
   try {
     await fs.chmod(filePath, 0o600);
   } catch {
-    // chmod can fail on Windows — the rename preserves mode from
+    // chmod can fail on Windows; the rename preserves mode from
     // writeFile so this is belt-and-braces only.
   }
 }
@@ -243,7 +243,7 @@ export async function deleteSecret(account: string): Promise<void> {
 }
 
 /**
- * Diagnostic — check where a secret currently lives without returning
+ * Diagnostic: check where a secret currently lives without returning
  * its value. Used by the CLI `opt connect` flow to tell the user
  * "saved to keychain" vs "saved to ~/.ohpentesting/secrets.json".
  */
@@ -271,7 +271,7 @@ export async function fallbackFileStatus(): Promise<{
     const mode = st.mode & 0o777;
     let warning: string | undefined;
     if ((mode & 0o077) !== 0) {
-      warning = `File is mode 0${mode.toString(8)} — should be 0600.`;
+      warning = `File is mode 0${mode.toString(8)}, should be 0600.`;
     }
     // Explicit access check: the process must still be able to read it.
     await fs.access(p, fsConstants.R_OK);

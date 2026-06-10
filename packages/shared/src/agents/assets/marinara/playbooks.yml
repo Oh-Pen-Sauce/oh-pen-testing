@@ -1,4 +1,4 @@
-# Playbooks Marinara owns — injection, input-validation, secrets-in-code.
+# Playbooks Marinara owns: injection, input-validation, secrets-in-code.
 # The scanner routes findings from these playbooks to Marinara by default.
 # User overrides in .ohpentesting/agents/marinara/playbooks.yml can extend or
 # replace this list.

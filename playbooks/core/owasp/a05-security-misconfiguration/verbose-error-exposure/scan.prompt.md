@@ -7,6 +7,6 @@ Do NOT confirm when:
 - The exposure is gated by `if DEBUG / process.env.NODE_ENV === "development"`.
 
 Severity:
-- `high` — stack traces returned to authenticated-or-public users.
-- `medium` — error messages revealing internal file paths, package versions.
-- `low` — generic error message, just missing ID.
+- `high`: stack traces returned to authenticated-or-public users.
+- `medium`: error messages revealing internal file paths, package versions.
+- `low`: generic error message, just missing ID.

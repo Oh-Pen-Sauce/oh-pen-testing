@@ -95,7 +95,7 @@ export const RateLimitProfileSchema = z.object({
 export type RateLimitProfile = z.infer<typeof RateLimitProfileSchema>;
 
 export const ScopeSchema = z.object({
-  /** Hard gate — no scan runs while false. Set by wizard ack or CLI prompt. */
+  /** Hard gate: no scan runs while false. Set by wizard ack or CLI prompt. */
   authorisation_acknowledged: z.boolean().default(false),
   authorisation_acknowledged_at: z.string().nullable().default(null),
   authorisation_acknowledged_by: z.string().nullable().default(null),
@@ -150,14 +150,14 @@ export const ConfigSchema = z.object({
       "large_diff",
     ]),
     /**
-     * "Head chef" review pass — Nonna inspects every patch BEFORE the
+     * "Head chef" review pass: Nonna inspects every patch BEFORE the
      * agent commits and pushes. If she finds the fix off, she sends
      * it back to the worker for one more attempt; the second attempt
      * always ships (so we can't loop forever).
      *
      * On by default because catching a bad patch before it lands as a
      * PR is much cheaper than reviewing 21 PRs and rejecting half. Off
-     * saves ~1 extra AI call per remediation — relevant only on tight
+     * saves ~1 extra AI call per remediation, relevant only on tight
      * token budgets.
      */
     review: z
@@ -214,7 +214,7 @@ export const ConfigSchema = z.object({
     .default({ formats: ["markdown", "json"] }),
   telemetry: TelemetrySchema.default({ enabled: false }),
   /**
-   * Learning mode — when enabled, issue lifecycle events are appended
+   * Learning mode: when enabled, issue lifecycle events are appended
    * to `.ohpentesting/learning/<date>.ndjson`. Strictly local unless
    * telemetry.enabled is also true, and even then only aggregate counts
    * ship.
@@ -226,7 +226,7 @@ export const ConfigSchema = z.object({
     .default({ enabled: false }),
   /**
    * List of playbook registry index URLs. Registries are *opt-in* and
-   * **never** polled implicitly — the user must run `opt playbooks install`.
+   * **never** polled implicitly: the user must run `opt playbooks install`.
    * Files are SHA-256 verified before they hit disk.
    */
   playbook_registries: z.array(z.string().url()).default([]),

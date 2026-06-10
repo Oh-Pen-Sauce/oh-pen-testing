@@ -26,7 +26,7 @@ export interface AgentPoolOptions {
   adapter: RemediationAdapter;
   playbookRoots: string[];
   logger?: Logger;
-  /** Optional filter — only process issues passing this predicate. */
+  /** Optional filter: only process issues passing this predicate. */
   filter?: (issue: Issue) => boolean;
   /** Override parallelism from config. */
   parallelism?: number;
@@ -37,9 +37,9 @@ export interface AgentPoolOptions {
    * before assigning each issue to an agent; when true, it stops
    * accepting new work, lets in-flight remediations finish, and
    * resolves with whatever it has completed so far. The unhandled
-   * issues are NOT marked failed — they're just left at backlog/
+   * issues are NOT marked failed; they're just left at backlog/
    * ready for a future run. Mid-issue cancellation isn't supported
-   * (each runAgent call is treated as atomic) — the wait is at
+   * (each runAgent call is treated as atomic); the wait is at
    * worst the duration of one AI patch + git push, which is
    * acceptable from a "stop cooking" UX angle.
    */
@@ -88,7 +88,7 @@ export interface AgentPoolResult {
  * more than 4 simultaneously rarely helps because AI calls serialise at the
  * provider's rate-limit anyway.
  *
- * Autonomy-mode gating happens inside runAgent — gated issues surface as
+ * Autonomy-mode gating happens inside runAgent: gated issues surface as
  * AgentApprovalRequired; the pool catches them and moves on.
  */
 export async function runAgentPool(
@@ -111,7 +111,7 @@ export async function runAgentPool(
     autonomy: options.config.agents.autonomy,
   });
 
-  // Initial bucket assignment — deterministic per-issue so reruns are stable.
+  // Initial bucket assignment: deterministic per-issue so reruns are stable.
   const buckets: Map<string, Issue[]> = new Map(AGENT_IDS.map((id) => [id, []]));
   for (const issue of eligible) {
     const preferred = pickAgentForPlaybook(
@@ -121,7 +121,7 @@ export async function runAgentPool(
     buckets.get(preferred.id)!.push(issue);
   }
 
-  // Shared queue of "anything still pending" — used for work-stealing after an
+  // Shared queue of "anything still pending", used for work-stealing after an
   // agent finishes its bucket. Seeded with all eligible issues in priority
   // order (critical first) so stealers pick up the most important work.
   const stealPile: Issue[] = [...eligible].sort(severitySort);
@@ -145,7 +145,7 @@ export async function runAgentPool(
     });
     // Per-agent repoPath if the caller set up worktrees;
     // otherwise everyone shares cwd. State files (issues, scans,
-    // logs, counter) always live under cwd — the per-agent
+    // logs, counter) always live under cwd. The per-agent
     // repoPath is only the working tree the agent reads/writes
     // source files in.
     const repoPath =
@@ -204,7 +204,7 @@ export async function runAgentPool(
     ownBucket: Issue[],
   ): Promise<void> {
     // Drain own bucket first, then steal. Each iteration checks the
-    // cancellation signal — once it fires, we stop accepting new
+    // cancellation signal. Once it fires, we stop accepting new
     // work but let any in-flight runAgent finish (it's atomic at
     // the issue level by design).
     for (const issue of ownBucket) {

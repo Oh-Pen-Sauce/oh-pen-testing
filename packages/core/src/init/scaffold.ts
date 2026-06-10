@@ -107,7 +107,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
 
   // Add `.ohpentesting/` to the user's ROOT .gitignore so our state
   // dir (issues, scans, logs, config) is never accidentally
-  // committed by a buggy `git add .` somewhere — and so `git
+  // committed by a buggy `git add .` somewhere, and so `git
   // checkout -f main` (which removes tracked files not present in
   // main) can't sweep our state away as a side effect of switching
   // branches. Without this, an old build that staged `.ohpentesting/`
@@ -120,7 +120,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
   try {
     const existing = await readFileIfExists(rootGitignore);
     if (!existing) {
-      // No .gitignore at all — create one with just our marker.
+      // No .gitignore at all: create one with just our marker.
       await fs.writeFile(
         rootGitignore,
         ROOT_GITIGNORE_MARKER + "\n",
@@ -128,7 +128,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
       );
       created.push(".gitignore (created with .ohpentesting/ entry)");
     } else if (!existing.includes(".ohpentesting")) {
-      // Has one already — append our entry.
+      // Has one already: append our entry.
       const sep = existing.endsWith("\n") ? "" : "\n";
       await fs.writeFile(
         rootGitignore,
@@ -138,12 +138,12 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
       created.push(".gitignore (appended .ohpentesting/ entry)");
     }
   } catch {
-    // Best effort — failing to update .gitignore isn't fatal, the
+    // Best effort. Failing to update .gitignore isn't fatal, the
     // pre-flight snapshot/restore is the second line of defence.
   }
 
   // Install pre-commit hook if this is a git repo, but skip when a hook
-  // manager (husky, lefthook) is present — those tools own .git/hooks/
+  // manager (husky, lefthook) is present: those tools own .git/hooks/
   // via their own config files, and injecting directly would break them.
   const gitHooksDir = path.join(options.cwd, ".git", "hooks");
   if (await dirExists(gitHooksDir)) {
@@ -156,7 +156,7 @@ export async function scaffold(options: ScaffoldOptions): Promise<ScaffoldResult
       const manager = hasHusky ? "husky" : "lefthook";
       const configFile = hasHusky ? ".husky/" : (await fileExists(path.join(options.cwd, "lefthook.yml"))) ? "lefthook.yml" : ".lefthookrc";
       skipped.push(
-        `.git/hooks/pre-commit (${manager} detected — add \`oh-pen-testing check\` to ${configFile} manually)`,
+        `.git/hooks/pre-commit (${manager} detected: add \`oh-pen-testing check\` to ${configFile} manually)`,
       );
     } else {
       const hookPath = path.join(gitHooksDir, "pre-commit");
@@ -299,7 +299,7 @@ async function inferGitRepo(cwd: string): Promise<string | undefined> {
       url.match(/([\w.-]+)\/([\w.-]+?)(?:\.git)?$/);
     if (match) return `${match[1]}/${match[2]}`;
   } catch {
-    // ok — not a git repo or no remote
+    // ok: not a git repo or no remote
   }
   return undefined;
 }

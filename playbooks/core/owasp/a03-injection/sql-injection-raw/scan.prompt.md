@@ -7,7 +7,7 @@ Do NOT confirm when:
 - Interpolation is explicitly of a table/column identifier that can't be parameterised, AND the identifier is allowlist-validated upstream.
 
 Severity:
-- `critical` — directly uses request param/body/query.
-- `high` — uses a value transitively derived from request input.
-- `medium` — plausibly user-controlled but the trace is ambiguous.
-- `low` — likely a false positive (flag for review).
+- `critical`: directly uses request param/body/query.
+- `high`: uses a value transitively derived from request input.
+- `medium`: plausibly user-controlled but the trace is ambiguous.
+- `low`: likely a false positive (flag for review).

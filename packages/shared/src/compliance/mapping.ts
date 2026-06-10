@@ -31,7 +31,7 @@ function issueMatchesControl(
   control: ComplianceFramework["controls"][number],
 ): boolean {
   if (control.playbookIds) {
-    // discovered_by looks like "playbook:<id-with-slashes>/<rule>" — the
+    // discovered_by looks like "playbook:<id-with-slashes>/<rule>". The
     // playbook id itself contains slashes (e.g. owasp-top-10/a01-...), so
     // strip exactly one trailing segment for the rule id.
     let pb: string | undefined;
@@ -119,7 +119,7 @@ export function buildComplianceReport(
 /** Render the compliance report as a markdown document. */
 export function renderComplianceMarkdown(report: ComplianceReport): string {
   const lines: string[] = [];
-  lines.push(`# Compliance report — ${report.framework.name}`);
+  lines.push(`# Compliance report: ${report.framework.name}`);
   lines.push("");
   lines.push(`Framework: **${report.framework.name}**`);
   lines.push(`Version: ${report.framework.version}`);

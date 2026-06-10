@@ -11,7 +11,7 @@ export function registerTelemetry(program: Command): void {
   const cmd = program
     .command("telemetry")
     .description(
-      "Control anonymous telemetry. Off by default — explicit opt-in only.",
+      "Control anonymous telemetry. Off by default: explicit opt-in only.",
     );
 
   cmd
@@ -42,7 +42,7 @@ export function registerTelemetry(program: Command): void {
 
   cmd
     .command("disable")
-    .description("Opt out — stops sending any telemetry")
+    .description("Opt out: stops sending any telemetry")
     .action(async (_opts, parent) => {
       const cwd: string = parent.parent?.opts().cwd ?? process.cwd();
       const config = await loadConfig(cwd);

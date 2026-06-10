@@ -8,10 +8,10 @@
  * before they kick off a real scan.
  *
  * Tested:
- *   1. Token validity         — GET /user with the token
- *   2. Repo accessible        — GET /repos/{owner}/{repo}
- *   3. Push permission        — git push --dry-run via token URL
- *   4. PR-create permission   — repo permissions includes "push"
+ *   1. Token validity:         GET /user with the token
+ *   2. Repo accessible:        GET /repos/{owner}/{repo}
+ *   3. Push permission:        git push --dry-run via token URL
+ *   4. PR-create permission:   repo permissions includes "push"
  *
  * Step 3 uses --dry-run so nothing actually lands on the remote.
  * That's load-bearing: dry-run still does the auth handshake, so
@@ -43,7 +43,7 @@ export interface PreflightInput {
   token: string;
   /** The owner/name slug from config.git.repo. */
   repo: string;
-  /** The local clone path — needed for git push --dry-run. */
+  /** The local clone path, needed for git push --dry-run. */
   repoPath: string;
 }
 
@@ -84,7 +84,7 @@ export async function pingGitHub(
 
   const octokit = new Octokit({ auth: input.token });
 
-  // Step 1 — token validity. GET /user is the cheapest call that
+  // Step 1: token validity. GET /user is the cheapest call that
   // proves the token is well-formed AND not revoked.
   try {
     const me = await octokit.users.getAuthenticated();
@@ -104,7 +104,7 @@ export async function pingGitHub(
     return { ok: false, authenticatedAs, steps };
   }
 
-  // Step 2 — repo accessible to this token. 404 here usually means
+  // Step 2: repo accessible to this token. 404 here usually means
   // either the repo really doesn't exist OR the token can't see
   // private repos (GitHub returns 404 not 403 for security).
   try {
@@ -117,7 +117,7 @@ export async function pingGitHub(
     steps.push({
       name: "Repo access",
       status: "ok",
-      detail: `Repo ${owner}/${repoName} accessible. Push permission: ${canPush ? "yes" : "NO — read-only"}.`,
+      detail: `Repo ${owner}/${repoName} accessible. Push permission: ${canPush ? "yes" : "NO, read-only"}.`,
     });
     if (!canPush) {
       steps.push({
@@ -140,7 +140,7 @@ export async function pingGitHub(
     return { ok: false, authenticatedAs, steps };
   }
 
-  // Step 3 — git push --dry-run with the same token-embedded URL
+  // Step 3: git push --dry-run with the same token-embedded URL
   // remediation will use. Proves the local clone can actually push
   // BEFORE we try to land 21 patches and watch them all fail.
   // --dry-run still does auth handshake server-side; the remote
@@ -148,8 +148,8 @@ export async function pingGitHub(
   const pushUrl = `https://x-access-token:${input.token}@github.com/${owner}/${repoName}.git`;
   try {
     const git = simpleGit(input.repoPath);
-    // Push HEAD to a dryrun ref. The ref name doesn't matter — it's
-    // dry-run — but we use a unique-looking one so any (very
+    // Push HEAD to a dryrun ref. The ref name doesn't matter (it's
+    // dry-run), but we use a unique-looking one so any (very
     // unlikely) accidental real push wouldn't clobber a real branch.
     await git.push(pushUrl, "HEAD:refs/heads/__ohpen_preflight__", [
       "--dry-run",

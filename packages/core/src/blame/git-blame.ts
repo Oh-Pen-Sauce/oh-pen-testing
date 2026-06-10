@@ -26,12 +26,12 @@ export interface BlameRangeSummary {
 }
 
 /**
- * Produce a blame summary for a file range — primarily used to answer
+ * Produce a blame summary for a file range, primarily used to answer
  * "how long has this bug been here?"
  *
  * Shells out to `git blame --porcelain -L <start>,<end>` and parses the
  * output. If the file is untracked or the range is invalid, returns a
- * summary with `oldestCommit: null` and empty lines array — the caller
+ * summary with `oldestCommit: null` and empty lines array; the caller
  * should not assume blame data is always available.
  */
 export async function runGitBlame(
@@ -151,7 +151,7 @@ function parsePorcelain(
     } else if (line.startsWith("summary ")) {
       pendingHeader.summary = line.slice("summary ".length);
     } else if (line.startsWith("\t")) {
-      // Source line — emit a BlameLineInfo
+      // Source line: emit a BlameLineInfo
       if (currentCommit && currentFinalLine !== null) {
         const cached = commitCache.get(currentCommit);
         const merged: Omit<BlameLineInfo, "line"> = {

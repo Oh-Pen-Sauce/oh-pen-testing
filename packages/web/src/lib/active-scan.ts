@@ -3,25 +3,25 @@
  *
  * Scans are kicked off as fire-and-forget background promises that
  * outlive the request that started them. Without this, a user who
- * starts a scan and then navigates away loses all progress — the
+ * starts a scan and then navigates away loses all progress; the
  * server-action promise resolves to nothing because the client moved
  * on.
  *
  * The state lives in module scope so it survives across requests
  * within the same Node process. In dev (Next's hot reload) it CAN
- * get reset on file change; that's fine — the user reloads anyway.
+ * get reset on file change; that's fine. The user reloads anyway.
  * In prod it persists for the lifetime of the server.
  *
  * We track only ONE active scan at a time. If the user kicks off a
  * full scan while a starter is still running, we just refuse and
  * return the existing one. Two parallel scans would chew on the same
- * filesystem and fight over the issues directory — not a useful
+ * filesystem and fight over the issues directory. Not a useful
  * thing to support.
  *
  * ## Auto-remediate-after-scan (YOLO/full-YOLO only)
  *
  * When the user's autonomy is "yolo" or "full-yolo", the scan
- * promise CONTINUES past the scan itself into a remediation pass —
+ * promise CONTINUES past the scan itself into a remediation pass:
  * walking every backlog/ready issue (including ones from prior scans)
  * and opening PRs through the agent pool. Status flow:
  *
@@ -29,8 +29,8 @@
  *
  * The `autoRemediation` field on the entry is populated with the
  * pool's result (PR URLs, gated, failed) once the remediation step
- * finishes. In careful/recommended modes this whole step is skipped
- * — the scan just finishes at "completed" and the user has to either
+ * finishes. In careful/recommended modes this whole step is skipped;
+ * the scan just finishes at "completed" and the user has to either
  * triage manually or click the "auto-remediate all" button.
  *
  * The reason this lives inside the scan promise (rather than as a
@@ -65,8 +65,8 @@ import { ensureProvidersRegistered } from "./providers-bootstrap";
 export type ActiveScanKind = "starter" | "full";
 
 /**
- * Mirror of StarterScanSummary defined in ../app/scans/actions.ts —
- * duplicated here to keep this lib free of UI-package imports. The
+ * Mirror of StarterScanSummary defined in ../app/scans/actions.ts.
+ * Duplicated here to keep this lib free of UI-package imports. The
  * shape stays identical so the wire format is uniform.
  */
 export interface ActiveScanSummary {
@@ -79,7 +79,7 @@ export interface ActiveScanSummary {
   /**
    * Total playbooks in the bundled catalog. Surfaced as "10 of 31"
    * so users understand WHY only some ran (the rest don't apply to
-   * their stack — Python playbooks vs a TS project, etc).
+   * their stack: Python playbooks vs a TS project, etc).
    */
   playbooksAvailable: number;
   /** Playbooks skipped because their `languages` didn't match. */
@@ -116,7 +116,7 @@ export interface AutoRemediationResult {
  * server keeps the last MAX_EVENTS in-memory; the UI polls the
  * active-scan state and renders the events as a scrolling log so
  * the user can see playbooks running, issues being created, agents
- * picking up work, and errors as they happen — instead of staring
+ * picking up work, and errors as they happen, instead of staring
  * at a spinner for 11 minutes hoping something's actually
  * happening.
  */
@@ -126,24 +126,24 @@ export interface ProgressEvent {
   level: "info" | "warn" | "error";
   /** Tag from the underlying logger (e.g. "agent_pool.completed"). */
   category: string;
-  /** Human-readable summary line — pre-formatted, ready to render. */
+  /** Human-readable summary line: pre-formatted, ready to render. */
   message: string;
 }
 
 export interface ActiveScanState {
-  /** Stable id for this run — useful for the UI to detect "new run". */
+  /** Stable id for this run: useful for the UI to detect "new run". */
   id: string;
   kind: ActiveScanKind;
   /** epoch ms when the scan was kicked off. */
   startedAt: number;
   /**
    * Lifecycle:
-   *   running     — scan is in flight
-   *   remediating — scan finished, agent pool is opening PRs (YOLO only)
-   *   stopping    — user clicked stop; runners will halt at next checkpoint
-   *   completed   — fully done; check `summary` and (optional) `autoRemediation`
-   *   failed      — scan itself errored; check `error`
-   *   cancelled   — user-stopped, partial results in `summary` /
+   *   running:     scan is in flight
+   *   remediating: scan finished, agent pool is opening PRs (YOLO only)
+   *   stopping:    user clicked stop; runners will halt at next checkpoint
+   *   completed:   fully done; check `summary` and (optional) `autoRemediation`
+   *   failed:      scan itself errored; check `error`
+   *   cancelled:   user-stopped, partial results in `summary` /
    *                `autoRemediation`. Issues already created stay on
    *                the board, PRs already opened stay open.
    */
@@ -181,8 +181,8 @@ const state: { current: ActiveScanState | null } = { current: null };
 
 /**
  * Internal companion to `state.current`. Holds the AbortController
- * for the in-flight scan promise. NOT serialised to the client —
- * the controller can't cross the wire, and the client only needs
+ * for the in-flight scan promise. NOT serialised to the client.
+ * The controller can't cross the wire, and the client only needs
  * to know "can I cancel?" (yes if status is running/remediating).
  *
  * Lives in a wrapper object so we can null it out when a run
@@ -195,7 +195,7 @@ export function getActiveScan(): ActiveScanState | null {
 }
 
 /**
- * Abort the currently-running scan, if any. Cooperative — runners
+ * Abort the currently-running scan, if any. Cooperative: runners
  * check the signal at safe checkpoints and unwind cleanly. Status
  * flips to "stopping" immediately; the runners promote it to
  * "cancelled" once they actually halt (could take seconds for an
@@ -223,7 +223,7 @@ export function abortActiveScan(): { aborted: boolean; reason?: string } {
 }
 
 export function clearActiveScan(): void {
-  // Don't clear if a scan or remediation is mid-flight — that would
+  // Don't clear if a scan or remediation is mid-flight; that would
   // leave the bg promise updating a detached object, and the UI
   // would think there's no scan when there really is.
   if (
@@ -237,7 +237,7 @@ export function clearActiveScan(): void {
 /**
  * Start a starter scan in the background. If one is already running
  * (any kind), returns the existing entry instead of starting a new
- * one — the UI should poll its status.
+ * one. The UI should poll its status.
  */
 export function startStarterScanInBackground(): ActiveScanState {
   if (
@@ -255,7 +255,7 @@ export function startStarterScanInBackground(): ActiveScanState {
   };
   state.current = entry;
   internal.controller = new AbortController();
-  // Fire-and-forget — Node keeps this promise alive in module scope.
+  // Fire-and-forget. Node keeps this promise alive in module scope.
   void runScanAndMaybeRemediate(entry, "starter", internal.controller.signal);
   return entry;
 }
@@ -344,7 +344,7 @@ async function runScanAndMaybeRemediate(
     });
 
     // After the scan completes, the user may have cancelled before
-    // we move into remediation. Honour it — they don't want PRs to
+    // we move into remediation. Honour it; they don't want PRs to
     // start opening if they hit stop. (If they hit stop AFTER
     // remediation started, the agent pool's own signal check
     // handles it.)
@@ -389,7 +389,7 @@ async function runScanAndMaybeRemediate(
     entry.status = entry.autoRemediation?.cancelled ? "cancelled" : "completed";
   } catch (err) {
     if (err instanceof ScanCancelled) {
-      // Cancellation thrown from inside runScan — treat as expected.
+      // Cancellation thrown from inside runScan: treat as expected.
       streamingLogger.info("active_scan.scan_cancelled", {
         scanId: err.scanId,
       });
@@ -402,7 +402,7 @@ async function runScanAndMaybeRemediate(
     entry.error = (err as Error).message ?? "Unknown scan error";
     entry.status = "failed";
   } finally {
-    // Clear the controller — the run is done one way or another,
+    // Clear the controller; the run is done one way or another,
     // and a future scan will create a fresh one.
     internal.controller = null;
   }
@@ -468,22 +468,22 @@ async function runAutoRemediation(
     defaultBranch: config.git.default_branch,
   });
 
-  // No severity filter — YOLO means "fix everything". The agent's
+  // No severity filter: YOLO means "fix everything". The agent's
   // own autonomy gate decides whether each individual issue gets a
   // PR or gets bucketed to "gated".
   //
   // Parallelism: respect the user's `config.agents.parallelism`
   // setting (default 4). Each parallel agent slot gets its own git
   // worktree at `<cwd>-wt<N>` so they can write files / create
-  // branches / commit independently — without the working-tree
+  // branches / commit independently, without the working-tree
   // races that forced parallelism=1 in the prior implementation.
   // Worktrees share refs via the parent's .git directory, so
   // branches are visible across all of them; HEADs are independent.
   const parallelism = Math.max(1, config.agents.parallelism);
   const worktreeDirs: string[] = [];
   // Slot 0 always uses the main cwd. Slots 1..N-1 each get their
-  // own worktree. Set up additive workdirs only when parallelism > 1
-  // — single-agent runs avoid the disk footprint and setup cost.
+  // own worktree. Set up additive workdirs only when parallelism > 1:
+  // single-agent runs avoid the disk footprint and setup cost.
   if (parallelism > 1) {
     for (let i = 1; i < parallelism; i++) {
       const wt = `${cwd}-wt${i}`;
@@ -533,7 +533,7 @@ async function runAutoRemediation(
       signal,
       onProgress: (event) => {
         // Mirror progress events into the log for after-the-fact
-        // analysis — gives us a full ordered transcript of what each
+        // analysis; gives us a full ordered transcript of what each
         // agent did per issue.
         logger.info(`agent_pool.${event.type}`, event);
       },
@@ -574,7 +574,7 @@ async function runAutoRemediation(
   if (attempted === 0) {
     detail = result.cancelled
       ? `Stopped before any issue was attempted. ${result.skipped?.length ?? 0} issues left at backlog/ready for a future run.`
-      : "Nothing to remediate — no open issues at backlog/ready. (Issues already in_review or done aren't re-PR'd.)";
+      : "Nothing to remediate: no open issues at backlog/ready. (Issues already in_review or done aren't re-PR'd.)";
   } else {
     const parts: string[] = [];
     if (completedCount > 0) {
@@ -592,7 +592,7 @@ async function runAutoRemediation(
     detail =
       parts.length > 0
         ? parts.join(" · ") + "."
-        : "No PRs opened — every issue was either gated or failed.";
+        : "No PRs opened: every issue was either gated or failed.";
   }
 
   return {
@@ -620,7 +620,7 @@ async function runAutoRemediation(
  * through formatProgressEvent() to produce a UI-ready string.
  *
  * The fileLogger is a thunk-getter rather than a fixed reference
- * because we don't always have one — pre-scan we can't know the
+ * because we don't always have one; pre-scan we can't know the
  * scan id, and during scan we want everything streamed; the file
  * logger gets attached only once auto-remediation begins. The
  * thunk lets the upgrade happen in-place without rebuilding the
@@ -660,7 +660,7 @@ function makeStreamingLogger(
   }
   return {
     debug: () => {
-      // Debug events skip both surfaces — too noisy for the UI ring.
+      // Debug events skip both surfaces: too noisy for the UI ring.
     },
     info: (event, data) => append("info", event, data),
     warn: (event, data) => append("warn", event, data),
@@ -668,7 +668,7 @@ function makeStreamingLogger(
     close: async () => {
       // The file logger's close is owned by the caller (see
       // runScanAndMaybeRemediate's finally block) so we do nothing
-      // here — closing twice would be a bug.
+      // here; closing twice would be a bug.
     },
   };
 }
@@ -676,7 +676,7 @@ function makeStreamingLogger(
 /**
  * Translate a structured logger event into a single human-readable
  * line for the progress log. Returns null for events the UI
- * doesn't need to surface (pure debug/internal noise) — those are
+ * doesn't need to surface (pure debug/internal noise); those are
  * dropped from the ring buffer.
  */
 function formatProgressEvent(
@@ -709,7 +709,7 @@ function formatProgressEvent(
     case "active_scan.dispatch":
       return `📋 ${cap(String(d.kind ?? ""))} scan dispatching (autonomy: ${d.autonomy})`;
     case "active_scan.scan_complete":
-      return `✓ Scan complete — ${d.issuesFound} issue${d.issuesFound === 1 ? "" : "s"} found (${d.scanId})`;
+      return `✓ Scan complete: ${d.issuesFound} issue${d.issuesFound === 1 ? "" : "s"} found (${d.scanId})`;
     case "active_scan.fatal":
       return `✖ Scan run errored: ${d.error}`;
 
@@ -728,26 +728,26 @@ function formatProgressEvent(
 
     case "playbook.candidates":
       return Number(d.count) > 0
-        ? `🔎 ${d.playbookId} — ${d.count} candidate${d.count === 1 ? "" : "s"}`
-        : null; // skip "0 candidates" — too noisy
+        ? `🔎 ${d.playbookId}: ${d.count} candidate${d.count === 1 ? "" : "s"}`
+        : null; // skip "0 candidates": too noisy
     case "playbook.sca":
-      return `📦 ${d.playbookId} — ${d.findings} vulnerable package${d.findings === 1 ? "" : "s"}`;
+      return `📦 ${d.playbookId}: ${d.findings} vulnerable package${d.findings === 1 ? "" : "s"}`;
     case "playbook.sca_failed":
       return `✖ SCA playbook failed (${d.playbookId}): ${d.error}`;
 
     case "issue.created":
-      return `   • ${d.issueId} created — ${d.severity} in ${d.file}`;
+      return `   • ${d.issueId} created: ${d.severity} in ${d.file}`;
     case "issue.deduped":
       return null; // not user-facing
 
     case "auto_remediate.start":
       return `🚀 Auto-remediation starting (${d.autonomy} mode, repo: ${d.repo})`;
     case "auto_remediate.no_token":
-      return `⚠ Auto-remediation skipped — no GitHub token configured`;
+      return `⚠ Auto-remediation skipped: no GitHub token configured`;
     case "auto_remediate.no_repo":
-      return `⚠ Auto-remediation skipped — PR target repo not set`;
+      return `⚠ Auto-remediation skipped: PR target repo not set`;
     case "auto_remediate.done":
-      return `🏁 Auto-remediation done — ${d.completed} PR${d.completed === 1 ? "" : "s"}, ${d.gated} gated, ${d.failed} failed`;
+      return `🏁 Auto-remediation done: ${d.completed} PR${d.completed === 1 ? "" : "s"}, ${d.gated} gated, ${d.failed} failed`;
 
     case "agent_pool.assigned":
       return `${emoji(String(d.agent))} ${cap(String(d.agent))} picked up ${d.issueId}`;
@@ -778,10 +778,10 @@ function formatProgressEvent(
     case "review.fast_reject":
       return `👵 No-op patch rejected without an AI call (${d.issue})`;
     case "review.error_fail_open":
-      return `⚠ Review errored — failing open for ${d.issue}: ${d.error}`;
+      return `⚠ Review errored, failing open for ${d.issue}: ${d.error}`;
 
     case "pool.start":
-      return `🍝 Agent pool starting — ${d.total} eligible issue${d.total === 1 ? "" : "s"}, parallelism ${d.parallelism}`;
+      return `🍝 Agent pool starting: ${d.total} eligible issue${d.total === 1 ? "" : "s"}, parallelism ${d.parallelism}`;
     case "pool.complete":
       return null; // duplicate of auto_remediate.done
 
@@ -790,7 +790,7 @@ function formatProgressEvent(
   }
 }
 
-// Shape mirror — keeps UI/wire format identical to runStarterScanAction.
+// Shape mirror: keeps UI/wire format identical to runStarterScanAction.
 function summariseScan(
   result: Awaited<ReturnType<typeof runScan>>,
   autonomy: string,

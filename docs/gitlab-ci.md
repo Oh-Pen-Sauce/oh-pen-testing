@@ -22,7 +22,7 @@ oh-pen-testing:
     expire_in: 30 days
 ```
 
-The `artifacts.reports.sast` field is the GitLab-native surface — findings appear in the Merge Request security widget automatically.
+The `artifacts.reports.sast` field is the GitLab-native surface: findings appear in the Merge Request security widget automatically.
 
 For a remediation step, add a follow-up job:
 

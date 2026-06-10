@@ -24,21 +24,21 @@ opt init
 
 Creates `.ohpentesting/` with:
 
-- `config.yml` — provider, git, autonomy mode, scope
-- `issues/` — findings land here, one JSON file per issue
-- `scans/` — scan-run metadata
-- `reports/` — markdown / SARIF / PDF output
-- `playbooks/local/` — your own playbooks (optional)
+- `config.yml`: provider, git, autonomy mode, scope
+- `issues/`: findings land here, one JSON file per issue
+- `scans/`: scan-run metadata
+- `reports/`: markdown / SARIF / PDF output
+- `playbooks/local/`: your own playbooks (optional)
 
-`opt init` auto-detects the best-available provider. If you have `claude` on PATH (the Claude Code CLI), it defaults to that — zero API key required on Max.
+`opt init` auto-detects the best-available provider. If you have `claude` on PATH (the Claude Code CLI), it defaults to that: zero API key required on Max.
 
 ## 3. Pick credentials
 
-### Option A — Claude Code CLI (free on Max)
+### Option A: Claude Code CLI (free on Max)
 
 Nothing to do. If `claude` is on PATH, `opt init` already configured this.
 
-### Option B — Claude API
+### Option B: Claude API
 
 ```bash
 export ANTHROPIC_API_KEY=sk-ant-…
@@ -46,7 +46,7 @@ export ANTHROPIC_API_KEY=sk-ant-…
 security add-generic-password -s oh-pen-testing -a anthropic-api-key -w
 ```
 
-### Option C — fully local (Ollama)
+### Option C: fully local (Ollama)
 
 ```bash
 brew install ollama
@@ -60,7 +60,7 @@ ollama pull kimi-k2.6
 First scan prompts:
 
 ```
-⚠  Authorisation check — Oh Pen Testing only scans code you're authorised to test.
+⚠  Authorisation check: Oh Pen Testing only scans code you're authorised to test.
    Target: /path/to/your/repo
 
 Do you confirm you have authorisation to run security testing against this codebase? (y/N)
@@ -98,8 +98,8 @@ opt setup   # opens http://127.0.0.1:7676
 
 The kanban board surfaces every issue with:
 
-- **Scanner output** (machine-verifiable) — file, line, matched string
-- **AI analysis** (advisory) — what it thinks is going on, with a provenance block
+- **Scanner output** (machine-verifiable): file, line, matched string
+- **AI analysis** (advisory): what it thinks is going on, with a provenance block
 
 Click a card to change status, or open the detail view for the full side-by-side.
 
@@ -153,4 +153,4 @@ Installs a launchd plist (macOS) or crontab entry (Linux) that runs `opt scan` a
 
 ---
 
-**That's the whole loop.** If you hit something confusing, open a GitHub issue — docs gaps are first-priority fixes.
+**That's the whole loop.** If you hit something confusing, open a GitHub issue. Docs gaps are first-priority fixes.

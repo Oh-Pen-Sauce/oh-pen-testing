@@ -1,7 +1,7 @@
 import type { DynamicPlaybook, DynamicFinding } from "./types.js";
 
 /**
- * Bundled dynamic playbooks — first wave of real attack-traffic probes.
+ * Bundled dynamic playbooks: first wave of real attack-traffic probes.
  *
  * Each one issues a minimal, deterministic request pattern against the
  * target; no fuzzing, no exploit chaining. Findings require manual

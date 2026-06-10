@@ -49,7 +49,7 @@ export interface PlaybookCatalogEntry {
   description: string;
   risky: boolean;
   /** Runtime-invasiveness tier. Defaults to "safe" if the manifest
-   *  doesn't declare it — every regex playbook is safe by definition. */
+   *  doesn't declare it; every regex playbook is safe by definition. */
   risk_profile: PlaybookRiskProfile;
   /** Human-readable "what could this break" sentence. */
   impact?: string;

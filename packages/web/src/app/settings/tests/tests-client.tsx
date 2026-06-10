@@ -14,7 +14,7 @@ import type { Severity } from "@oh-pen-testing/shared";
  * category with:
  *   - toggle (enabled by default; disabled = opt-out in config)
  *   - severity pill (what the playbook flags at)
- *   - risk-profile badge (runtime invasiveness — safe / read-only / probe / mutating)
+ *   - risk-profile badge (runtime invasiveness: safe / read-only / probe / mutating)
  *   - impact sentence (human explanation)
  *   - CWE / OWASP tags
  *
@@ -31,7 +31,7 @@ const RISK_BADGE: Record<
     label: "safe",
     bg: "#E4F0DF",
     fg: "#2B5A27",
-    desc: "Static scan — no network, no side-effects.",
+    desc: "Static scan: no network, no side-effects.",
   },
   "read-only": {
     label: "read-only",

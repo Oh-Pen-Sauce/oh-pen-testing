@@ -50,7 +50,7 @@ export class AgentApprovalRequired extends Error {
  *
  * - yolo: agent may patch anything not in an explicitly guarded zone.
  *   approval_triggers still apply (auth changes etc.) because YOLO was
- *   never meant to bypass those — it bypasses the extra gate on minor
+ *   never meant to bypass those; it bypasses the extra gate on minor
  *   fixes.
  * - recommended (default): agent patches low-risk issues; anything matching
  *   approval_triggers or severity=critical is gated.
@@ -70,7 +70,7 @@ export function evaluateAutonomyGate(
   }
 
   if (mode === "careful") {
-    return { allowed: false, reason: "careful mode — all fixes require approval" };
+    return { allowed: false, reason: "careful mode: all fixes require approval" };
   }
 
   const strategy = issue.remediation?.strategy ?? "";
@@ -113,10 +113,10 @@ CRITICAL INSTRUCTIONS:
 
 Response schema:
 {
-  "patched_file_contents": "string — the entire new file, verbatim",
-  "explanation_of_fix": "string — 2-4 short sentences explaining why the fix is correct",
-  "env_var_name": "string — optional. The env var name, e.g. AWS_ACCESS_KEY_ID",
-  "env_example_addition": "string — optional. A line to append to .env.example, e.g. AWS_ACCESS_KEY_ID=your-key-here"
+  "patched_file_contents": "string: the entire new file, verbatim",
+  "explanation_of_fix": "string: 2-4 short sentences explaining why the fix is correct",
+  "env_var_name": "string, optional. The env var name, e.g. AWS_ACCESS_KEY_ID",
+  "env_example_addition": "string, optional. A line to append to .env.example, e.g. AWS_ACCESS_KEY_ID=your-key-here"
 }`;
 
 export interface RunAgentOptions {
@@ -135,7 +135,7 @@ export interface RunAgentOptions {
    * a human has explicitly approved this individual issue (e.g. via
    * the "Approve & open PR" button on the board). Without this, an
    * issue that was gated for approval would just be re-gated every
-   * time runAgent is called — there's no "approval persisted on the
+   * time runAgent is called. There's no "approval persisted on the
    * issue" mechanism otherwise. Use sparingly: this is the kill
    * switch on autonomy enforcement.
    */
@@ -175,13 +175,13 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     throw new Error("runAgent requires either `issueId` or `issue`");
   }
 
-  // Autonomy-mode gate — full implementation per PRD § 2 principle 6.
+  // Autonomy-mode gate: full implementation per PRD § 2 principle 6.
   // If the issue violates the current autonomy mode's rules, we leave the
   // issue in `backlog` (or a new `pending_approval` state) and return
   // without patching anything. Humans approve via the web /reviews page
   // or `opt approve --issue <ID>`.
   //
-  // bypassAutonomyGate skips this entirely — it's how the
+  // bypassAutonomyGate skips this entirely: it's how the
   // "Approve & open PR" button works. The caller is asserting that a
   // human just clicked the green button on this specific issue, so
   // the gate's "is this risky enough to need approval?" question has
@@ -222,7 +222,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   //
   // We force-checkout defaultBranch and clean untracked files +
   // directories. This is destructive of any in-progress work in
-  // the cwd — fine, because the cwd is a clone Oh Pen Testing
+  // the cwd. Fine, because the cwd is a clone Oh Pen Testing
   // manages (~/.ohpentesting/projects/<owner>/<repo>) and the
   // user shouldn't be making manual edits there. If they were,
   // those edits are leftover from a previous failed run anyway
@@ -296,7 +296,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
       });
     } else {
       // Rejected. Send the worker back with Nonna's feedback. This
-      // is a one-shot retry — we DON'T re-review the second attempt,
+      // is a one-shot retry; we DON'T re-review the second attempt,
       // it ships regardless.
       reviewVerdict = "rejected_then_retried";
       issue.comments.push({
@@ -363,15 +363,15 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   // local state, re-runs the wizard, re-scans, hits the same issue
   // again). The remote still had the old branch from PR #N, the new
   // local branch was a fresh one with no fast-forward path, so
-  // `git push` failed with "[rejected] (fetch first)" — and we
+  // `git push` failed with "[rejected] (fetch first)", and we
   // can't force-push because that'd either clobber an open PR's
   // history or leave us unable to open a new PR (GitHub allows at
   // most one open PR per head branch).
   //
   // Suffix: short base36 timestamp. Compact (6 chars), strictly
   // monotonic, no overlap inside any reasonable lifetime. Branch
-  // names stay readable — `ohpen/issue-004-set-inner-html-lzqx3a`
-  // — and each run produces its own distinct branch + PR pair, so
+  // names stay readable (`ohpen/issue-004-set-inner-html-lzqx3a`),
+  // and each run produces its own distinct branch + PR pair, so
   // old runs stay browsable on GitHub without our remediations
   // overwriting them.
   const runSuffix = Date.now().toString(36).slice(-6);
@@ -379,7 +379,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   const pr = await options.adapter.createRemediationPr({
     repoPath,
     branchName,
-    commitMessage: `${agent.emoji} ${agent.displayName}: fix ${issue.id} — ${issue.title}`,
+    commitMessage: `${agent.emoji} ${agent.displayName}: fix ${issue.id}: ${issue.title}`,
     prTitle: `${issue.id}: ${issue.title}`,
     prBody: {
       issue,
@@ -418,7 +418,7 @@ interface RequestRemediationInput {
   /**
    * Optional context from a prior attempt that Nonna rejected. When
    * present, the worker sees their previous patch, their previous
-   * explanation, and Nonna's feedback — this is the "do better"
+   * explanation, and Nonna's feedback: this is the "do better"
    * second pass before we ship regardless.
    */
   previousAttempt?: {

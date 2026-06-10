@@ -30,7 +30,7 @@ export interface RateLimitManager {
   utilisationPct(): number;
   /** Snapshot for logging / UI. */
   snapshot(): Readonly<ManagerState>;
-  /** Warnings not yet reported to the user. Mutating — returns + clears. */
+  /** Warnings not yet reported to the user. Mutating: returns + clears. */
   consumeWarnings(): string[];
 }
 

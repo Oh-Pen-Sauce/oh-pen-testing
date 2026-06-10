@@ -16,7 +16,7 @@ export function buildPrBody(input: PrBodyInput): string {
   const cwe = issue.cwe.length > 0 ? `**CWE:** ${issue.cwe.join(", ")}` : "";
   const files = filesChanged.map((f) => `- \`${f}\``).join("\n");
 
-  return `## 🛡️ Oh Pen Testing fix — ${issue.id}
+  return `## 🛡️ Oh Pen Testing fix - ${issue.id}
 
 ${owasp}
 ${cwe}

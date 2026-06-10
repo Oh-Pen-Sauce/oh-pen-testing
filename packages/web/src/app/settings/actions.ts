@@ -70,7 +70,7 @@ export interface SettingsPatch {
   provider: ProviderId;
   model: string;
   budgetUsd: number;
-  /** Nonna's review pass — head-chef quality gate before commit. */
+  /** Nonna's review pass: head-chef quality gate before commit. */
   reviewEnabled: boolean;
 }
 
@@ -80,7 +80,7 @@ export async function saveSettingsAction(patch: SettingsPatch): Promise<void> {
   current.agents.autonomy = patch.autonomy;
   current.agents.parallelism = patch.parallelism;
   // Defensive: older configs may not have the review object yet (it
-  // was added later) — initialise if missing.
+  // was added later); initialise if missing.
   current.agents.review = { enabled: patch.reviewEnabled };
   current.ai.primary_provider = patch.provider;
   current.ai.model = patch.model;
@@ -143,7 +143,7 @@ export interface ResetResult {
  * between runs if it speeds up their testing loop.
  *
  * This is the raw data side. The UI must also clear the chat
- * sessionStorage snapshot client-side — do that in the same
+ * sessionStorage snapshot client-side: do that in the same
  * click handler, not here (server actions can't touch browser
  * storage). On success the UI redirects to /setup.
  */
@@ -155,7 +155,7 @@ export async function resetEverythingAction(
   const paths = ohpenPaths(cwd);
 
   if (opts.resetConfig) {
-    // Delete the config file outright — loadConfig throws on missing,
+    // Delete the config file outright: loadConfig throws on missing,
     // which triggers setup's "no config" path and shows the wizard.
     try {
       await fs.unlink(paths.config);
@@ -179,7 +179,7 @@ export async function resetEverythingAction(
         await fs.mkdir(dir, { recursive: true });
         wiped.push(`${path.relative(cwd, dir)}/`);
       } catch {
-        /* best effort — skip */
+        /* best effort, skip */
       }
     }
   }
@@ -204,7 +204,7 @@ export async function resetEverythingAction(
       }
     }
     // Also best-effort nuke the OS keychain entries. We can only
-    // clear via keytar if it loads — on platforms where it doesn't,
+    // clear via keytar if it loads; on platforms where it doesn't,
     // the file deletion above covers us anyway.
     try {
       const dynamicImport = new Function(
@@ -232,7 +232,7 @@ export async function resetEverythingAction(
       }
       wiped.push("OS keychain entries (best effort)");
     } catch {
-      /* keytar not available — file deletion is the tier we care about */
+      /* keytar not available; file deletion is the tier we care about */
     }
   }
 
@@ -256,14 +256,14 @@ export async function resetEverythingAction(
       }
     }
     // The clones themselves stay on disk unless wipeClones is also
-    // set — see below. wipeProjects on its own only deletes the
+    // set; see below. wipeProjects on its own only deletes the
     // registry JSON, leaving the clones recoverable.
   }
 
   if (opts.wipeClones) {
     // Nuke every clone Oh Pen Testing has created in
     // ~/.ohpentesting/projects/. Only the structured "owner/repo"
-    // directory layout is touched — top-level dotfiles or
+    // directory layout is touched: top-level dotfiles or
     // unrelated content survives.
     //
     // This is the heaviest reset option. Recommended when prior
@@ -298,7 +298,7 @@ export async function resetEverythingAction(
         try {
           await fs.rmdir(ownerDir);
         } catch {
-          /* not empty or permission denied — fine */
+          /* not empty or permission denied, fine */
         }
       }
     } catch (err) {
@@ -310,7 +310,7 @@ export async function resetEverythingAction(
           wiped,
         };
       }
-      // ENOENT = no projects dir, nothing to wipe — that's fine.
+      // ENOENT = no projects dir, nothing to wipe; that's fine.
     }
   }
 

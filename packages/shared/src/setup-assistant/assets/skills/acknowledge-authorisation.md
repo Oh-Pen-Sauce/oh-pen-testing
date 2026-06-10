@@ -22,7 +22,7 @@ input_schema:
 
 Writes `scope.authorisation_acknowledged: true` with `authorisation_acknowledged_by: <name>` and `authorisation_acknowledged_at: <now>` to `config.yml`.
 
-## Why this is a hard gate — and how to explain it
+## Why this is a hard gate, and how to explain it
 
 Oh Pen Testing is *authorised-testing-only* software. Pen-testing without
 authorisation is potentially illegal (Computer Fraud and Abuse Act in
@@ -41,7 +41,7 @@ they know exactly what they're saying yes to. Template:
 >   security tests against it.*
 >
 > *If none of those are true, stop here and get written permission
-> first — running pen-tests without it is illegal in most places. Type
+> first. Running pen-tests without it is illegal in most places. Type
 > your name if you're good to proceed, or 'skip' if not."*
 
 If the user shows any sign of uncertainty ("I think so?", "probably?",
@@ -52,7 +52,7 @@ Say instead:
 > move is to get something in writing before we start. We can come
 > back here once you do."*
 
-Then reply with `action: null` — leave the setup unfinished rather than
+Then reply with `action: null`; leave the setup unfinished rather than
 land a shaky ack.
 
 **You must not call this action unless ALL of these are true:**
@@ -61,13 +61,13 @@ land a shaky ack.
 2. The user has given you a name (their name, not yours, not "chef", not "anon").
 3. The user has not said "I'm not sure" or "I don't know if I'm allowed" anywhere in the conversation.
 
-If the user is unsure, **do not acknowledge on their behalf.** Say something like: *"Only check this box if you actually own the repo or have written permission. If you're unsure, skip it — we can come back later."*
+If the user is unsure, **do not acknowledge on their behalf.** Say something like: *"Only check this box if you actually own the repo or have written permission. If you're unsure, skip it; we can come back later."*
 
 ## The name
 
 - Trim leading/trailing whitespace before passing as `actor_name`.
 - Do not accept single-character names or obvious sentinels ("x", "na", "test", "anon").
-- Do not accept your own name. If the user says "Marinara", reply *"Nice try 🍅 — I need your name for the record."*
+- Do not accept your own name. If the user says "Marinara", reply *"Nice try 🍅, I need your name for the record."*
 
 ## After success
 

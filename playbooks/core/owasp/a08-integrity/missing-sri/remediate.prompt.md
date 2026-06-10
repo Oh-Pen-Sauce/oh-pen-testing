@@ -11,6 +11,6 @@ Add `integrity="sha384-..."` and `crossorigin="anonymous"`.
 
 Generate the hash with `openssl dgst -sha384 -binary lib.js | openssl base64 -A`.
 
-For CDNs like jsDelivr / unpkg / Cloudflare, the CDN usually provides the hash — search their docs. If the resource changes often, consider self-hosting.
+For CDNs like jsDelivr / unpkg / Cloudflare, the CDN usually provides the hash, so search their docs. If the resource changes often, consider self-hosting.
 
 `env_var_name`: none.

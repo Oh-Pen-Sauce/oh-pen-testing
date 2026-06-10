@@ -197,7 +197,7 @@ export function PlaybookCatalogClient({
             border: "2px dashed var(--ink)",
           }}
         >
-          No playbooks match — try clearing a filter or widening the search.
+          No playbooks match. Try clearing a filter or widening the search.
         </div>
       )}
     </div>

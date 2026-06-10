@@ -45,5 +45,5 @@
   "engines": {
     "node": ">=22"
   },
-  "description": "GitLab adapter for Oh Pen Testing — opens remediation merge requests."
+  "description": "GitLab adapter for Oh Pen Testing: opens remediation merge requests."
 }

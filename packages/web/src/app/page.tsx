@@ -18,7 +18,7 @@ async function isOnboarded(): Promise<boolean> {
   const cfg = await safeLoadConfig();
   if (!cfg) return false;
   if (!cfg.scope?.authorisation_acknowledged) return false;
-  // A default-scaffolded config still has `owner/name` as the repo — treat
+  // A default-scaffolded config still has `owner/name` as the repo. Treat
   // that as not-yet-onboarded.
   if (!cfg.git.repo || cfg.git.repo === "owner/name") return false;
   return true;
@@ -59,7 +59,7 @@ export default async function Home() {
 
   const suggestion = buildSuggestion(config, scans, openIssues.length);
 
-  // Recent activity — last 4 issues by discovered_at
+  // Recent activity: last 4 issues by discovered_at
   const activity = [...issues]
     .sort((a, b) => (b.discovered_at ?? "").localeCompare(a.discovered_at ?? ""))
     .slice(0, 4);
@@ -67,7 +67,7 @@ export default async function Home() {
   return (
     <div>
       <PageHeader
-        kicker="01 — La Cucina"
+        kicker="01 – La Cucina"
         title={
           <>
             Buongiorno, <em>chef</em> 👨‍🍳
@@ -267,7 +267,7 @@ export default async function Home() {
             border: "2px solid var(--ink)",
           }}
         >
-          <div className="kicker mb-3">Activity — today&rsquo;s specials</div>
+          <div className="kicker mb-3">Activity: today&rsquo;s specials</div>
           {activity.map((i, idx) => {
             const agent = resolveAgentFromDiscoveredBy(i.discovered_by);
             return (
@@ -411,7 +411,7 @@ function buildSuggestion(
 ): Suggestion | null {
   if (!config) {
     return {
-      text: "Say ciao to Marinara — she'll get you cooking in about 4 minutes.",
+      text: "Say ciao to Marinara. She'll get you cooking in about 4 minutes.",
       cta: "Run setup",
       href: "/setup",
     };

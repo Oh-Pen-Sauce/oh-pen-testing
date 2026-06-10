@@ -10,7 +10,7 @@ Do NOT confirm when:
 - In a test fixture.
 
 Severity:
-- `critical` — password hashing with MD5/SHA-1.
-- `high` — session/token/signing context.
-- `medium` — HMAC without a specific attacker model.
-- `low` — ambiguous context; flag for review.
+- `critical`: password hashing with MD5/SHA-1.
+- `high`: session/token/signing context.
+- `medium`: HMAC without a specific attacker model.
+- `low`: ambiguous context; flag for review.

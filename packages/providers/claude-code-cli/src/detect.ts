@@ -15,7 +15,7 @@ export interface ClaudeCliDetection {
 
 /**
  * Common places `claude` lands on macOS / Linux installs. We probe these
- * when the bare `claude` call fails — typical for `next dev` servers
+ * when the bare `claude` call fails: typical for `next dev` servers
  * launched from IDEs that inherit a minimal PATH.
  */
 const COMMON_INSTALL_LOCATIONS = [

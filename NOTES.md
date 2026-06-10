@@ -1,4 +1,4 @@
-# Oh Pen Testing — outstanding tasks after v1.0.0
+# Oh Pen Testing: outstanding tasks after v1.0.0
 
 This file tracks the work that remains after the M7–M17 feature batch
 and the v1.0.0 cut. Everything in the PRD is implemented in-repo;
@@ -18,7 +18,7 @@ GitHub repo that homebrew fetches formulae from.
 
 1. Create a new public GitHub repo called `homebrew-tap` under the
    `oh-pen-sauce` org (the org must exist; otherwise under whoever
-   owns the Oh Pen Testing project — today that's `@samnash`).
+   owns the Oh Pen Testing project, today that's `@samnash`).
 2. Add a single formula file at `Formula/oh-pen-testing.rb`:
 
    ```ruby
@@ -50,12 +50,12 @@ GitHub repo that homebrew fetches formulae from.
 4. Tag the tap repo `v1.0.0` and the install command becomes
    `brew install oh-pen-sauce/tap/oh-pen-testing`.
 
-### npm publish — packages prepped, waiting on `npm login`
+### npm publish: packages prepped, waiting on `npm login`
 
 Every public workspace package is publish-ready:
 
 - `private: true` removed from the 11 publishable packages
-  (kept on `@oh-pen-testing/web` — it's a Next app, not a lib)
+  (kept on `@oh-pen-testing/web`, it's a Next app, not a lib)
 - `publishConfig: { access: "public" }` + MIT license + repo /
   homepage / bugs / engines fields on each
 - CLI tarball verified to include the `#!/usr/bin/env node` shebang
@@ -64,12 +64,12 @@ Every public workspace package is publish-ready:
 - Local smoke test passed: pack → install → `opt --version` → `opt
   connect` → config.yml written. End-to-end green.
 
-**Full publish runbook now lives in [`PUBLISHING.md`](./PUBLISHING.md)** — follow that top-to-bottom for every release. It covers:
+**Full publish runbook now lives in [`PUBLISHING.md`](./PUBLISHING.md)**: follow that top-to-bottom for every release. It covers:
 
 - one-time npm login / 2FA / scope-claiming
 - version bump via `pnpm -r`
 - packed-tarball smoke test before upload
-- the exact publish order (dependency graph matters — shared first,
+- the exact publish order (dependency graph matters: shared first,
   then leaf libs, then core, then CLI)
 - registry verification + GitHub release tag
 
@@ -98,7 +98,7 @@ Confirm these packages publish successfully (others are private):
 - `@oh-pen-testing/cli`
 - `@oh-pen-testing/playbooks-core`
 
-`@oh-pen-testing/web` is `private: true` — it ships inside the Docker
+`@oh-pen-testing/web` is `private: true`; it ships inside the Docker
 image, not via npm.
 
 ### Docker image
@@ -121,7 +121,7 @@ local shell and `docker login ghcr.io -u <user> -p $GHCR_PAT` first.
 
 ## Infrastructure / hosting
 
-### `oh-pen-testing.dev` — marketing site
+### `oh-pen-testing.dev`: marketing site
 
 Not in this repo. Needs a separate small Next.js site that:
 - renders live stats from the telemetry endpoint (see below)
@@ -132,7 +132,7 @@ Not in this repo. Needs a separate small Next.js site that:
 
 `packages/shared/src/telemetry.ts` POSTs `scan_completed` events to a
 configurable endpoint (default: `https://telemetry.oh-pen-testing.dev/v1/events`).
-That endpoint doesn't exist yet — it needs:
+That endpoint doesn't exist yet. It needs:
 
 1. A tiny serverless function (Cloudflare Workers / Deno Deploy is fine).
 2. A KV/SQL store counting: `total_scans`, `total_lines_analysed`,
@@ -163,7 +163,7 @@ catalogue, CWE Top 25 coverage we didn't ship bundled.
 Ordered by user value, not effort.
 
 ### Manifest signing for registry playbooks
-Today the client verifies SHA-256 of individual files — good protection
+Today the client verifies SHA-256 of individual files: good protection
 against a CDN swap, but not against a malicious registry owner. Add
 optional ed25519 signatures at the `RegistryEntry` level and let users
 pin trusted signing keys in their config.
@@ -211,7 +211,7 @@ transitional user-scoped values:
 - `package.json` fields (homepage, repository) currently point to
   `github.com/samnash/oh-pen-testing`. Update to
   `github.com/oh-pen-sauce/oh-pen-testing` once the org move happens.
-- `action.yml` GitHub Action — same.
+- `action.yml` GitHub Action: same.
 - `README.md` badges and install snippets.
 
 Single pass via `grep -rl "samnash/oh-pen-testing" .` after the rename.

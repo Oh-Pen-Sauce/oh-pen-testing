@@ -172,7 +172,7 @@ function AuthorisationStep({
       </label>
       <div>
         <label className="block text-sm font-medium mb-1">
-          Your name or email (optional — recorded with the acknowledgement)
+          Your name or email (optional, recorded with the acknowledgement)
         </label>
         <input
           type="text"
@@ -362,7 +362,7 @@ function CredentialsStep({
         <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
           {provider === "claude-code-cli"
             ? "Uses your local `claude` CLI session. No API key needed."
-            : "Local provider — no credentials needed."}
+            : "Local provider: no credentials needed."}
         </div>
       ) : (
         <div className="space-y-2">

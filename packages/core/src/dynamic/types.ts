@@ -50,7 +50,7 @@ export interface DynamicFinding {
 export interface DynamicPlaybookContext {
   target: DynamicTarget;
   fetch: (req: DynamicProbeRequest) => Promise<DynamicProbeResponse>;
-  /** URL-allowlist is enforced *above* this function — callers can't
+  /** URL-allowlist is enforced *above* this function; callers can't
    * reach anything not in scope. */
   logger?: (event: string, data?: Record<string, unknown>) => void;
 }

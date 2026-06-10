@@ -18,7 +18,7 @@ import {
 import { resolveScanTargetPath } from "../../lib/ohpen-cwd";
 
 /**
- * In-browser equivalent of `opt connect` — collects the output lines
+ * In-browser equivalent of `opt connect`: collects the output lines
  * so the inline terminal UI can replay them like a real shell session.
  *
  * Keeps the logic in lock-step with packages/cli/src/commands/connect.ts
@@ -49,7 +49,7 @@ export async function connectInlineAction(
     kind: "cmd",
     text: `opt connect --provider ${providerId}${opts.model ? ` --model ${opts.model}` : ""}`,
   });
-  lines.push({ kind: "info", text: "🍅 Oh Pen Testing — connect an AI" });
+  lines.push({ kind: "info", text: "🍅 Oh Pen Testing: connect an AI" });
   lines.push({
     kind: "detail",
     text: "Marinara needs an AI brain before she can drive the rest of setup.",
@@ -107,14 +107,14 @@ export async function connectInlineAction(
       }
       detail = `reachable at ${DEFAULT_OLLAMA_BASE_URL}`;
     } else {
-      // API-key providers — the terminal panel doesn't collect secrets
+      // API-key providers: the terminal panel doesn't collect secrets
       // inline. Tell the user to either set the env var or use
       // `opt connect` in the terminal which has a masked password prompt.
       lines.push({
         kind: "detail",
         text: `  ${providerId} needs an API key. Paste it in the chat composer after this, or run \`opt connect --provider ${providerId}\` in your terminal for a keychain-backed prompt.`,
       });
-      detail = "API-key provider — next: paste the key";
+      detail = "API-key provider, next: paste the key";
     }
   } catch (err) {
     lines.push({ kind: "error", text: `✖ ${(err as Error).message}` });

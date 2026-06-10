@@ -20,13 +20,13 @@ import {
 } from "@oh-pen-testing/providers-ollama";
 
 /**
- * `opt connect` — the first-time AI bootstrap, run from the terminal
+ * `opt connect`: the first-time AI bootstrap, run from the terminal
  * where PATH actually works.
  *
  * Why this exists: when the web UI's `next dev` subprocess tries to
  * spawn `claude`, it inherits whatever PATH the dev-server inherited,
  * which on macOS + IDE launchers is often just /usr/bin:/bin. The CLI
- * doesn't have that problem — it sees the user's real PATH — so
+ * doesn't have that problem (it sees the user's real PATH) so
  * running the AI connection here succeeds cleanly, writes the result
  * to config.yml, and the web UI opens in an already-connected state.
  */
@@ -34,7 +34,7 @@ export function registerConnect(program: Command): void {
   program
     .command("connect")
     .description(
-      "Connect an AI provider from the terminal — writes the choice to .ohpentesting/config.yml so the web wizard can skip the provider step.",
+      "Connect an AI provider from the terminal: writes the choice to .ohpentesting/config.yml so the web wizard can skip the provider step.",
     )
     .option(
       "--provider <id>",
@@ -61,7 +61,7 @@ export function registerConnect(program: Command): void {
         }
 
         // eslint-disable-next-line no-console
-        console.log(pc.bold("\n🍅 Oh Pen Testing — connect an AI"));
+        console.log(pc.bold("\n🍅 Oh Pen Testing: connect an AI"));
         // eslint-disable-next-line no-console
         console.log(
           pc.dim(
@@ -75,23 +75,23 @@ export function registerConnect(program: Command): void {
             choices: [
               {
                 value: "claude-code-cli",
-                name: "Claude Code CLI  —  uses your local `claude` session, no API cost",
+                name: "Claude Code CLI  –  uses your local `claude` session, no API cost",
               },
               {
                 value: "claude-api",
-                name: "Claude API       —  Anthropic API key, billed per token",
+                name: "Claude API       –  Anthropic API key, billed per token",
               },
               {
                 value: "openai",
-                name: "OpenAI API       —  OpenAI API key",
+                name: "OpenAI API       –  OpenAI API key",
               },
               {
                 value: "openrouter",
-                name: "OpenRouter       —  routes across many models",
+                name: "OpenRouter       –  routes across many models",
               },
               {
                 value: "ollama",
-                name: "Ollama           —  local models on localhost:11434",
+                name: "Ollama           –  local models on localhost:11434",
               },
             ],
             default: config.ai.primary_provider,
@@ -148,7 +148,7 @@ export function registerConnect(program: Command): void {
           pc.bold("\nNext: ") +
             `${pc.cyan("opt setup")} ` +
             pc.dim(
-              "— Marinara will pick up from here in the web wizard, or just run `opt scan` when you're ready.",
+              ": Marinara will pick up from here in the web wizard, or just run `opt scan` when you're ready.",
             ),
         );
       },

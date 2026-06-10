@@ -27,7 +27,7 @@ const FORMATS = [
     ext: ".md",
     title: "Markdown",
     tag: "human-readable",
-    desc: "A structured narrative report — executive summary, findings by severity, per-issue analysis, and remediation status. Drop it into Notion, Confluence, or a GitHub issue.",
+    desc: "A structured narrative report: executive summary, findings by severity, per-issue analysis, and remediation status. Drop it into Notion, Confluence, or a GitHub issue.",
   },
   {
     flag: "json",
@@ -58,7 +58,7 @@ export default function ReportsPage() {
       <PageHeader
         kicker="La Guida · 05"
         title="Reports"
-        sub="Export findings in four formats — from a quick markdown summary to a consultancy-grade PDF."
+        sub="Export findings in four formats, from a quick markdown summary to a consultancy-grade PDF."
         actions={
           <BtnLink href="/docs/install" variant="ghost">
             ← Back to Install

@@ -13,7 +13,7 @@ import { saveSettingsAction, saveRiskyAction } from "./actions";
 import { Btn } from "../../components/trattoria/button";
 
 /**
- * Risky test toggles — all off by default. These live behind the
+ * Risky test toggles, all off by default. These live behind the
  * "Advanced" collapsible so new users don't accidentally flip on
  * state-mutating probes.
  */
@@ -80,7 +80,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
     initial.agents.autonomy,
   );
   const [parallelism, setParallelism] = useState(initial.agents.parallelism);
-  // Nonna's review pass — head-chef agent inspects every patch
+  // Nonna's review pass: head-chef agent inspects every patch
   // before commit. On by default; off saves ~1 extra AI call per
   // remediation. Tracked separately from autonomy because the two
   // concerns are orthogonal (autonomy = "do I need a human"; review
@@ -112,7 +112,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
         reviewEnabled,
       });
       // Persist risky toggles only if the user has actually unlocked
-      // the advanced panel — prevents a default-off form from clobbering
+      // the advanced panel; prevents a default-off form from clobbering
       // a flag someone set via config.yml directly.
       if (advancedUnlocked) {
         await saveRiskyAction(risky);
@@ -183,7 +183,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
             max={16}
           />
 
-          {/* Nonna's review — head-chef quality gate. Default on. */}
+          {/* Nonna's review: head-chef quality gate. Default on. */}
           <div className="mt-3">
             <Label>Head-chef review (Nonna 👵)</Label>
             <button
@@ -199,7 +199,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
             >
               <div className="text-[12px] font-bold flex items-center justify-between">
                 <span>
-                  {reviewEnabled ? "✓ On" : "Off"} — Nonna reviews every
+                  {reviewEnabled ? "✓ On" : "Off"}: Nonna reviews every
                   patch
                 </span>
                 <span
@@ -217,7 +217,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
               >
                 A head-chef agent inspects every worker&rsquo;s patch
                 BEFORE it&rsquo;s committed. If she finds the fix wrong or
-                sloppy, she sends the worker back for one retry — then
+                sloppy, she sends the worker back for one retry, then
                 ships regardless (no infinite loop). Costs ~1 extra AI
                 call per remediation; catches a lot of bad patches before
                 they become PRs.
@@ -256,7 +256,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
         </Card>
       </div>
 
-      {/* Advanced — risky scan toggles, locked by default */}
+      {/* Advanced: risky scan toggles, locked by default */}
       <div className="mt-5">
         <div
           className="rounded-xl overflow-hidden"
@@ -296,7 +296,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
                 {advancedUnlocked ? "Advanced" : "🔒 Advanced"}
               </div>
               <div className="text-[12px] text-ink-soft mt-0.5">
-                Risky tests — state-mutating probes. All off by default.
+                Risky tests: state-mutating probes. All off by default.
                 Only flip these on after you&rsquo;ve read what each one
                 does.
               </div>
@@ -330,7 +330,7 @@ export function SettingsForm({ initial }: { initial: Config }) {
                 }}
               >
                 <strong>⚠ Dev / staging only.</strong> These probes make
-                real requests — they can send emails, upload files, and
+                real requests: they can send emails, upload files, and
                 mutate state. Never point them at production unless you
                 have explicit authorisation and rollback.
               </div>
@@ -662,7 +662,7 @@ function ModelPicker({
             {c.label}
           </option>
         ))}
-        <option value="__custom__">Custom — type a model id…</option>
+        <option value="__custom__">Custom: type a model id…</option>
       </select>
       {current?.note && !showCustom && (
         <div

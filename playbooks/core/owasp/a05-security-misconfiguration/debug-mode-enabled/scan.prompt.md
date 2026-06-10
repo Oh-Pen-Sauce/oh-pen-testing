@@ -7,6 +7,6 @@ Do NOT confirm when:
 - The file is under `tests/`, `settings/development.py`, or similar dev-scoped paths.
 
 Severity:
-- `critical` — Django DEBUG=True with ALLOWED_HOSTS configured for production.
-- `high` — debug flag unconditionally True in main app file.
-- `medium` — error handler returns stack traces to clients.
+- `critical`: Django DEBUG=True with ALLOWED_HOSTS configured for production.
+- `high`: debug flag unconditionally True in main app file.
+- `medium`: error handler returns stack traces to clients.

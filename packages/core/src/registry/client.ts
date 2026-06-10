@@ -164,7 +164,7 @@ export async function installPlaybook(
       written.push(outPath);
     }
   } catch (err) {
-    // Roll back — leave no half-verified playbook behind.
+    // Roll back: leave no half-verified playbook behind.
     await fs.rm(destDir, { recursive: true, force: true });
     throw err;
   }

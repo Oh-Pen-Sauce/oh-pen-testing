@@ -89,7 +89,7 @@ function buildBody(p: {
   explanation: string;
   filesChanged: string[];
 }): string {
-  return `## 🛡️ Oh Pen Testing fix — ${p.issue.id}
+  return `## 🛡️ Oh Pen Testing fix - ${p.issue.id}
 
 **Fixed by:** ${p.agentName} ${p.agentEmoji}
 

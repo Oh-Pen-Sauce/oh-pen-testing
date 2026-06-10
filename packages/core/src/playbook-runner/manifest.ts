@@ -21,13 +21,13 @@ export type ScaSource = z.infer<typeof ScaSourceSchema>;
 /**
  * How invasive a playbook is at runtime.
  *
- *   safe       — pure static analysis on source files; no network,
+ *   safe       : pure static analysis on source files; no network,
  *                no process side-effects. Regex & AST playbooks.
- *   read-only  — makes outbound requests but only GETs. Cannot cause
+ *   read-only  : makes outbound requests but only GETs. Cannot cause
  *                state change on the target (header probes, etc.).
- *   probe      — sends POST/PUT but the target can always safely
+ *   probe      : sends POST/PUT but the target can always safely
  *                replay; no emails sent, no persistent writes.
- *   mutating   — may cause real-world side-effects (emails sent,
+ *   mutating   : may cause real-world side-effects (emails sent,
  *                files uploaded, rate-limit counters incremented).
  *                These are the ones that can lock out real users if
  *                run against production.
@@ -60,7 +60,7 @@ export const PlaybookManifestSchema = z.object({
   description: z.string().default(""),
   risky: z.boolean().default(false),
   /**
-   * Risk profile — drives UI badges and whether the playbook is
+   * Risk profile: drives UI badges and whether the playbook is
    * eligible for the starter scan. Defaults to 'safe' since every
    * regex playbook that doesn't explicitly declare itself higher-risk
    * is by definition a static-only scan.

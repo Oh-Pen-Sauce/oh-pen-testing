@@ -9,7 +9,7 @@ import { Fragment, type ReactNode } from "react";
  *   - `` `code` `` → inline code
  *   - `[label](url)` → external link
  *
- * Lists aren't parsed as block elements — the model is instructed to
+ * Lists aren't parsed as block elements: the model is instructed to
  * emit `1. `, `2. ` literal prefixes inside its string, and the `\n`
  * treatment takes care of the layout.
  *
@@ -40,7 +40,7 @@ export function renderMiniMarkdown(source: string): ReactNode {
  *
  * The captured content of bold and link-label is recursed through this
  * same function so nesting works. The AI very commonly emits
- * `**[label](url)**` — a link inside bold — and both the link and the
+ * `**[label](url)**`, a link inside bold, and both the link and the
  * bold need to render. Code spans are NOT recursed; their content is
  * literal by design.
  */
@@ -55,9 +55,9 @@ function renderInline(line: string): ReactNode[] {
     parts.push(<Fragment key={`m-${keyIdx++}`}>{node}</Fragment>);
   };
 
-  // Combined regex — whichever formatter matches first wins, and the
+  // Combined regex: whichever formatter matches first wins, and the
   // outer loop keeps going on the remainder.
-  //   group 1: **bold** — non-greedy so consecutive **a** **b** don't merge
+  //   group 1: **bold**, non-greedy so consecutive **a** **b** don't merge
   //   group 2: `code`
   //   group 3: [text](url)
   //   group 4: url (capture inside group 3)
@@ -109,7 +109,7 @@ function renderInline(line: string): ReactNode[] {
           </a>,
         );
       } else {
-        // Unsafe / relative link — render as plain text so we don't
+        // Unsafe / relative link: render as plain text so we don't
         // ever emit a javascript: href.
         pushPlain(`${m[3]} (${href})`);
       }

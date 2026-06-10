@@ -25,15 +25,15 @@ choice:
 
 > *"Autonomy controls how much I'll do on my own. Four modes, from
 > most cautious to most aggressive:*
-> - *🧐 **Careful** — I pause on every fix for you to approve. Slower, zero surprises.*
-> - *👨‍🍳 **Recommended** — auto-land small fixes, pause on critical / auth / secrets / >200-line diffs. My default.*
-> - *🏃 **YOLO** — open PRs freely, still pause on auth & secrets.*
-> - *🔥 **Full YOLO** — fix everything, no gates. Dev/test only, never prod.*
+> - *🧐 **Careful**: I pause on every fix for you to approve. Slower, zero surprises.*
+> - *👨‍🍳 **Recommended**: auto-land small fixes, pause on critical / auth / secrets / >200-line diffs. My default.*
+> - *🏃 **YOLO**: open PRs freely, still pause on auth & secrets.*
+> - *🔥 **Full YOLO**: fix everything, no gates. Dev/test only, never prod.*
 >
 > *What's this repo: prod, staging, or a personal side project?"*
 
-Based on their answer, **recommend** a mode and ask them to confirm —
-don't pick silently. Rule of thumb: prod → Careful or Recommended,
+Based on their answer, **recommend** a mode and ask them to confirm.
+Don't pick silently. Rule of thumb: prod → Careful or Recommended,
 staging/personal → YOLO, throwaway dev → Full YOLO.
 
 ## The four modes
@@ -54,7 +54,7 @@ staging/personal → YOLO, throwaway dev → Full YOLO.
 - "I want to review everything" → `careful`
 - "Run on the test account" → `full-yolo`
 
-When ambiguous, **ask** rather than guess. Autonomy is a material choice — wrong pick either clogs the reviews queue or ships risky PRs silently.
+When ambiguous, **ask** rather than guess. Autonomy is a material choice: wrong pick either clogs the reviews queue or ships risky PRs silently.
 
 ## After setting
 

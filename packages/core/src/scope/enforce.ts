@@ -36,7 +36,7 @@ export function enforceTimeWindows(
  * Enforce allowed_targets policy.
  *
  * For static scanning (v0.5) we interpret `scope.allowed_targets` as path
- * prefixes the scanner may walk. An empty list means "the cwd only" —
+ * prefixes the scanner may walk. An empty list means "the cwd only":
  * the default, safe behaviour for the single-repo use case.
  *
  * A target is allowed if:
@@ -79,7 +79,7 @@ function matchesAllowedTarget(
   allowed: string,
   target: string,
 ): boolean {
-  // URL match — exact origin compare.
+  // URL match: exact origin compare.
   if (/^https?:\/\//i.test(allowed) || /^https?:\/\//i.test(target)) {
     try {
       return new URL(allowed).origin === new URL(target).origin;

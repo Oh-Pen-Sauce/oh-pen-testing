@@ -9,7 +9,7 @@ export default async function ProjectsPage() {
   return (
     <div>
       <PageHeader
-        kicker="08 — I Cantieri"
+        kicker="08 – I Cantieri"
         title={<>Projects</>}
         sub={
           <>
@@ -22,7 +22,7 @@ export default async function ProjectsPage() {
               ~/.ohpentesting/projects/
             </code>{" "}
             using your GitHub PAT. One project is <strong>active</strong> at
-            a time — that&rsquo;s what scans read from.
+            a time. That&rsquo;s what scans read from.
           </>
         }
       />

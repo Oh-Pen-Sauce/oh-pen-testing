@@ -4,7 +4,7 @@ import path from "node:path";
 import { z } from "zod";
 
 /**
- * Managed-projects registry — the multi-project story for Oh Pen
+ * Managed-projects registry: the multi-project story for Oh Pen
  * Testing.
  *
  * Without this, Oh Pen Testing scans whatever directory the web
@@ -31,7 +31,7 @@ import { z } from "zod";
  */
 
 export const ManagedProjectSchema = z.object({
-  /** GitHub owner/name — primary key for the registry. */
+  /** GitHub owner/name, the primary key for the registry. */
   id: z.string().regex(/^[\w.-]+\/[\w.-]+$/, "Must be owner/name"),
   owner: z.string().min(1),
   name: z.string().min(1),
@@ -75,7 +75,7 @@ export function defaultClonePath(owner: string, name: string): string {
 
 /**
  * Load the registry. Returns an empty registry on first use / read
- * error — callers don't need to special-case "never opened".
+ * error. Callers don't need to special-case "never opened".
  */
 export async function loadProjectRegistry(): Promise<ProjectRegistry> {
   try {
@@ -98,7 +98,7 @@ async function writeProjectRegistry(reg: ProjectRegistry): Promise<void> {
   try {
     await fs.chmod(registryPath(), 0o600);
   } catch {
-    /* windows — best effort */
+    /* windows: best effort */
   }
 }
 
@@ -157,7 +157,7 @@ export async function setActiveProject(id: string | null): Promise<void> {
 }
 
 /**
- * Remove a project entry (registry only — does NOT delete the
+ * Remove a project entry (registry only, does NOT delete the
  * clone on disk). Callers that want to delete the clone too should
  * do so themselves with a separate fs.rm().
  */
@@ -170,7 +170,7 @@ export async function removeProjectFromRegistry(id: string): Promise<void> {
 }
 
 /**
- * Update lastFetchedAt for a project — called after a git pull
+ * Update lastFetchedAt for a project, called after a git pull
  * succeeds.
  */
 export async function markProjectFetched(id: string): Promise<void> {

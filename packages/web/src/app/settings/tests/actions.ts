@@ -10,7 +10,7 @@ import { resolveScanTargetPath } from "../../../lib/ohpen-cwd";
 
 /**
  * Save the set of disabled playbook ids. The Tests catalog UI calls
- * this with the full list on each toggle — simpler than a
+ * this with the full list on each toggle; simpler than a
  * per-playbook add/remove action and the array is small (~30 entries
  * at the top end).
  */

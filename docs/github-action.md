@@ -37,7 +37,7 @@ jobs:
 | input | default | description |
 |---|---|---|
 | `provider` | `claude-api` | `claude-api` / `claude-code-cli` / `ollama` |
-| `anthropic-api-key` | — | Required when `provider=claude-api` |
+| `anthropic-api-key` | (none) | Required when `provider=claude-api` |
 | `github-token` | `${{ github.token }}` | Token for PR comments + remediation PRs |
 | `autonomy` | `careful` | `full-yolo` / `yolo` / `recommended` / `careful` |
 | `fail-on` | `high` | Fail the workflow if findings at or above this severity exist |

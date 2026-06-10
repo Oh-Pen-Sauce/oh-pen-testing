@@ -24,7 +24,7 @@ export default async function ScanDetailPage({
         </Link>
       </div>
       <PageHeader
-        kicker="05 — Il Registro"
+        kicker="05 – Il Registro"
         title={scan.id}
         sub={`Status: ${scan.status} · Provider: ${scan.provider}`}
       />
@@ -37,7 +37,7 @@ export default async function ScanDetailPage({
       >
         <dl className="space-y-0 text-[13px]">
           <Field label="Started" value={scan.started_at} />
-          <Field label="Ended" value={scan.ended_at ?? "—"} />
+          <Field label="Ended" value={scan.ended_at ?? "–"} />
           <Field label="Provider" value={scan.provider} />
           <Field
             label="Playbooks run"
@@ -51,7 +51,7 @@ export default async function ScanDetailPage({
             scan.playbooks_filtered_by_language > 0 && (
               <Field
                 label="Not applicable"
-                value={`${scan.playbooks_filtered_by_language} (language filter — playbooks for stacks your project doesn't use, e.g. Python, Docker, Terraform)`}
+                value={`${scan.playbooks_filtered_by_language} (language filter: playbooks for stacks your project doesn't use, e.g. Python, Docker, Terraform)`}
               />
             )}
           {scan.playbooks_disabled !== undefined &&
@@ -64,7 +64,7 @@ export default async function ScanDetailPage({
           {scan.playbooks_skipped > 0 && (
             <Field
               label="Skipped during run"
-              value={`${scan.playbooks_skipped} (started but bailed — bad rules, errored, or no candidates to AI-confirm)`}
+              value={`${scan.playbooks_skipped} (started but bailed: bad rules, errored, or no candidates to AI-confirm)`}
             />
           )}
           <Field label="Issues found" value={scan.issues_found.toString()} />
@@ -72,7 +72,7 @@ export default async function ScanDetailPage({
           <Field label="Tokens spent" value={scan.tokens_spent.toString()} />
           <Field
             label="Cost (USD)"
-            value={scan.cost_usd ? `$${scan.cost_usd.toFixed(2)}` : "—"}
+            value={scan.cost_usd ? `$${scan.cost_usd.toFixed(2)}` : "–"}
             last
           />
         </dl>

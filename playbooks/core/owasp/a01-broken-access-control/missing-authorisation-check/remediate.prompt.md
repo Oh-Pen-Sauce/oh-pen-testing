@@ -8,7 +8,7 @@ Strategy:
    - `Depends(get_current_user)`, `Depends(require_auth)` in FastAPI
    - `@login_required`, `@permission_required` in Django/Flask
 2. If one is importable in this file (or a sibling already uses it), apply it at the route definition. Match the sibling route's style.
-3. If no auth middleware exists yet, do NOT scaffold one — set `auto_fixable: false` via a confirmation that says "needs project-level auth middleware first." Open the issue for human review.
+3. If no auth middleware exists yet, do NOT scaffold one. Set `auto_fixable: false` via a confirmation that says "needs project-level auth middleware first." Open the issue for human review.
 4. Preserve the handler body exactly. The only change is adding the middleware or Depends() call.
 
-Env var / new import: likely none — auth middleware is usually already imported in the same module for other routes.
+Env var / new import: likely none. Auth middleware is usually already imported in the same module for other routes.
