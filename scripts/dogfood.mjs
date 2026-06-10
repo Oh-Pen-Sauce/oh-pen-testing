@@ -25,6 +25,12 @@ const ALLOWLIST_PREFIXES = [
   "playbooks/core/",                       // fixtures are meant to match
   "docs/",                                 // examples in docs
   "tests/",                                // integration tests use documented AWS dummy
+  // Documentation and onboarding assets carry intentional "bad code"
+  // examples (weak password policy, rejectUnauthorized: false, etc.)
+  // that teach what the scanner catches. They are not real findings.
+  "packages/shared/src/setup-assistant/assets/",
+  "packages/shared/src/agents/assets/",
+  "packages/web/src/app/docs/",
   "PRD.md",
   "FUTURE_FEATURES.md",
   "CHANGELOG.md",
@@ -35,14 +41,31 @@ const ALLOWLIST_PREFIXES = [
   "Formula/",
 ];
 
-// Explicit per-file allowlist for test files outside `tests/`.
-const ALLOWLIST_FILES = new Set([
-  "packages/shared/src/sarif.test.ts",
-]);
-
 function allowlisted(relPath) {
-  if (ALLOWLIST_FILES.has(relPath)) return true;
+  // Test files anywhere carry intentional patterns (the screen tests
+  // assert on literal eval(/document.write(, fixtures, etc.).
+  if (relPath.endsWith(".test.ts") || relPath.endsWith(".test.tsx")) {
+    return true;
+  }
   return ALLOWLIST_PREFIXES.some((p) => relPath.startsWith(p));
+}
+
+/**
+ * IaC playbooks (compose / Dockerfile / k8s / terraform) target infra
+ * files, not application source. Without this scope they false-match
+ * ordinary TypeScript (e.g. `inputTokens: response` tripping a
+ * compose plaintext-password rule). The production scanner should grow
+ * the same file-type awareness; until then, scope it here so the
+ * self-scan is honest. See Phase 5 (framework/file awareness).
+ */
+function isIacFile(relPath) {
+  const base = path.basename(relPath).toLowerCase();
+  return (
+    base.includes("dockerfile") ||
+    relPath.endsWith(".tf") ||
+    relPath.endsWith(".yml") ||
+    relPath.endsWith(".yaml")
+  );
 }
 
 async function main() {
@@ -64,10 +87,14 @@ async function main() {
         ? playbook.manifest.rules
         : getBuiltinRules(playbook.manifest.id);
     if (rules.length === 0) continue;
+    const scanFiles =
+      playbook.manifest.category === "iac"
+        ? files.filter((f) => isIacFile(f.relativePath))
+        : files;
     const found = runRegexScan({
       playbookId: playbook.manifest.id,
       rules,
-      files,
+      files: scanFiles,
     });
     hits.push(...found);
   }

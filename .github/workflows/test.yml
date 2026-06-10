@@ -7,17 +7,49 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    # Run on Linux and macOS: the git-adapters and scaffold shell out to
+    # git and the OS, and most end users invoke the CLI on macOS.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
           version: 10
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
-      - run: pnpm install --frozen-lockfile=false
-      - run: pnpm turbo run typecheck
-      - run: pnpm turbo run build
-      - run: pnpm turbo run test
+
+      # Frozen: the committed lockfile is the source of truth. A PR that
+      # changes package.json without updating the lockfile fails here
+      # instead of silently resolving fresh.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+
+      - name: Build
+        run: pnpm turbo run build
+
+      - name: Test + coverage
+        run: pnpm coverage
+
+      # Self-scan: run our own regex playbooks against our own source.
+      # Makes the SECURITY.md "we dogfood every release" claim true.
+      - name: Dogfood
+        run: pnpm dogfood
+
+      # Advisory: surfaces known-vulnerable dependencies without blocking
+      # the build on a transitive advisory we cannot immediately fix.
+      - name: Dependency audit (advisory)
+        run: pnpm audit --audit-level=high || true

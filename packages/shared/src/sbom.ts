@@ -63,7 +63,7 @@ async function collectFromPython(cwd: string): Promise<SbomComponent[]> {
   for (const line of req.split("\n")) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith("#") || trimmed.startsWith("-")) continue;
-    const match = trimmed.match(/^([\w.\-]+)\s*==\s*([\w.\-+]+)/);
+    const match = trimmed.match(/^([\w.-]+)\s*==\s*([\w.+-]+)/);
     if (!match) continue;
     const [, name, version] = match;
     out.push({

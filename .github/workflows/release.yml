@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write   # needed to create the GitHub Release
+  id-token: write   # needed for npm provenance (OIDC attestation)
 
 jobs:
   release:
@@ -27,7 +28,10 @@ jobs:
           registry-url: "https://registry.npmjs.org"
 
       - name: Install
-        run: pnpm install --frozen-lockfile=false
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Typecheck
         run: pnpm turbo run typecheck
@@ -46,7 +50,7 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          pnpm --filter "@oh-pen-testing/*" --no-git-checks publish --access public
+          pnpm --filter "@oh-pen-testing/*" --no-git-checks publish --access public --provenance
 
       - name: Create GitHub Release
         env:
