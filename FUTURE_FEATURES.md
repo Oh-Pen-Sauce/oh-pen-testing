@@ -50,10 +50,10 @@ Move from "curated-only" to "curated core + community-contributed, signed" model
 Expand playbook library from OWASP Top 10 to OWASP ASVS's several-hundred requirements. Generate compliance matrix: "Your codebase covers X/Y of ASVS L1, here are the gaps."
 
 ### Full OWASP WSTG implementation
-Web Security Testing Guide has ~90 tests; v0.5 ships ~30 core items. v1.0 covers the full set.
+The Web Security Testing Guide has roughly 90 tests. v1.0 ships 2 of them (clickjacking via missing frame options, JWT weak secret). This item covers the rest.
 
 ### CWE Top 25 full coverage
-v0.5 ships 15 critical items; v1.0 covers all 25.
+v1.0 ships 3 dedicated CWE Top 25 playbooks (open redirect, path traversal, unrestricted upload); several more are covered via OWASP overlap. This item brings dedicated coverage to all 25.
 
 ---
 

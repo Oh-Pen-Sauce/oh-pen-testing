@@ -2,6 +2,24 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.0.3] - 2026-05-17
+
+Setup polish and in-app docs. Thanks to Joe (@Veridex-AI) for the fix-pack (PR #2).
+
+### Fixed
+- **`opt setup` first-run reliability.** Port-in-use is detected before bind, with a clear error and a remediation hint. The CLI now health-polls the wizard over HTTP (300ms interval, 30s cap) before opening the browser instead of sleeping, so the browser no longer opens to a blank page on slower machines.
+- **Init guard.** `opt scan`, `opt remediate`, and `opt verify` print a friendly "no `.ohpentesting/config.yml` found, run `opt setup`" message instead of a stack trace when run before setup.
+- **Hook-manager detection.** Setup no longer overwrites `.git/hooks/pre-commit` when husky or lefthook is present; it tells you how to wire `opt check` into your existing config instead.
+
+### Added
+- **`--port <n>` flag** on `opt setup` to override the default 7676.
+- **In-app `/docs` section** in the web wizard (install, setup, first scan, agents, reports).
+- **"Done" pill** on completed wizard steps.
+- **LICENSE file** at the repo root (the `package.json` already declared MIT).
+
+### Changed
+- README provider list corrected to what ships today (Claude API, Claude Code CLI, Ollama); OpenAI and OpenRouter noted as next.
+
 ## [1.0.2] — 2026-04-29
 
 ### Fixed
@@ -10,6 +28,22 @@ All notable changes to Oh Pen Testing are documented here. Format: [Keep a Chang
   - `setup.ts` resolves the web package via Node module resolution (`createRequire` → `@oh-pen-testing/web/package.json`) and spawns `next start` directly using the `next` binary resolved from the web package — no `pnpm` required at runtime. A monorepo-dev fallback path is preserved.
   - `next.config.ts` → `next.config.mjs`. The published web tarball ships only runtime deps (no `typescript`), and Next 15's TS-config loader was hot-installing `typescript` via pnpm at first `next start`. Plain ESM config skips that detour — the wizard boots immediately even on machines without pnpm. Type safety preserved via a JSDoc `@type {import("next").NextConfig}` annotation.
 - **`CLI_VERSION` in `packages/cli/src/index.ts` now follows package.json.** Hardcoded constant got missed in the 1.0.1 bump, so `opt --version` printed `1.0.0` against an npm-installed `1.0.1`. Now both report `1.0.2`.
+
+## [1.0.1] - 2026-04-28
+
+### Fixed
+- Packaging fixes ahead of the 1.0.2 setup-wizard repair. The 1.0.1 tarball did not ship the web wizard build; see 1.0.2 for the full story and resolution.
+
+## [1.0.0] - 2026-04-21
+
+PRD feature-complete. First public release.
+
+### Added
+- Playbook catalogue across OWASP Top 10, a CWE Top 25 subset, IaC, secrets, and WSTG, every regex playbook gated by positive and negative fixtures in CI.
+- AI-confirmed scanning: deterministic regex discovery, then provider confirmation with evidence separated from AI analysis.
+- Pasta-named remediation agents (Marinara, Carbonara, Alfredo, Pesto) with a work-stealing queue and autonomy gating (Careful, Recommended, YOLO).
+- Reports in Markdown, JSON, SARIF 2.1.0, and PDF.
+- GitHub PR remediation and scheduled scans (launchd on macOS, crontab on Linux).
 
 ## [0.6.0] — 2026-04-21
 

@@ -20,7 +20,7 @@ npx @oh-pen-testing/cli@latest setup
 
 # Zero config if you have `claude` on PATH (Claude Code CLI session).
 # Otherwise the wizard walks you through provider + credentials.
-export GITHUB_TOKEN=ghp_…                   # for PR opening (optional at first)
+export GITHUB_TOKEN=ghp_…   # optional, only needed for PR opening. The setup wizard can store this for you too.
 
 # After setup completes, scan, triage, remediate, verify:
 opt scan
@@ -101,7 +101,7 @@ npm install -g @oh-pen-testing/cli
 That gives you `opt` and `oh-pen-testing` on your PATH. Verify:
 
 ```bash
-opt --version   # 1.0.3
+opt --version   # prints your installed version
 ```
 
 ### npx — try without installing
@@ -111,7 +111,7 @@ cd /path/to/your/project
 npx @oh-pen-testing/cli@latest setup
 ```
 
-Downloads on first run, caches for subsequent invocations.
+Downloads on first run, caches for subsequent invocations. The bundle includes the Next.js web wizard, so the first install pulls a few hundred MB. After that, the tool runs entirely offline.
 
 ### Homebrew *(coming soon — tap pending publish)*
 
@@ -124,7 +124,7 @@ brew install oh-pen-testing
 
 ```bash
 docker run --rm -v "$PWD":/workspace -w /workspace \
-  ghcr.io/oh-pen-sauce/oh-pen-testing:1.0.0 opt setup
+  ghcr.io/oh-pen-sauce/oh-pen-testing:latest opt setup
 ```
 
 ### From source (for contributors)

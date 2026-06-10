@@ -84,16 +84,14 @@ versions, use `pnpm -r` so all published packages move together —
 see [PUBLISHING.md](./PUBLISHING.md) for the full release runbook
 including dependency-order publish.
 
-### Publish state — PAUSED
+### Publish state: LIVE on npm
 
-As of commit `45d8256`, every package is prepped for npm publish
-(`private: true` removed from the 11 publishable packages,
-`publishConfig.access: public` set, pack-and-install smoke test green).
-**Sam has explicitly paused publishing to keep iterating on UX during
-beta.** Do not run `pnpm publish` until he says "publish now". When
-he does:
+All 12 workspace packages publish to npm under the `@oh-pen-testing/*`
+scope. Latest release: **v1.0.3** (2026-05-17). Publishing is active.
 
-- Default to `--tag beta` on version `1.0.0-beta.0` (discussed with Sam;
-  right track for an iterating project)
-- Follow [PUBLISHING.md](./PUBLISHING.md) end-to-end — don't shortcut
-  the pack + install smoke test (§ 4), that's the durable backstop
+To cut a release: bump versions with `pnpm -r`, update `CLI_VERSION` in
+`packages/cli/src/index.ts`, add a `CHANGELOG.md` section, tag `vX.Y.Z`,
+and follow [PUBLISHING.md](./PUBLISHING.md) end-to-end. Never shortcut the
+pack + install smoke test (§ 4); it is the durable backstop and has already
+caught a broken tarball once (the 1.0.1 release shipped without the web
+wizard, fixed in 1.0.2).
