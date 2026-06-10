@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   buildDefaultConfig,
   type Config,
@@ -7,6 +10,7 @@ import {
 import {
   enforceTargetAllowed,
   enforceTimeWindows,
+  resolvePathWithinRepo,
   resolveRateLimitProfile,
 } from "./enforce.js";
 
@@ -100,6 +104,54 @@ describe("enforceTargetAllowed", () => {
         "https://production.myapp.local/api",
       ),
     ).toThrowError(ScopeViolation);
+  });
+});
+
+describe("resolvePathWithinRepo", () => {
+  let repo: string;
+  let outside: string;
+  beforeEach(async () => {
+    repo = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "ohpen-repo-")));
+    outside = await fs.realpath(await fs.mkdtemp(path.join(os.tmpdir(), "ohpen-out-")));
+  });
+  afterEach(async () => {
+    await fs.rm(repo, { recursive: true, force: true });
+    await fs.rm(outside, { recursive: true, force: true });
+  });
+
+  it("returns the absolute path for an in-repo file", async () => {
+    await fs.writeFile(path.join(repo, "a.ts"), "x", "utf-8");
+    const abs = await resolvePathWithinRepo(repo, "a.ts");
+    expect(abs).toBe(path.join(repo, "a.ts"));
+  });
+
+  it("allows a not-yet-existing in-repo file (new .env.example)", async () => {
+    const abs = await resolvePathWithinRepo(repo, ".env.example");
+    expect(abs).toBe(path.join(repo, ".env.example"));
+  });
+
+  it("refuses a lexical traversal escape", async () => {
+    await expect(
+      resolvePathWithinRepo(repo, "../../etc/passwd"),
+    ).rejects.toThrowError(ScopeViolation);
+  });
+
+  it("refuses a symlink that points outside the repo", async () => {
+    // Plant a target outside the repo, then a symlink inside the repo
+    // that points at it. The lexical path looks in-repo; only realpath
+    // catches the escape.
+    await fs.writeFile(path.join(outside, "loot.txt"), "secret", "utf-8");
+    await fs.symlink(path.join(outside, "loot.txt"), path.join(repo, "link.txt"));
+    await expect(
+      resolvePathWithinRepo(repo, "link.txt"),
+    ).rejects.toThrowError(ScopeViolation);
+  });
+
+  it("refuses a file under a symlinked directory pointing outside", async () => {
+    await fs.symlink(outside, path.join(repo, "linkdir"), "dir");
+    await expect(
+      resolvePathWithinRepo(repo, "linkdir/whatever.ts"),
+    ).rejects.toThrowError(ScopeViolation);
   });
 });
 

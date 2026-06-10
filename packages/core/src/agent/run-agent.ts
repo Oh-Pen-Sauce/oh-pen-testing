@@ -14,6 +14,7 @@ import { resetToCleanBranch } from "@oh-pen-testing/git-github";
 import { resolveAgent, type AgentIdentity } from "./agents.js";
 import { loadPlaybooks } from "../playbook-runner/loader.js";
 import { runReview } from "./run-review.js";
+import { resolvePathWithinRepo } from "../scope/enforce.js";
 
 export const RemediationResponseSchema = z.object({
   patched_file_contents: z.string(),
@@ -73,17 +74,40 @@ export function evaluateAutonomyGate(
     return { allowed: false, reason: "careful mode: all fixes require approval" };
   }
 
-  const strategy = issue.remediation?.strategy ?? "";
-  const lowered = (strategy + " " + issue.title).toLowerCase();
+  // Match the gate on DETERMINISTIC, scanner-assigned fields only: the
+  // playbook id (remediation.strategy), the OWASP category, and the CWE
+  // list. Deliberately NOT issue.title. Titles are display strings that
+  // could one day carry model-authored text, and the autonomy gate must
+  // never be relaxable (or trippable) by content that originates in a
+  // scanned repo. These structural fields come from our own scan
+  // pipeline via the matched playbook, so they are safe to trust here.
+  const strategy = (issue.remediation?.strategy ?? "").toLowerCase();
+  const owasp = (issue.owasp_category ?? "").toLowerCase();
+  const cwe = issue.cwe.join(" ").toLowerCase();
+  const signal = `${strategy} ${owasp} ${cwe}`;
+  const has = (...needles: string[]): boolean =>
+    needles.some((n) => signal.includes(n));
+  const owaspIn = (...cats: string[]): boolean =>
+    cats.some((c) => owasp.startsWith(c));
   const triggerReasons: string[] = [];
   for (const t of triggers) {
-    if (t === "auth_changes" && (lowered.includes("auth") || lowered.includes("access-control") || lowered.includes("session"))) {
+    if (
+      t === "auth_changes" &&
+      (has("auth", "access-control", "session", "login") ||
+        owaspIn("a01", "a07"))
+    ) {
       triggerReasons.push(`trigger: ${t}`);
     }
-    if (t === "secrets_rotation" && (lowered.includes("secret") || lowered.includes("password") || lowered.includes("credential"))) {
+    if (
+      t === "secrets_rotation" &&
+      (has("secret", "password", "credential") ||
+        cwe.includes("cwe-798") ||
+        cwe.includes("cwe-259") ||
+        cwe.includes("cwe-321"))
+    ) {
       triggerReasons.push(`trigger: ${t}`);
     }
-    if (t === "schema_migrations" && (lowered.includes("migration") || lowered.includes("schema") || lowered.includes("database"))) {
+    if (t === "schema_migrations" && has("migration", "schema", "database")) {
       triggerReasons.push(`trigger: ${t}`);
     }
     // large_diff is evaluated after we see the proposed patch; skipped here.
@@ -252,7 +276,10 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   const playbook = playbooks.find((p) => p.manifest.id === playbookId);
   const remediatePrompt = playbook?.remediatePrompt;
 
-  const fileAbs = path.join(repoPath, issue.location.file);
+  // Resolve the target through the repo-containment guard before any
+  // read or write. Defends against a tampered issue record pointing at
+  // a path outside the repo (traversal or symlink escape).
+  const fileAbs = await resolvePathWithinRepo(repoPath, issue.location.file);
   const fileContents = await fs.readFile(fileAbs, "utf-8");
 
   let response = await requestRemediation({
@@ -333,13 +360,40 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     await writeIssue(options.cwd, issue);
   }
 
+  // Last-resort screen on a patch that ships only because of the
+  // one-shot retry policy. If the auto-shipped retry smuggles in an
+  // obvious code-execution primitive or balloons in size, hold it for
+  // a human instead of writing it out. Fail-closed.
+  if (reviewVerdict === "rejected_then_retried") {
+    const screen = screenRetriedPatch(
+      fileContents,
+      response.patched_file_contents,
+    );
+    if (!screen.safe) {
+      issue.status = "pending_approval" as Issue["status"];
+      issue.assignee = agent.id;
+      issue.comments.push({
+        author: "nonna",
+        text: `👵 Held for human review: ${screen.reason}. The retried patch was not shipped automatically; inspect it, then approve via the board or \`opt approve --issue ${issue.id}\`.`,
+        at: new Date().toISOString(),
+      });
+      await writeIssue(options.cwd, issue);
+      logger.warn("agent.retry_screen_blocked", {
+        agent: agent.id,
+        issue: issue.id,
+        reason: screen.reason,
+      });
+      throw new AgentApprovalRequired(issue.id, screen.reason, agent.id);
+    }
+  }
+
   // Apply the patch (post-review, post-retry).
   await fs.writeFile(fileAbs, response.patched_file_contents, "utf-8");
   const filesChanged = [issue.location.file];
 
   // Append to .env.example if the agent asked for it
   if (response.env_var_name && response.env_example_addition) {
-    const envExamplePath = path.join(repoPath, ".env.example");
+    const envExamplePath = await resolvePathWithinRepo(repoPath, ".env.example");
     let existing = "";
     try {
       existing = await fs.readFile(envExamplePath, "utf-8");
@@ -491,4 +545,43 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 40);
+}
+
+/**
+ * Narrow static screen for a patch about to ship ONLY because of the
+ * one-shot retry policy (Nonna rejected the first attempt; the second
+ * ships regardless of her verdict). This is not a review; it is a
+ * backstop against the worst case of a poisoned worker plus a poisoned
+ * or fooled reviewer: a "fix" that smuggles in code execution or a
+ * payload that was not in the original file.
+ *
+ * Fail-closed: anything flagged routes the issue to pending_approval
+ * instead of shipping. Deliberately narrow (a newly-introduced eval /
+ * new Function / document.write, or a large size explosion) so it does
+ * not false-gate legitimate fixes. A genuine fix essentially never adds
+ * one of these; switching exec() to execFile(), say, does not.
+ */
+export function screenRetriedPatch(
+  original: string,
+  patched: string,
+): { safe: true } | { safe: false; reason: string } {
+  const patterns: { re: RegExp; label: string }[] = [
+    { re: /\beval\s*\(/g, label: "eval(" },
+    { re: /\bnew\s+Function\s*\(/g, label: "new Function(" },
+    { re: /\bdocument\s*\.\s*write\s*\(/g, label: "document.write(" },
+  ];
+  for (const p of patterns) {
+    const before = (original.match(p.re) ?? []).length;
+    const after = (patched.match(p.re) ?? []).length;
+    if (after > before) {
+      return { safe: false, reason: `retried patch introduces ${p.label}` };
+    }
+  }
+  if (patched.length > original.length * 3 + 2000) {
+    return {
+      safe: false,
+      reason: "retried patch is suspiciously larger than the original file",
+    };
+  }
+  return { safe: true };
 }

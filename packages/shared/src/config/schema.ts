@@ -245,6 +245,7 @@ export type ScopeViolationKind =
   | "authorisation_not_acknowledged"
   | "outside_time_window"
   | "target_not_allowed"
+  | "path_escape"
   | "rate_limit_exceeded";
 
 export class ScopeViolation extends Error {

@@ -33,6 +33,9 @@
     "yaml": "^2.6.1",
     "zod": "^3.23.8"
   },
+  "optionalDependencies": {
+    "keytar": "^7.9.0"
+  },
   "devDependencies": {
     "@types/node": "^22.10.0",
     "@types/pdfkit": "^0.13.9",
