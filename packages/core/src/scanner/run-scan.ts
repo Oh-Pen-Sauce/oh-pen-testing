@@ -26,6 +26,7 @@ import { getBuiltinRules } from "../playbook-runner/builtin-rules/secrets.js";
 import { walkFiles, type WalkedFile } from "./file-walker.js";
 import { runRegexScan } from "./regex-scanner.js";
 import { runScaScan } from "./sca-scanner.js";
+import { runAstScan, hasBuiltinAstCheck } from "./ast-scanner.js";
 import { confirmCandidate } from "./confirm.js";
 import {
   enforceTargetAllowed,
@@ -348,11 +349,92 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
         continue;
       }
 
+      // AST playbooks run a built-in tree-walking check (higher precision
+      // than regex, e.g. eval with a non-literal argument). A type=ast
+      // playbook without a built-in check for its id is skipped.
+      if (playbook.manifest.type === "ast") {
+        if (!hasBuiltinAstCheck(playbook.manifest.id)) {
+          logger.warn("playbook.unsupported_type", {
+            playbookId: playbook.manifest.id,
+            type: "ast (no built-in check)",
+          });
+          scan.playbooks_skipped += 1;
+          continue;
+        }
+        const astHits = runAstScan({ playbookId: playbook.manifest.id, files });
+        logger.info("playbook.ast", {
+          playbookId: playbook.manifest.id,
+          count: astHits.length,
+        });
+        for (const hit of astHits) {
+          const dedupKey = `${hit.playbookId}::${hit.ruleId}::${hit.file}::${hit.lineRange[0]}-${hit.lineRange[1]}`;
+          if (dedupKeys.has(dedupKey)) continue;
+          dedupKeys.add(dedupKey);
+          const issueId = await allocateIssueId(cwd);
+          const issue: Issue = {
+            id: issueId,
+            title: buildIssueTitle(playbook, hit.ruleId, hit.file),
+            severity: playbook.manifest.severity_default,
+            cwe: playbook.manifest.cwe,
+            owasp_category: playbook.manifest.owasp_ref,
+            status: "backlog",
+            assignee: null,
+            discovered_at: new Date().toISOString(),
+            discovered_by: `playbook:${hit.playbookId}/${hit.ruleId}`,
+            scan_id: scanId,
+            location: { file: hit.file, line_range: hit.lineRange },
+            evidence: {
+              rule_id: hit.ruleId,
+              code_snippet: hit.context,
+              match_position: { line: hit.line, column: 0, length: hit.match.length },
+              analysis: `AST check ${hit.ruleId} matched: ${hit.match}.`,
+              ai_reasoning: `AST check ${hit.ruleId} matched: ${hit.match}.`,
+              ai_model: "ast",
+              ai_confidence: "high",
+            },
+            remediation: {
+              strategy: playbook.manifest.id,
+              auto_fixable: true,
+              estimated_diff_size: 4,
+              requires_approval: false,
+            },
+            vulnerability_impact: playbook.manifest.impact,
+            linked_pr: null,
+            verification: {
+              last_run_scan_id: null,
+              last_run_at: null,
+              hits_remaining: null,
+              verified_at: null,
+            },
+            blame: {
+              oldest_commit_sha: null,
+              oldest_commit_iso: null,
+              oldest_commit_author: null,
+              oldest_commit_summary: null,
+              age_days: null,
+              contributors: [],
+            },
+            comments: [],
+          };
+          await writeIssue(cwd, issue);
+          issues.push(issue);
+          scan.issues_found += 1;
+          logger.info("issue.created", {
+            issueId: issue.id,
+            severity: issue.severity,
+            playbookId: playbook.manifest.id,
+            file: issue.location.file,
+          });
+        }
+        scan.playbooks_run += 1;
+        continue;
+      }
+
       if (playbook.manifest.type !== "regex") {
-        // ast and prompt playbook types are declared in the manifest
-        // schema but have no runtime yet, so they are skipped rather
-        // than silently counted as run. Log it so a third-party
-        // playbook of an unsupported type is visible, not invisible.
+        // `prompt` playbook type is declared in the manifest schema but
+        // has no runtime yet, so it is skipped rather than silently
+        // counted as run. Log it so a third-party playbook of an
+        // unsupported type is visible, not invisible.
         logger.warn("playbook.unsupported_type", {
           playbookId: playbook.manifest.id,
           type: playbook.manifest.type,

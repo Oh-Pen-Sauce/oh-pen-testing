@@ -7,7 +7,7 @@ import type { Severity } from "@oh-pen-testing/shared";
 const exec = promisify(execFile);
 
 export interface ScaFinding {
-  source: "npm-audit" | "pip-audit" | "bundler-audit";
+  source: "npm-audit" | "pip-audit" | "bundler-audit" | "osv-scanner";
   packageName: string;
   installedVersion?: string;
   vulnerabilityId: string;
@@ -35,7 +35,9 @@ export interface ScaScanResult {
  */
 export async function runScaScan(
   cwd: string,
-  sources: ReadonlyArray<"npm-audit" | "pip-audit" | "bundler-audit">,
+  sources: ReadonlyArray<
+    "npm-audit" | "pip-audit" | "bundler-audit" | "osv-scanner"
+  >,
 ): Promise<ScaScanResult> {
   const findings: ScaFinding[] = [];
   const skipped: Array<{ source: string; reason: string }> = [];
@@ -68,6 +70,17 @@ export async function runScaScan(
           continue;
         }
         const batch = await runBundlerAudit(cwd);
+        findings.push(...batch);
+      } else if (source === "osv-scanner") {
+        // osv-scanner is polyglot (npm, pip, go, cargo, maven, composer,
+        // and more), so gate on any recognised manifest rather than one
+        // ecosystem's file. Skips silently if the binary is not on PATH.
+        const has = await hasAnyDependencyManifest(cwd);
+        if (!has) {
+          skipped.push({ source, reason: "no recognised dependency manifest" });
+          continue;
+        }
+        const batch = await runOsvScanner(cwd);
         findings.push(...batch);
       }
     } catch (err) {
@@ -232,6 +245,137 @@ async function runBundlerAudit(cwd: string): Promise<ScaFinding[]> {
     });
   }
   return out;
+}
+
+// ─────── osv-scanner (polyglot) ───────
+
+interface OsvScannerOutput {
+  results?: Array<{
+    source?: { path?: string; type?: string };
+    packages?: Array<{
+      package?: { name?: string; version?: string; ecosystem?: string };
+      vulnerabilities?: Array<{
+        id?: string;
+        summary?: string;
+        details?: string;
+        database_specific?: { severity?: string };
+        affected?: Array<{ ranges?: unknown[] }>;
+      }>;
+      groups?: Array<{ max_severity?: string }>;
+    }>;
+  }>;
+}
+
+/**
+ * Parse osv-scanner's `--format json` output into normalised findings.
+ * Pure (no IO) so the normalisation is unit-tested without a binary.
+ *
+ * Severity precedence: GHSA `database_specific.severity` if present,
+ * else the package group's `max_severity` CVSS base score bucketed,
+ * else a conservative `high` (OSV does not always carry a severity).
+ */
+export function parseOsvScannerJson(raw: string, cwd: string): ScaFinding[] {
+  let parsed: OsvScannerOutput;
+  try {
+    parsed = JSON.parse(raw) as OsvScannerOutput;
+  } catch {
+    return [];
+  }
+  const out: ScaFinding[] = [];
+  for (const result of parsed.results ?? []) {
+    const srcPath = result.source?.path;
+    const file = srcPath
+      ? path.relative(cwd, srcPath) || path.basename(srcPath)
+      : "(lockfile)";
+    for (const pkg of result.packages ?? []) {
+      const groupMax = (pkg.groups ?? [])
+        .map((g) => parseFloat(g.max_severity ?? ""))
+        .filter((n) => !Number.isNaN(n))
+        .sort((a, b) => b - a)[0];
+      for (const vuln of pkg.vulnerabilities ?? []) {
+        const ds = vuln.database_specific?.severity;
+        const severity: Severity =
+          typeof ds === "string" && ds.length > 0
+            ? normaliseSeverity(ds)
+            : typeof groupMax === "number"
+              ? cvssToSeverity(groupMax)
+              : "high";
+        out.push({
+          source: "osv-scanner",
+          packageName: pkg.package?.name ?? "(unknown)",
+          installedVersion: pkg.package?.version,
+          vulnerabilityId: vuln.id ?? "OSV-UNKNOWN",
+          severity,
+          summary:
+            vuln.summary ??
+            vuln.details?.slice(0, 200) ??
+            `Vulnerability ${vuln.id ?? "OSV-UNKNOWN"} in ${pkg.package?.name ?? "dependency"}`,
+          fixAvailable: (vuln.affected ?? []).some(
+            (a) => (a.ranges?.length ?? 0) > 0,
+          ),
+          file,
+        });
+      }
+    }
+  }
+  return out;
+}
+
+async function runOsvScanner(cwd: string): Promise<ScaFinding[]> {
+  let raw: string;
+  try {
+    const res = await exec(
+      "osv-scanner",
+      ["--format", "json", "--recursive", cwd],
+      { cwd, maxBuffer: 50 * 1024 * 1024 },
+    );
+    raw = res.stdout;
+  } catch (err) {
+    const e = err as { stdout?: string; code?: string };
+    // ENOENT: binary not installed. Re-throw so the caller records it as
+    // a skipped source rather than swallowing it as "no findings".
+    if (e.code === "ENOENT") throw err;
+    // Like the other auditors, osv-scanner exits non-zero when it finds
+    // vulnerabilities but still writes JSON to stdout.
+    if (!e.stdout) throw err;
+    raw = e.stdout;
+  }
+  return parseOsvScannerJson(raw, cwd);
+}
+
+/** CVSS base score (0-10) to our severity bucket. */
+function cvssToSeverity(score: number): Severity {
+  if (score >= 9) return "critical";
+  if (score >= 7) return "high";
+  if (score >= 4) return "medium";
+  if (score > 0) return "low";
+  return "info";
+}
+
+const DEPENDENCY_MANIFESTS = [
+  "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "yarn.lock",
+  "requirements.txt",
+  "pyproject.toml",
+  "Pipfile.lock",
+  "poetry.lock",
+  "go.mod",
+  "go.sum",
+  "Cargo.lock",
+  "Cargo.toml",
+  "pom.xml",
+  "build.gradle",
+  "Gemfile.lock",
+  "composer.lock",
+];
+
+async function hasAnyDependencyManifest(cwd: string): Promise<boolean> {
+  for (const m of DEPENDENCY_MANIFESTS) {
+    if (await fileExists(path.join(cwd, m))) return true;
+  }
+  return false;
 }
 
 async function fileExists(file: string): Promise<boolean> {

@@ -1,0 +1,15 @@
+id: owasp/a03-injection/code-injection-eval
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-95]
+severity_default: critical
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: "Detects eval() or new Function() called with a non-literal argument (runtime code injection). Uses an AST check, which a regex cannot do precisely: it tells eval('literal') apart from eval(userInput) by inspecting the argument node."
+risky: false
+risk_profile: safe
+impact: |
+  Passing attacker-controlled data to eval() or the Function constructor lets the attacker run arbitrary JavaScript in your process: read secrets, exfiltrate data, pivot to the host. A string literal argument is not the same risk, which is exactly why this is an AST check and not a regex: it only flags arguments that are not literal strings.
+requires_ai: true
+type: ast

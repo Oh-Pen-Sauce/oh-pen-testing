@@ -40,6 +40,9 @@ export interface DynamicFinding {
   ruleId: string;
   severity: "critical" | "high" | "medium" | "low" | "info";
   title: string;
+  /** Optional classification carried onto the resulting issue. */
+  cwe?: string[];
+  owaspRef?: string;
   evidence: {
     request: DynamicProbeRequest;
     response: Pick<DynamicProbeResponse, "status" | "headers">;

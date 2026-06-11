@@ -7,11 +7,11 @@ import {
   ScopeViolation,
   writeIssue,
   writeScan,
-  type Issue,
   type ScanRun,
 } from "@oh-pen-testing/shared";
 import {
   BUNDLED_DYNAMIC_PLAYBOOKS,
+  buildDynamicIssue,
   runDynamicScan,
   type DynamicFinding,
 } from "@oh-pen-testing/core";
@@ -101,50 +101,11 @@ async function persistDynamicFinding(
   finding: DynamicFinding,
 ): Promise<void> {
   const issueId = await allocateIssueId(cwd);
-  const issue: Issue = {
-    id: issueId,
-    title: finding.title,
-    severity: finding.severity,
-    cwe: [],
-    status: "backlog",
-    assignee: null,
-    discovered_at: new Date().toISOString(),
-    discovered_by: `playbook:${finding.playbookId}/${finding.ruleId}`,
-    scan_id: scan.id,
-    location: {
-      file: finding.evidence.request.path,
-      line_range: [1, 1],
-    },
-    evidence: {
-      rule_id: finding.ruleId,
-      code_snippet: `${finding.evidence.request.method} ${finding.evidence.request.path}\nStatus: ${finding.evidence.response.status}`,
-      analysis: finding.evidence.analysis,
-      ai_reasoning: finding.evidence.analysis,
-      ai_model: "dynamic-http",
-      ai_confidence: "high",
-    },
-    remediation: {
-      strategy: finding.playbookId,
-      auto_fixable: false,
-      estimated_diff_size: 0,
-      requires_approval: true,
-    },
-    linked_pr: null,
-    verification: {
-      last_run_scan_id: null,
-      last_run_at: null,
-      hits_remaining: null,
-      verified_at: null,
-    },
-    blame: {
-      oldest_commit_sha: null,
-      oldest_commit_iso: null,
-      oldest_commit_author: null,
-      oldest_commit_summary: null,
-      age_days: null,
-      contributors: [],
-    },
-    comments: [],
-  };
+  const issue = buildDynamicIssue(
+    finding,
+    scan.id,
+    issueId,
+    new Date().toISOString(),
+  );
   await writeIssue(cwd, issue);
 }

@@ -15,6 +15,7 @@ export const ScaSourceSchema = z.enum([
   "npm-audit",
   "pip-audit",
   "bundler-audit",
+  "osv-scanner",
 ]);
 export type ScaSource = z.infer<typeof ScaSourceSchema>;
 
