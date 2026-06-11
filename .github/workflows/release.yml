@@ -12,6 +12,11 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    env:
+      # Job-level env IS visible to a step's own `if:`, unlike step-level
+      # env, and unlike the `secrets` context (which cannot be referenced
+      # in an `if:` at all and fails workflow validation if you try).
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,13 +50,11 @@ jobs:
 
       - name: Publish CLI to npm
         # Only runs if NPM_TOKEN is set; skipped silently otherwise so
-        # contributors can tag without publishing. Gate on `secrets`
-        # directly: step-level env is not reliably visible to a step's
-        # own `if:` expression.
-        if: ${{ secrets.NPM_TOKEN != '' }}
+        # contributors can tag without publishing. Gate on the job-level
+        # env (set from the secret above).
+        if: ${{ env.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           pnpm --filter "@oh-pen-testing/*" --no-git-checks publish --access public --provenance
 
