@@ -117,6 +117,28 @@ docker push ghcr.io/oh-pen-sauce/oh-pen-testing:latest
 Needs a GitHub PAT with `write:packages` set as `GHCR_PAT` in the
 local shell and `docker login ghcr.io -u <user> -p $GHCR_PAT` first.
 
+### Install size: Next standalone is a dead end for npm (investigated 2026-06-11)
+
+The wizard install is large because `@oh-pen-testing/web` ships the full
+`.next` build and pulls `next` + `react` + `react-dom` as runtime
+dependencies. The obvious fix, Next's `output: "standalone"` (a
+self-contained server with a trimmed, traced `node_modules`), was tried
+end to end and does NOT survive npm distribution:
+
+- The standalone server runs perfectly when launched directly from a
+  monorepo build (verified: `/setup` and static assets both 200).
+- But packing it (`pnpm pack` / `npm pack`) drops `next` from
+  `.next/standalone/node_modules`, so after `npm install` the server
+  throws `Cannot find module 'next'`. Package managers do not reliably
+  preserve a nested, traced `node_modules` inside a published tarball.
+
+Standalone is the right answer for Docker and server deploys, not for an
+npm-installed CLI. If the install size needs to come down, the realistic
+options are: a separate Docker/`npx`-served distribution, or splitting
+the wizard out of the npm install entirely. Do not re-attempt plain
+`output: standalone` for the published package without solving the
+nested-`node_modules` packing problem first.
+
 ---
 
 ## Infrastructure / hosting
