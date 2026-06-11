@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 /*
- * Oh Pen Testing — retro trattoria visual system.
+ * Oh Pen Testing: retro trattoria visual system.
  *
  * Design tokens ported from the Oh Pen Sauce redesign handoff. These are
  * available both as CSS variables (`var(--sauce)`) and as Tailwind colour
  * utilities (`bg-sauce`, `text-ink`, etc.) via the @theme block below.
  *
- * Fonts are loaded via next/font in layout.tsx — CSS @import url() can't
+ * Fonts are loaded via next/font in layout.tsx. CSS @import url() can't
  * be used here because Tailwind v4's `@import "tailwindcss"` above inlines
  * hundreds of rules first, and CSS requires @import to precede all rules.
  */
@@ -38,7 +38,7 @@
   --sev-info-bg: #dee4f5;
 
   /*
-   * Typography — next/font injects --font-inter / --font-playfair /
+   * Typography: next/font injects --font-inter / --font-playfair /
    * --font-jetbrains-mono on the <html>. We alias them to the tokens the
    * components already reference so the tokens stay the canonical names.
    * Fallbacks cover the brief window before the font swaps in.
@@ -70,7 +70,7 @@
   --color-sev-info: #1e3a8a;
 
   /* Tailwind's font utilities (font-sans, font-mono, font-display)
-     still need concrete family names at the theme layer — next/font
+     still need concrete family names at the theme layer; next/font
      registers the real faces, and these fallback chains make sure
      bare utilities without our CSS-variable aliases still look right. */
   --font-display: "Playfair Display", ui-serif, Georgia, serif;
@@ -105,7 +105,7 @@ body {
   color: var(--sauce);
 }
 
-/* Hard retro shadows — never use blur */
+/* Hard retro shadows: never use blur */
 .shadow-ink {
   box-shadow: 3px 3px 0 var(--ink);
 }
@@ -126,7 +126,7 @@ body {
 
 /*
  * Typing indicator used in the setup chat while the AI is thinking.
- * Three dots fade in/out on a staggered 0.9s loop — the classic chat
+ * Three dots fade in/out on a staggered 0.9s loop, the classic chat
  * "they're typing" cadence.
  */
 .typing-dot {
@@ -146,10 +146,10 @@ body {
 
 /*
  * CookingMarinara animation set. Used on /scans during the starter
- * scan — the chef (Marinara) bobs gently, her spoon arm stirs in a
+ * scan. The chef (Marinara) bobs gently, her spoon arm stirs in a
  * loop, bubbles pop in the sauce, and steam rises from the pot.
  *
- * Timings are deliberately slow and gentle — a frenetic animation
+ * Timings are deliberately slow and gentle: a frenetic animation
  * would make a progress indicator feel anxious. 3s+ loops.
  */
 .chef-bob {

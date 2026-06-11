@@ -10,9 +10,9 @@ import { z } from "zod";
  * `.ohpentesting/learning/<date>.ndjson`. The records are:
  *
  *   - strictly local (never shipped unless the user also has telemetry
- *     opted in, and even then only the aggregate counts leave the box —
+ *     opted in, and even then only the aggregate counts leave the box;
  *     see packages/shared/src/telemetry.ts)
- *   - free of file contents, file paths, and URLs — only ids, categories,
+ *   - free of file contents, file paths, and URLs: only ids, categories,
  *     severities, and booleans
  *
  * This is the scaffold for future playbook tuning: the team can review
@@ -54,7 +54,7 @@ function fileFor(date: Date): string {
 
 /**
  * Append one learning event. Strict no-throw: if we can't write the
- * event (disk full, permissions) we swallow the error — learning mode
+ * event (disk full, permissions) we swallow the error. Learning mode
  * is best-effort and must never break a scan.
  */
 export async function recordLearningEvent(

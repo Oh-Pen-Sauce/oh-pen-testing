@@ -1,5 +1,5 @@
 /**
- * Nonna — the head-chef review pass.
+ * Nonna, the head-chef review pass.
  *
  * Slots into runAgent BETWEEN the worker's `requestRemediation` call
  * and the file-write/git-commit/PR-open chain. The worker has just
@@ -12,11 +12,11 @@
  *                      Nonna's feedback as extra context. The worker
  *                      gets exactly ONE retry; the second attempt
  *                      ships regardless of Nonna's opinion. Hard cap
- *                      to keep cost/latency bounded — this isn't a
+ *                      to keep cost/latency bounded. This isn't a
  *                      review-loop game.
  *
  * Failure mode: if Nonna's AI call itself errors (rate limit, network,
- * malformed JSON), we fail OPEN — log the error, treat the patch as
+ * malformed JSON), we fail OPEN: log the error, treat the patch as
  * approved, continue. Better to ship a possibly-suboptimal patch than
  * to block remediation entirely on a flaky reviewer.
  */
@@ -47,7 +47,7 @@ export type ReviewResult =
 
 const ReviewResponseSchema = z.object({
   approved: z.boolean(),
-  /** Short rationale — required when approved=false, optional otherwise. */
+  /** Short rationale, required when approved=false, optional otherwise. */
   feedback: z.string().optional(),
 });
 
@@ -60,14 +60,14 @@ CRITICAL INSTRUCTIONS:
 Response schema:
 {
   "approved": boolean,
-  "feedback": "string — short, concrete, actionable. Required when approved=false; omit when approved=true."
+  "feedback": "string: short, concrete, actionable. Required when approved=false; omit when approved=true."
 }
 
 Rules of thumb:
 - APPROVE if the patch fixes the named security issue, doesn't introduce obvious bugs, and doesn't refactor unrelated code.
 - REJECT if the patch is a no-op (worker returned the file unchanged), if it doesn't actually address the issue, if it introduces obvious syntax errors, or if the worker over-edited (refactored unrelated code, renamed things, reformatted the file).
 - DO NOT reject for style, formatting, or aesthetic disagreements. The worker is allowed to have a voice.
-- Feedback when rejecting: 1–2 sentences, naming the SPECIFIC concern. e.g. "The patch removes the SQL string but doesn't introduce parameterised query — the injection vector still exists." or "Patched file is identical to the original; the agent didn't actually change anything." or "Lines 12–47 are unrelated reformatting; only lines 102–105 are the actual fix."`;
+- Feedback when rejecting: 1–2 sentences, naming the SPECIFIC concern. e.g. "The patch removes the SQL string but doesn't introduce parameterised query; the injection vector still exists." or "Patched file is identical to the original; the agent didn't actually change anything." or "Lines 12–47 are unrelated reformatting; only lines 102–105 are the actual fix."`;
 
 /**
  * Runs Nonna against a candidate patch. Returns approved=true on
@@ -80,7 +80,7 @@ export async function runReview(input: ReviewInput): Promise<ReviewResult> {
   const { issue, worker, originalFileContents, patchedFileContents } = input;
 
   // Cheap fast-path: if worker returned the file completely unchanged,
-  // we don't need to spend a token on the review — the patch is by
+  // we don't need to spend a token on the review: the patch is by
   // definition useless.
   if (patchedFileContents === originalFileContents) {
     logger.info("review.fast_reject", {
@@ -90,7 +90,7 @@ export async function runReview(input: ReviewInput): Promise<ReviewResult> {
     return {
       approved: false,
       feedback:
-        "The patched file is byte-identical to the original. The agent didn't actually change anything — try again, focusing on the specific lines flagged in the issue.",
+        "The patched file is byte-identical to the original. The agent didn't actually change anything. Try again, focusing on the specific lines flagged in the issue.",
     };
   }
 

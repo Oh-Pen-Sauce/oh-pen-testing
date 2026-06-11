@@ -47,5 +47,5 @@
   "engines": {
     "node": ">=22"
   },
-  "description": "GitHub adapter for Oh Pen Testing — opens remediation PRs via the GitHub API."
+  "description": "GitHub adapter for Oh Pen Testing: opens remediation PRs via the GitHub API."
 }

@@ -9,6 +9,6 @@ Do NOT confirm when:
 - The parser is already configured with entity resolution off (setFeature, resolve_entities=False, no_network=True).
 
 Severity:
-- `critical` — parser fed with user-uploaded XML.
-- `high` — parser fed with XML from a less-trusted upstream API.
-- `medium` — ambiguous source.
+- `critical`: parser fed with user-uploaded XML.
+- `high`: parser fed with XML from a less-trusted upstream API.
+- `medium`: ambiguous source.

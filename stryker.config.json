@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "_comment": "Mutation testing scoped to the safety-critical modules with real test coverage: scope enforcement (the hard gate) and the rate-limit budget manager. Expand once the rest of the suite catches up. Run on demand with `pnpm mutation`; not wired into CI (a full pass is slow).",
+  "packageManager": "pnpm",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "reporters": ["clear-text", "progress"],
+  "mutate": [
+    "packages/core/src/scope/**/*.ts",
+    "packages/rate-limit/src/**/*.ts",
+    "!**/*.test.ts"
+  ],
+  "vitest": { "configFile": "vitest.config.ts" },
+  "coverageAnalysis": "perTest"
+}

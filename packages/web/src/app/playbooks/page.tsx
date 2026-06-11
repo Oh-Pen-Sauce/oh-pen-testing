@@ -11,11 +11,11 @@ export default async function PlaybooksPage() {
   return (
     <div>
       <PageHeader
-        kicker="04 — Il Ricettario"
+        kicker="04 – Il Ricettario"
         title={<>Playbook catalog</>}
         sub={`${count} playbook${
           count === 1 ? "" : "s"
-        }. Every security test Oh Pen Testing runs — with the exact regex rules, AI prompts, and which pasta agent gets the fix.`}
+        }. Every security test Oh Pen Testing runs, with the exact regex rules, AI prompts, and which pasta agent gets the fix.`}
         actions={
           <span
             className="text-[12px] self-end text-ink-soft"

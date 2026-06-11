@@ -9,9 +9,9 @@ import { ConfigSchema, loadConfig, writeConfig } from "@oh-pen-testing/shared";
  * Effect-level test mirroring what the web wizard does across its 5 steps.
  * We bypass the server-action wrappers (which call `revalidatePath` and
  * need a Next request context) and exercise the underlying shared helpers
- * directly — the same ones the actions delegate to.
+ * directly: the same ones the actions delegate to.
  */
-describe("setup wizard — programmatic step-through", () => {
+describe("setup wizard: programmatic step-through", () => {
   let cwd: string;
 
   beforeEach(async () => {

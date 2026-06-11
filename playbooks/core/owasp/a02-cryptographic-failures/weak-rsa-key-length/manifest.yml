@@ -1,0 +1,26 @@
+id: owasp/a02-cryptographic-failures/weak-rsa-key-length
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A02:2021
+cwe: [CWE-326]
+severity_default: medium
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects RSA key generation with a modulus below 2048 bits (512, 768, 1024, 1536), which is brute-forceable.
+impact: |
+  RSA keys below 2048 bits no longer provide meaningful security. A 512-bit modulus can be factored on commodity hardware in hours, and 1024-bit RSA is within reach of well-resourced attackers. An attacker who factors the modulus recovers the private key, letting them decrypt traffic, forge signatures, or impersonate the service. NIST has disallowed sub-2048-bit RSA for new keys since 2013.
+risky: false
+risk_profile: safe
+requires_ai: true
+type: regex
+rules:
+  - id: node-generatekeypair-rsa-weak-modulus
+    description: Node crypto.generateKeyPair(Sync) for RSA with modulusLength below 2048.
+    pattern: 'modulusLength\s*:\s*(?:512|768|1024|1536)\b'
+    flags: g
+    require_ai_confirm: true
+  - id: python-rsa-weak-key-size
+    description: Python cryptography rsa.generate_private_key with key_size below 2048.
+    pattern: 'key_size\s*=\s*(?:512|768|1024|1536)\b'
+    flags: g
+    require_ai_confirm: true

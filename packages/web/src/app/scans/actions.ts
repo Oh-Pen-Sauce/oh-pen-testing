@@ -21,7 +21,7 @@ import {
 } from "../../lib/active-scan";
 
 /**
- * Run the starter scan — 5 safe regex playbooks, no network, no AI
+ * Run the starter scan: 5 safe regex playbooks, no network, no AI
  * confirm. Result reads back through the existing scans list so the
  * UI refreshes on redirect.
  */
@@ -35,7 +35,7 @@ export interface StarterScanSummary {
   /**
    * Total playbooks in the bundled catalog (whether or not they
    * applied). UI shows "10 of 31" so users understand that a
-   * lower-than-total run count is normal — not every playbook
+   * lower-than-total run count is normal; not every playbook
    * applies to every stack.
    */
   playbooksAvailable: number;
@@ -66,7 +66,7 @@ export async function runStarterScanAction(): Promise<StarterScanSummary> {
     skipAiConfirm: true,
   });
 
-  // Top 3 files by issue count — the UI shows these so users can
+  // Top 3 files by issue count: the UI shows these so users can
   // see where findings are actually clustered.
   const fileCounts = new Map<string, number>();
   for (const issue of result.issues) {
@@ -98,7 +98,7 @@ export async function runStarterScanAction(): Promise<StarterScanSummary> {
 }
 
 /**
- * Bypass — for experienced users who already know how the tool works
+ * Bypass: for experienced users who already know how the tool works
  * and want to skip the starter scan gate. Flips `starter_complete`
  * without actually running a scan.
  */
@@ -113,7 +113,7 @@ export async function bypassStarterAction(): Promise<void> {
 }
 
 /**
- * Full scan — every bundled + remote playbook relevant to the
+ * Full scan: every bundled + remote playbook relevant to the
  * project's languages, with AI confirmation on. The serious scan.
  *
  * Shares the StarterScanSummary shape so the UI can treat both
@@ -170,7 +170,7 @@ export async function runFullScanAction(): Promise<StarterScanSummary> {
  *
  * These wrap the active-scan singleton in lib/active-scan.ts. The
  * launchers return immediately after kicking the bg promise, so the
- * client is free to navigate away — the scan keeps running in the
+ * client is free to navigate away; the scan keeps running in the
  * Node process. The status getter is what the UI polls to show the
  * cooking animation and eventually the result.
  */
@@ -187,7 +187,7 @@ export async function getActiveScanAction(): Promise<ActiveScanState | null> {
   const active = getActiveScan();
   // When a bg scan finishes, refresh the scans list / board so polling
   // clients pick up the new data on the same tick they discover the
-  // status flip. This is best-effort — revalidatePath outside of an
+  // status flip. This is best-effort; revalidatePath outside of an
   // active request does nothing in some Next versions, but won't hurt.
   if (active && active.status !== "running") {
     revalidatePath("/scans");
@@ -202,7 +202,7 @@ export async function clearActiveScanAction(): Promise<void> {
 }
 
 /**
- * "Stop cooking" — request cancellation of the in-flight scan or
+ * "Stop cooking": request cancellation of the in-flight scan or
  * remediation. Cooperative: the runners check the signal at safe
  * checkpoints (between playbooks during scan, between issues during
  * remediation), so the actual halt can take seconds for an

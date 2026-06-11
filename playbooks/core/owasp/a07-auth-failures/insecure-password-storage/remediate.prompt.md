@@ -18,6 +18,6 @@ Never store plaintext. Hash with a password-hashing function (argon2 preferred, 
   ```
 - Python + argon2-cffi: `argon2.PasswordHasher().hash(pw)`.
 
-Rename the column from `password` to `passwordHash` / `password_hash` — make the plaintext mistake harder to reintroduce later.
+Rename the column from `password` to `passwordHash` / `password_hash`. This makes the plaintext mistake harder to reintroduce later.
 
 `env_var_name`: none.

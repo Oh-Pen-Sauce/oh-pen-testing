@@ -1,12 +1,12 @@
 /**
- * CookingMarinara — animated inline SVG used as the starter-scan
+ * CookingMarinara: animated inline SVG used as the starter-scan
  * progress indicator. Marinara (our tomato mascot) wears a chef's
  * toque, stirs a pot of sauce with a wooden spoon, bubbles pop in the
  * pot, steam rises in puffs. All pure SVG + CSS keyframes declared in
- * globals.css — no external assets, no animation libs, scales cleanly.
+ * globals.css: no external assets, no animation libs, scales cleanly.
  *
  * The component is presentational only. It doesn't know about scan
- * state — the parent (StarterGate) controls when to show it.
+ * state. The parent (StarterGate) controls when to show it.
  */
 export function CookingMarinara({ size = 180 }: { size?: number }) {
   return (
@@ -26,7 +26,7 @@ export function CookingMarinara({ size = 180 }: { size?: number }) {
         </radialGradient>
       </defs>
 
-      {/* ——— steam puffs (rise + fade) ——— */}
+      {/* --- steam puffs (rise + fade) --- */}
       <g style={{ opacity: 0.85 }}>
         <ellipse
           className="steam-puff steam-a"
@@ -54,7 +54,7 @@ export function CookingMarinara({ size = 180 }: { size?: number }) {
         />
       </g>
 
-      {/* ——— Marinara herself — tomato chef, bobbing ——— */}
+      {/* --- Marinara herself, tomato chef, bobbing --- */}
       <g className="chef-bob">
         {/* chef toque (white with red band) */}
         <g transform="translate(58 36)">
@@ -116,7 +116,7 @@ export function CookingMarinara({ size = 180 }: { size?: number }) {
         <circle cx="76" cy="91" r="3" fill="#8F1E10" opacity="0.35" />
         <circle cx="104" cy="91" r="3" fill="#8F1E10" opacity="0.35" />
 
-        {/* ——— arm + wooden spoon (rotates to stir) ——— */}
+        {/* --- arm + wooden spoon (rotates to stir) --- */}
         <g className="stirring-arm" style={{ transformOrigin: "118px 98px" }}>
           {/* shoulder/arm */}
           <path
@@ -159,7 +159,7 @@ export function CookingMarinara({ size = 180 }: { size?: number }) {
         </g>
       </g>
 
-      {/* ——— pot ——— */}
+      {/* --- pot --- */}
       {/* rim shadow */}
       <ellipse cx="90" cy="125" rx="48" ry="6" fill="#221A14" opacity="0.15" />
       {/* pot body */}
@@ -218,7 +218,7 @@ export function CookingMarinara({ size = 180 }: { size?: number }) {
         strokeWidth="1.5"
       />
 
-      {/* ——— bubbles in the sauce (stagger pop) ——— */}
+      {/* --- bubbles in the sauce (stagger pop) --- */}
       <g>
         <circle
           className="sauce-bubble bubble-a"

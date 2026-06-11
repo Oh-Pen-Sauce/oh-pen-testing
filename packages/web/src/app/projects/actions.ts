@@ -26,7 +26,7 @@ import {
  * All of these operate on the user-scoped registry at
  * ~/.ohpentesting/projects.json and (for clones) the clone
  * directories under ~/.ohpentesting/projects/<owner>/<name>/.
- * None of them touch any one project's config.yml — that lives
+ * None of them touch any one project's config.yml; that lives
  * inside the clone itself and is managed by the existing config
  * loader/saver.
  */
@@ -61,14 +61,14 @@ export async function addProjectAction(args: {
   }
   const { owner, name } = parsed;
 
-  // Two paths — existing clone the user tells us about, or fresh
+  // Two paths: existing clone the user tells us about, or fresh
   // clone we manage.
   let localPath: string;
   let detail: string;
 
   if (args.existingLocalPath) {
     // Validate the path exists and is a git repo. We're trusting
-    // the user's origin matches the slug — banner's existing
+    // the user's origin matches the slug; banner's existing
     // mismatch warning will flag it later if not.
     try {
       await fs.access(`${args.existingLocalPath}/.git`);
@@ -145,7 +145,7 @@ export async function removeProjectAction(args: {
   }
   await removeProjectFromRegistry(args.id);
   if (args.deleteClone) {
-    // Only delete if the clone lives under our managed root — never
+    // Only delete if the clone lives under our managed root, never
     // rm -rf a user-supplied path they registered themselves.
     const managedPrefix = defaultClonePath(project.owner, "");
     if (project.localPath.startsWith(managedPrefix.slice(0, -1))) {

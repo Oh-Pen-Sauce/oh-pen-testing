@@ -3,7 +3,7 @@ import type { Issue } from "./models/issue.js";
 import type { ScanRun } from "./models/scan.js";
 
 /**
- * Telemetry — **strictly opt-in**.
+ * Telemetry: **strictly opt-in**.
  *
  * By default, Oh Pen Testing never phones home. If a user explicitly
  * enables it in `.ohpentesting/config.yml` (`telemetry.enabled: true`),
@@ -17,7 +17,7 @@ import type { ScanRun } from "./models/scan.js";
  * 2. Installation identity is a SHA-256 of a locally-generated random
  *    value. Not derivable from hardware, user, or repo.
  * 3. Every payload has an `opt_out_instructions` field pointing at
- *    how to disable — the endpoint server is expected to honour any
+ *    how to disable. The endpoint server is expected to honour any
  *    "forget me" request based on the anonymous install id.
  */
 
@@ -58,7 +58,7 @@ export interface TelemetryPayload {
     /** Number of playbooks that ran (excl. skipped). */
     playbooks_run?: number;
   };
-  /** Provider id only — "claude-api", "ollama", etc. No keys, no models. */
+  /** Provider id only: "claude-api", "ollama", etc. No keys, no models. */
   provider_class?: string;
 }
 

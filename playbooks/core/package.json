@@ -16,7 +16,6 @@
     "dist",
     "secrets",
     "owasp",
-    "sca",
     "wstg",
     "cwe-top-25",
     "iac"

@@ -10,11 +10,11 @@ Consider confirmed when:
 
 Consider NOT confirmed when:
 - The handler is clearly an intentionally-public endpoint (e.g. `/healthz`, `/metrics`, `/login`, `/signup`, webhooks validated by signature).
-- The router the handler is attached to has middleware applied elsewhere (truncated context — err on `confirmed: false` when unsure).
+- The router the handler is attached to has middleware applied elsewhere (truncated context: err on `confirmed: false` when unsure).
 - The endpoint is purely read-only and returns well-known public data.
 
 Severity guidance:
-- `critical` — endpoint that modifies another user's data or returns personally-identifiable information about another user.
-- `high` — state-changing endpoint with no auth at all.
-- `medium` — read endpoint exposing internal data that should be gated.
-- `low` — plausible but unclear whether the data is sensitive.
+- `critical`: endpoint that modifies another user's data or returns personally-identifiable information about another user.
+- `high`: state-changing endpoint with no auth at all.
+- `medium`: read endpoint exposing internal data that should be gated.
+- `low`: plausible but unclear whether the data is sensitive.

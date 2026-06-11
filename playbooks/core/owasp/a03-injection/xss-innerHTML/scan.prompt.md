@@ -10,6 +10,6 @@ Do NOT confirm when:
 - The value is already passed through a sanitiser whose import is visible in context (DOMPurify, sanitize-html, bleach).
 
 Severity:
-- `critical` — user input without sanitisation.
-- `high` — third-party content without sanitisation.
-- `medium` — template literal without clearly-safe inputs.
+- `critical`: user input without sanitisation.
+- `high`: third-party content without sanitisation.
+- `medium`: template literal without clearly-safe inputs.

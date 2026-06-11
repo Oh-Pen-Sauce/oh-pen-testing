@@ -30,7 +30,7 @@ export interface CompletionRequest {
   /**
    * When set, the provider should steer toward structured output matching
    * this JSON schema. Implementations may use tool-use or response-format
-   * features. Schema is a minimal subset — stringified JSON schema object.
+   * features. Schema is a minimal subset: stringified JSON schema object.
    */
   jsonSchema?: unknown;
 }

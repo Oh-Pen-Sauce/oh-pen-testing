@@ -78,7 +78,9 @@ describe("agent-pool: agent roster", () => {
 });
 
 describe("agent-pool: autonomy gate", () => {
-  async function baseConfig(autonomy: "yolo" | "recommended" | "careful") {
+  async function baseConfig(
+    autonomy: "yolo" | "full-yolo" | "recommended" | "careful",
+  ) {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ohpen-autonomy-"));
     await scaffold({
       cwd,
@@ -146,6 +148,67 @@ describe("agent-pool: autonomy gate", () => {
       title: "SQL injection in /search",
       remediation: { strategy: "sql-inject", auto_fixable: true },
     });
+    const gate = evaluateAutonomyGate(config, issue);
+    expect(gate.allowed).toBe(true);
+  });
+
+  it("ignores a scary title when structural fields are benign", async () => {
+    // The title carries every trigger keyword, but the deterministic
+    // fields (strategy, owasp_category, cwe) are benign. The gate must
+    // NOT trip on the title: it is the one field a scanned repo could
+    // influence, so it is deliberately excluded.
+    const { config } = await baseConfig("recommended");
+    const issue = makeIssue({
+      severity: "medium",
+      title: "auth secret credential migration session password database",
+      owasp_category: undefined,
+      cwe: [],
+      remediation: { strategy: "linting", auto_fixable: true },
+    });
+    const gate = evaluateAutonomyGate(config, issue);
+    expect(gate.allowed).toBe(true);
+  });
+
+  it("trips the auth gate from owasp_category even with a benign title", async () => {
+    const { config } = await baseConfig("recommended");
+    const issue = makeIssue({
+      severity: "medium",
+      title: "tidy up",
+      owasp_category: "A07:2021",
+      remediation: { strategy: "tidy", auto_fixable: true },
+    });
+    const gate = evaluateAutonomyGate(config, issue);
+    expect(gate.allowed).toBe(false);
+    if (!gate.allowed) expect(gate.reason).toContain("auth_changes");
+  });
+
+  it("trips the secrets gate from a CWE code", async () => {
+    const { config } = await baseConfig("recommended");
+    const issue = makeIssue({
+      severity: "medium",
+      title: "tidy up",
+      cwe: ["CWE-798"],
+      remediation: { strategy: "tidy", auto_fixable: true },
+    });
+    const gate = evaluateAutonomyGate(config, issue);
+    expect(gate.allowed).toBe(false);
+    if (!gate.allowed) expect(gate.reason).toContain("secrets_rotation");
+  });
+
+  it("full-yolo bypasses every gate, including triggers and critical severity", async () => {
+    const { config } = await baseConfig("full-yolo");
+    const issue = makeIssue({
+      severity: "critical",
+      title: "Rotate leaked auth secret",
+      owasp_category: "A07:2021",
+      cwe: ["CWE-798"],
+      remediation: {
+        strategy: "owasp/a01-broken-access-control/missing-authorisation-check",
+        auto_fixable: true,
+      },
+    });
+    // This issue trips auth_changes, secrets_rotation, AND critical
+    // severity; full-yolo is the only mode that lets it through.
     const gate = evaluateAutonomyGate(config, issue);
     expect(gate.allowed).toBe(true);
   });

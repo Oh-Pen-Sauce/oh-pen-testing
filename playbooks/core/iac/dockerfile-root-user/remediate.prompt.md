@@ -7,11 +7,11 @@ RUN addgroup -S app && adduser -S app -G app
 USER app
 ```
 
-(Alpine syntax — use `groupadd`/`useradd` on Debian-derived images.)
+(Alpine syntax; use `groupadd`/`useradd` on Debian-derived images.)
 
 Pre-existing `USER root` lines should be deleted, not commented out. Any
 files the non-root user needs to write to (log directories, cache paths)
-should have ownership chowned during build — don't weaken security by
+should have ownership chowned during build. Don't weaken security by
 running `chmod 777` everywhere.
 
 If sudo was installed only to grant passwordless root to the app user,

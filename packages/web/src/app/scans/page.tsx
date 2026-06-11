@@ -18,7 +18,7 @@ export default async function ScansPage() {
   ]);
 
   // Build a per-scan tally of "how many issues from this scan have a
-  // PR opened against them?" — surfaced as the new PRs column. Walks
+  // PR opened against them?", surfaced as the new PRs column. Walks
   // every issue once; cheap unless the project is years old.
   const prCountByScan = new Map<string, number>();
   for (const issue of allIssues) {
@@ -51,12 +51,12 @@ export default async function ScansPage() {
   return (
     <div>
       <PageHeader
-        kicker="05 — Il Registro"
+        kicker="05 – Il Registro"
         title={<>Scans</>}
         sub={
           starterComplete
             ? `${scans.length} scan run${scans.length === 1 ? "" : "s"} on record.`
-            : "Let's ease into this — start with a tiny, safe scan below."
+            : "Let's ease into this. Start with a tiny, safe scan below."
         }
         actions={
           <Btn variant="ghost" icon="⟳">
@@ -66,7 +66,7 @@ export default async function ScansPage() {
       />
 
       {/* ActiveScanCard handles every "scan-related" UI state on this
-          page — idle (run starter / run full), running (cooking
+          page: idle (run starter / run full), running (cooking
           animation, persists across navigation because the scan job
           lives in a Node singleton), completed (summary + CTAs),
           failed. */}
@@ -163,7 +163,7 @@ export default async function ScansPage() {
                       : `${prsOpened} of ${s.issues_found} issue${s.issues_found === 1 ? "" : "s"} have a remediation PR open`
                   }
                 >
-                  {prsOpened > 0 ? `${prsOpened} ✓` : "—"}
+                  {prsOpened > 0 ? `${prsOpened} ✓` : "–"}
                 </span>
                 <span
                   className="text-ink-soft text-[12px]"
@@ -188,7 +188,7 @@ export default async function ScansPage() {
           🍝
         </span>
         <div className="flex-1 text-[13px]">
-          <strong>Tip:</strong> you can run scans from the terminal too —{" "}
+          <strong>Tip:</strong> you can run scans from the terminal too,{" "}
           <code
             className="px-1.5 py-0.5 rounded"
             style={{ background: "var(--cream)" }}
@@ -234,7 +234,7 @@ function EmptyState() {
         >
           opt scan
         </code>{" "}
-        from the terminal — or let Marinara do it for you.
+        from the terminal, or let Marinara do it for you.
       </p>
     </div>
   );

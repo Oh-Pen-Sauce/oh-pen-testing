@@ -69,7 +69,7 @@ export function createGitHubAdapter(
 
   // Authenticated push URL using the token. Important: the API
   // token lets us hit the REST API for opening PRs but says NOTHING
-  // about whether the local clone has push credentials — most users
+  // about whether the local clone has push credentials. Most users
   // clone via HTTPS without auth and `git push origin` then fails
   // with "Repository not found" (GitHub's same-error-for-no-access-
   // and-not-found policy). Pushing to this URL instead uses the
@@ -85,14 +85,14 @@ export function createGitHubAdapter(
       // Each step gets a labelled try/catch so when something fails
       // the user sees "git push failed: 403 Forbidden" rather than
       // a bare "403 Forbidden" with no idea which of the four
-      // sub-operations exploded. Critical for debugging — the four
+      // sub-operations exploded. Critical for debugging: the four
       // steps fail for very different reasons.
 
       // Branch from the configured default branch (e.g. main), NOT
       // from whatever's currently checked out. This is critical for
       // sequential remediation runs: previous agents leave HEAD on
       // their own remediation branches, and basing a new branch off
-      // that cascades — Agent 2's branch contains Agent 1's commit,
+      // that cascades: Agent 2's branch contains Agent 1's commit,
       // Agent 3's contains 1+2, etc. By the time Agent N opens its
       // PR, the diff against main is N commits long. We saw this in
       // production as 30 commits in one PR (pull/68 in the user's
@@ -102,7 +102,7 @@ export function createGitHubAdapter(
         await createBranch(input.repoPath, input.branchName, defaultBranch);
       } catch (err) {
         throw new Error(
-          `[step: create branch '${input.branchName}' from ${defaultBranch}] ${redactToken((err as Error).message)} — possible causes: (a) ${input.repoPath} isn't a git repo, (b) ${defaultBranch} doesn't exist locally (try \`git fetch origin\`), (c) branch already exists from a prior failed run (delete it locally + on the remote), (d) working tree has uncommitted changes that conflict with ${defaultBranch}.`,
+          `[step: create branch '${input.branchName}' from ${defaultBranch}] ${redactToken((err as Error).message)}. Possible causes: (a) ${input.repoPath} isn't a git repo, (b) ${defaultBranch} doesn't exist locally (try \`git fetch origin\`), (c) branch already exists from a prior failed run (delete it locally + on the remote), (d) working tree has uncommitted changes that conflict with ${defaultBranch}.`,
         );
       }
 
@@ -110,7 +110,7 @@ export function createGitHubAdapter(
         // Stage ONLY the files the agent intended to change. Without
         // an explicit list `git add .` would sweep up
         // `.ohpentesting/` (issue JSON files, scan logs, counter)
-        // alongside the actual security fix — and those would land
+        // alongside the actual security fix, and those would land
         // in the PR diff. The agent records its filesChanged on
         // input.prBody.filesChanged; we use that as the
         // authoritative list.
@@ -122,18 +122,18 @@ export function createGitHubAdapter(
         );
       } catch (err) {
         throw new Error(
-          `[step: commit] ${redactToken((err as Error).message)} — most often the agent's patch was identical to the existing file, so there's nothing to commit.`,
+          `[step: commit] ${redactToken((err as Error).message)}. Most often the agent's patch was identical to the existing file, so there's nothing to commit.`,
         );
       }
 
       try {
-        // Push using the token-authenticated URL — bypasses the
+        // Push using the token-authenticated URL: bypasses the
         // user's local git credential setup entirely. See pushUrl
         // construction above.
         await push(input.repoPath, input.branchName, { pushUrl });
       } catch (err) {
         throw new Error(
-          `[step: git push] ${redactToken((err as Error).message)} — token-authenticated push failed. Common causes: the token doesn't have 'Contents: write' permission on this repo, or the repo slug (${options.repo}) is wrong.`,
+          `[step: git push] ${redactToken((err as Error).message)}. Token-authenticated push failed. Common causes: the token doesn't have 'Contents: write' permission on this repo, or the repo slug (${options.repo}) is wrong.`,
         );
       }
 
@@ -150,7 +150,7 @@ export function createGitHubAdapter(
         });
       } catch (err) {
         throw new Error(
-          `[step: open PR via GitHub API] ${redactToken((err as Error).message)} — the token may lack 'pull-requests: write' permission, or the base branch '${defaultBranch}' may not exist on the remote.`,
+          `[step: open PR via GitHub API] ${redactToken((err as Error).message)}. The token may lack 'pull-requests: write' permission, or the base branch '${defaultBranch}' may not exist on the remote.`,
         );
       }
     },

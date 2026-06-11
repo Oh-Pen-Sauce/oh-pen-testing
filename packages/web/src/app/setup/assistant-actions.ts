@@ -102,7 +102,7 @@ export async function executeAssistantActionAction(
         };
       }
       case "set_model": {
-        // Use the existing setProviderAction with only the model field —
+        // Use the existing setProviderAction with only the model field:
         // it keeps the provider unchanged but updates ai.model. We read
         // the current provider from the action input optionally; if
         // missing we load it from config.
@@ -167,7 +167,7 @@ export async function executeAssistantActionAction(
             telemetry_enabled: current.telemetry.enabled,
           };
         } catch {
-          /* no prior config — that's fine, new project starts at defaults */
+          /* no prior config, that's fine; new project starts at defaults */
         }
 
         // Clone (or register existing path) + scaffold + add to
@@ -205,7 +205,7 @@ export async function executeAssistantActionAction(
           await writeConfig(newCwd, ConfigSchema.parse(newConfig));
         } catch (err) {
           // Project was cloned + registered but carry-over failed.
-          // Not fatal — user can re-pick provider/autonomy on the new
+          // Not fatal: user can re-pick provider/autonomy on the new
           // project. Surface a partial-success message.
           return {
             ok: true,
@@ -214,13 +214,13 @@ export async function executeAssistantActionAction(
           };
         }
 
-        // Broad revalidation — banner, sidebar, every cached fetch
+        // Broad revalidation: banner, sidebar, every cached fetch
         // reads from the new scan target after this.
         revalidatePath("/", "layout");
 
         return {
           ok: true,
-          detail: `${res.detail} — active project is now ${slug}.`,
+          detail: `${res.detail}. Active project is now ${slug}.`,
           stateDelta: { repoSet: true },
         };
       }
@@ -252,7 +252,7 @@ export async function executeAssistantActionAction(
         };
       }
       case "explain_scan_target":
-        // Informational only — no state change. Confirmation is in the
+        // Informational only, no state change. Confirmation is in the
         // `say` field of the assistant's reply; we just acknowledge.
         return {
           ok: true,
@@ -260,7 +260,7 @@ export async function executeAssistantActionAction(
             "Scan target = cwd (read at server startup). Not changeable at runtime.",
         };
       case "troubleshoot_claude_cli":
-        // Pure informational skill — nothing to execute.
+        // Pure informational skill: nothing to execute.
         return { ok: true, detail: "Reference material only" };
       default:
         return { ok: false, detail: `Unknown action: ${actionId}` };
@@ -273,7 +273,7 @@ export async function executeAssistantActionAction(
 /**
  * Public wrapper around `detectRepoFromGit` usable from the banner.
  * Returns null if the cwd isn't a git repo or the remote doesn't
- * parse as GitHub. Non-throwing — callers can render conditionally.
+ * parse as GitHub. Non-throwing: callers can render conditionally.
  */
 export async function detectScanTargetOriginAction(): Promise<{
   ok: boolean;
@@ -285,7 +285,7 @@ export async function detectScanTargetOriginAction(): Promise<{
 }
 
 /**
- * One-click "align PR target with scan target" — reads the scan
+ * One-click "align PR target with scan target": reads the scan
  * target's git origin and rewrites `git.repo` in config to match.
  * This is the fix for the "user filled in the wrong repo in the
  * wizard" case: banner offers it when it detects an origin mismatch.
@@ -308,7 +308,7 @@ export async function alignRepoWithScanTargetAction(): Promise<{
   }
   try {
     await setRepoAction(detected.repo);
-    // Revalidate every surface the banner appears on — layout.tsx
+    // Revalidate every surface the banner appears on. layout.tsx
     // renders it on every page so we need to blow the cache broadly.
     revalidatePath("/", "layout");
     return {
@@ -368,13 +368,13 @@ async function detectRepoFromGit(): Promise<{
       } else if (isOhpenSourceRepo(parsed.repo)) {
         // Don't suggest oh-pen-testing's own source as the scan
         // target. People run `pnpm dev` from a clone of OPT to TRY
-        // the tool — they want to point it at their OWN project,
+        // the tool. They want to point it at their OWN project,
         // not at OPT itself (which is mostly deliberate test
         // fixtures + would just rediscover the bugs the OPT team
         // already track in our own issue tracker).
         //
         // Surface this as ok=false with a specific detail string
-        // Marinara's prompt is wired to recognise — she'll then ask
+        // Marinara's prompt is wired to recognise; she'll then ask
         // the user for the slug of the project they actually want
         // to scan, and route through clone_and_activate_project.
         resolve({
@@ -396,7 +396,7 @@ async function detectRepoFromGit(): Promise<{
 /**
  * True if `slug` (owner/name) is the canonical Oh Pen Testing
  * source repo or its known mirror. Case-insensitive. Forks under
- * other org names slip through — that's fine, they're rare and
+ * other org names slip through; that's fine, they're rare and
  * the user's intent there is ambiguous (genuine fork? misconfig?).
  */
 function isOhpenSourceRepo(slug: string): boolean {

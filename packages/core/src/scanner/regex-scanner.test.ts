@@ -45,7 +45,7 @@ async function loadFixtureFiles(
   return out;
 }
 
-describe("playbook fixture gate — every playbook must satisfy its fixtures", async () => {
+describe("playbook fixture gate: every playbook must satisfy its fixtures", async () => {
   const playbooks = await loadPlaybooks([PLAYBOOKS_ROOT]);
   const regexPlaybooks = playbooks.filter(
     (p) => p.manifest.type === "regex",
@@ -70,7 +70,7 @@ describe("playbook fixture gate — every playbook must satisfy its fixtures", a
           // Playbooks without fixtures are skipped (and flagged).
           // eslint-disable-next-line no-console
           console.warn(
-            `[fixture-gate] ${playbook.manifest.id}: no positive fixtures — add some under ${positiveDir}`,
+            `[fixture-gate] ${playbook.manifest.id}: no positive fixtures. Add some under ${positiveDir}`,
           );
           return;
         }
@@ -107,4 +107,60 @@ describe("playbook fixture gate — every playbook must satisfy its fixtures", a
       });
     });
   }
+});
+
+describe("runRegexScan: ReDoS guard", () => {
+  const rule = {
+    id: "find-secret",
+    description: "matches the literal SECRET",
+    pattern: "SECRET",
+    flags: "",
+    require_ai_confirm: false,
+  };
+
+  function file(relativePath: string, content: string): WalkedFile {
+    return { absolutePath: `/tmp/${relativePath}`, relativePath, content };
+  }
+
+  it("matches a normal short-line file", () => {
+    const hits = runRegexScan({
+      playbookId: "test",
+      rules: [rule],
+      files: [file("ok.ts", "const x = 'SECRET';\n")],
+    });
+    expect(hits).toHaveLength(1);
+  });
+
+  it("skips a file with a pathologically long line", () => {
+    // A single 6000-char line that still contains the pattern: under
+    // the default 5000-char cap it must be skipped wholesale, so the
+    // catastrophic-backtracking vector never reaches the regex engine.
+    const longLine = "a".repeat(6000) + "SECRET";
+    const hits = runRegexScan({
+      playbookId: "test",
+      rules: [rule],
+      files: [file("minified.js", longLine)],
+    });
+    expect(hits).toEqual([]);
+  });
+
+  it("honours a custom maxLineLength", () => {
+    const content = "x".repeat(100) + "SECRET";
+    expect(
+      runRegexScan({
+        playbookId: "test",
+        rules: [rule],
+        files: [file("a.ts", content)],
+        maxLineLength: 50,
+      }),
+    ).toEqual([]);
+    expect(
+      runRegexScan({
+        playbookId: "test",
+        rules: [rule],
+        files: [file("a.ts", content)],
+        maxLineLength: 500,
+      }),
+    ).toHaveLength(1);
+  });
 });

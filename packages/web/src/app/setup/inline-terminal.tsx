@@ -10,7 +10,7 @@ import {
 /**
  * A terminal-looking card that runs `opt connect` inline.
  *
- * Why not a real pty: we don't need full interactivity — the action
+ * Why not a real pty: we don't need full interactivity. The action
  * behind this is deterministic (detect, write config, probe). The card
  * just plays back the same lines a real terminal run would print, so
  * first-time users get the "I can see what's happening" reassurance
@@ -38,7 +38,7 @@ export function InlineTerminal({
     },
     {
       kind: "detail",
-      text: "# Click Run to execute — same command as the terminal version.",
+      text: "# Click Run to execute: same command as the terminal version.",
     },
   ]);
   const [running, setRunning] = useState(false);
@@ -101,7 +101,7 @@ export function InlineTerminal({
           aria-hidden
         />
         <span className="ml-3 opacity-80">
-          terminal — {label.toLowerCase().replace(/\s+/g, "-")}
+          terminal – {label.toLowerCase().replace(/\s+/g, "-")}
         </span>
         {done ? (
           <span
@@ -185,7 +185,7 @@ export function InlineTerminal({
           style={{ color: "#e6d9bf", fontFamily: "var(--font-mono)" }}
         >
           {done
-            ? "The chat has picked this up — scroll down."
+            ? "The chat has picked this up. Scroll down."
             : running
               ? ""
               : "Runs the same check as the terminal. No shell needed."}

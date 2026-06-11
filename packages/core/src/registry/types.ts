@@ -6,7 +6,7 @@ import { z } from "zod";
  * A registry is a single JSON document hosted at a stable URL. Each entry
  * describes one playbook and the files it needs. Every file carries a
  * SHA-256 digest so the CLI can verify the bytes before writing them to
- * disk — registries are *untrusted by default*.
+ * disk: registries are *untrusted by default*.
  *
  * This format is intentionally flat and boring so any static host
  * (GitHub Pages, S3, a plain Apache directory) can serve it.
@@ -37,7 +37,7 @@ export const RegistryEntrySchema = z.object({
 export const RegistryIndexSchema = z.object({
   $schema: z.string().optional(),
   version: z.literal(1),
-  /** Registry maintainer info — shown in `opt playbooks list --remote`. */
+  /** Registry maintainer info, shown in `opt playbooks list --remote`. */
   maintainer: z
     .object({
       name: z.string(),

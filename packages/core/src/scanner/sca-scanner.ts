@@ -27,7 +27,7 @@ export interface ScaScanResult {
  * Runs the configured SCA tools and normalises their output.
  *
  * Skips any source whose manifest file (package.json, requirements.txt,
- * Gemfile.lock) isn't in the cwd — there's no point running pip-audit on
+ * Gemfile.lock) isn't in the cwd: there's no point running pip-audit on
  * a TypeScript-only repo. Also skips if the tool isn't on PATH.
  *
  * All tools are invoked with `--json` (or equivalent) and stdout is parsed.

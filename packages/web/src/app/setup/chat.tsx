@@ -25,7 +25,7 @@ import { startStarterScanInBackgroundAction } from "../scans/actions";
  * Chat-style setup with Marinara.
  *
  * Flow:
- *   1. Provider-picker bubble (scripted, no LLM yet — we need a provider
+ *   1. Provider-picker bubble (scripted, no LLM yet; we need a provider
  *      to run the LLM).
  *   2. Once the provider is connected, the composer goes live and every
  *      subsequent turn routes through assistantTurnAction, which calls
@@ -42,7 +42,7 @@ interface ChatTurn {
   /**
    * "completion" is a marker turn that renders the FinalActions
    * starter-scan panel inline in the conversation instead of sticking
-   * it to the bottom forever. Feels natural — the panel enters the
+   * it to the bottom forever. Feels natural: the panel enters the
    * chat as a message at the moment setup completes, and any
    * subsequent chat scrolls below it like normal.
    */
@@ -69,7 +69,7 @@ interface ChatTurn {
 /**
  * sessionStorage key for the chat snapshot. Session-scoped so it
  * persists across navigation within the tab but clears when the tab
- * closes — which is the right default (next browser session starts
+ * closes, which is the right default (next browser session starts
  * fresh so stale state can't leak across Oh Pen Testing restarts).
  */
 const CHAT_STORAGE_KEY = "oh-pen-testing:setup-chat-v1";
@@ -108,7 +108,7 @@ function saveChatSnapshot(snap: ChatSnapshot): void {
   try {
     window.sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(snap));
   } catch {
-    /* storage quota exhausted — non-fatal, chat still works */
+    /* storage quota exhausted, non-fatal; chat still works */
   }
 }
 
@@ -130,7 +130,7 @@ const PROVIDER_CHOICES: Array<{
   {
     value: "claude-code-cli",
     label: "Claude Code CLI",
-    tag: "uses your local `claude` session — no API cost",
+    tag: "uses your local `claude` session, no API cost",
     needsKey: false,
   },
   {
@@ -164,7 +164,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   //
   // Instead, we always start with the same "fresh" state on both
   // sides, then in a useEffect AFTER mount we load the snapshot and
-  // replace state. The price is one extra render on chat resume —
+  // replace state. The price is one extra render on chat resume:
   // briefly showing "fresh" before the snapshot pops in. Worth it
   // to kill the hydration warning.
   const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
@@ -215,7 +215,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   // Persist to sessionStorage whenever something interesting changes.
   // This is the durable fix for "chat disappears when I navigate away".
   useEffect(() => {
-    // Only persist once we have SOMETHING — skip the bare initial render.
+    // Only persist once we have SOMETHING; skip the bare initial render.
     if (turns.length === 0 && history.length === 0) return;
     const snap: ChatSnapshot = {
       version: 1,
@@ -237,13 +237,13 @@ export function SetupChat({ initial }: { initial: Config | null }) {
   const [composerValue, setComposerValue] = useState("");
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
-  // React strict-mode mounts effects twice in dev — guard the opener
+  // React strict-mode mounts effects twice in dev; guard the opener
   // effect so we only seed one welcome bubble (and only one auto-probe
   // round-trip).
   const didBootstrapRef = useRef(false);
 
   // The composer is live whenever a provider is connected, including
-  // after setup completes — users should be able to say "change my
+  // after setup completes; users should be able to say "change my
   // model to opus" or "switch autonomy to careful" in natural
   // language rather than bouncing over to the settings form. Marinara's
   // memory has a "post-setup maintenance mode" section for this.
@@ -259,7 +259,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
    * that renders the FinalActions starter-scan panel INLINE in the
    * conversation timeline (rather than as a banner pinned to the
    * bottom). That way any subsequent chat messages append below it
-   * naturally — the completion panel reads as a message rather than
+   * naturally: the completion panel reads as a message rather than
    * a floating CTA.
    *
    * Idempotent: we bail if a completion turn already exists, which
@@ -295,19 +295,19 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     // The snapshot-restore useEffect above also sets
     // didBootstrapRef.current = true if it found turns to restore,
     // so we won't reach here when the user is picking up where they
-    // left off — only on truly-fresh mounts.
+    // left off; only on truly-fresh mounts.
 
     const preselected = initial?.ai.primary_provider;
     const alreadyDone = initial?.scope?.authorisation_acknowledged ?? false;
 
     if (alreadyDone) {
-      // Branch (a) — setup already complete. Bring them straight to
+      // Branch (a): setup already complete. Bring them straight to
       // the summary + "run first scan" CTAs, no replay.
       pushBot(
         <>
-          Welcome back, <em>chef</em> 🍅. Everything&rsquo;s already set up —{" "}
+          Welcome back, <em>chef</em> 🍅. Everything&rsquo;s already set up:{" "}
           <strong>{preselected ?? "your AI"}</strong> is connected,{" "}
-          repo is <code>{initial?.git.repo ?? "—"}</code>, autonomy is{" "}
+          repo is <code>{initial?.git.repo ?? "–"}</code>, autonomy is{" "}
           <strong>{initial?.agents.autonomy ?? "recommended"}</strong>.
           Ready to scan?
         </>,
@@ -318,7 +318,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     if (preselected) {
       pushBot(
         <>
-          Ciao 🍅 — I see you&rsquo;ve already connected{" "}
+          Ciao 🍅. I see you&rsquo;ve already connected{" "}
           <strong>{preselected}</strong> from the terminal. Let me verify it
           quickly…
         </>,
@@ -342,7 +342,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
                 <span style={{ color: "var(--basil)", fontWeight: 700 }}>
                   ✓ connected
                 </span>
-                . Type what you want to do next — or say &ldquo;detect my
+                . Type what you want to do next, or say &ldquo;detect my
                 repo&rdquo; to get rolling.
               </>,
               `Provider ${preselected} probed ok. Ready for next step.`,
@@ -353,7 +353,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           } else {
             pushBot(
               <>
-                Hmm — {probe.detail}. Run{" "}
+                Hmm, {probe.detail}. Run{" "}
                 <code
                   className="px-1 rounded"
                   style={{ background: "var(--parmesan)" }}
@@ -380,7 +380,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           >
             opt connect
           </code>{" "}
-          in your terminal first — it sees your PATH so Claude CLI /
+          in your terminal first: it sees your PATH so Claude CLI /
           Ollama / API keys connect cleanly. Or pick one below and I&rsquo;ll
           try from here.
         </>,
@@ -446,15 +446,15 @@ export function SetupChat({ initial }: { initial: Config | null }) {
       setState((s) => ({ ...s, providerProbeOk: probe.ok }));
       if (probe.ok) {
         const ack = p.needsKey
-          ? `Bellissimo — ${p.label} is ready. Drop your API key and I'll stash it in the keychain.`
-          : `Bellissimo — ${p.label} is connected (${probe.detail}). Now let's wire GitHub.`;
+          ? `Bellissimo, ${p.label} is ready. Drop your API key and I'll stash it in the keychain.`
+          : `Bellissimo, ${p.label} is connected (${probe.detail}). Now let's wire GitHub.`;
         pushBot(
           <>
-            Bellissimo — <strong>{p.label}</strong> is{" "}
+            Bellissimo, <strong>{p.label}</strong> is{" "}
             <span style={{ color: "var(--basil)", fontWeight: 700 }}>
               ✓ connected
             </span>
-            . From here, just type what you want to do — I&rsquo;ve got a
+            . From here, just type what you want to do. I&rsquo;ve got a
             memory and a set of skills wired up.
           </>,
           ack,
@@ -483,7 +483,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         const isPathIssue = /ENOENT|not found on PATH/i.test(probe.detail);
         pushBot(
           <>
-            Hmm — <em>{probe.detail}</em>.{" "}
+            Hmm, <em>{probe.detail}</em>.{" "}
             {isPathIssue ? (
               <>
                 Easiest fix: run{" "}
@@ -493,7 +493,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
                 >
                   opt connect
                 </code>{" "}
-                in your terminal — it can see your PATH. Then reload this
+                in your terminal: it can see your PATH. Then reload this
                 page.
               </>
             ) : (
@@ -518,7 +518,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
     if (!text || busy) return;
     setComposerValue("");
     // Visual masking for anything that looks like a credential the user
-    // just pasted — keeps it out of chat-log screenshots. The raw
+    // just pasted; keeps it out of chat-log screenshots. The raw
     // string still goes to the AI so it can route the secret to the
     // right skill (save_github_token / save_api_key); that channel is
     // the user's own provider session and isn't persisted by us.
@@ -556,7 +556,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         {
           id: randomId("bot"),
           from: "bot",
-          // AI-authored text — render with the mini-markdown parser so
+          // AI-authored text: render with the mini-markdown parser so
           // **bold**, `code`, [links](url) and newlines come out right.
           content: <>{renderMiniMarkdown(res.say)}</>,
           // Keep the raw text so sessionStorage can rehydrate the bubble
@@ -639,6 +639,10 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         <ChatHeader busy={busy} state={state} />
 
         <div
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          aria-label="Conversation with Marinara"
           className="p-5 flex-1 overflow-y-auto"
           style={{
             maxHeight: 560,
@@ -659,7 +663,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
               );
             }
             if (t.from === "completion") {
-              // The starter-scan panel lives in the timeline — new
+              // The starter-scan panel lives in the timeline: new
               // chat appends below it, so it reads as "a message"
               // rather than a banner.
               return (
@@ -674,7 +678,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
 
           {/*
             Pre-connect surface. For first-time users we lead with the
-            inline terminal — one click runs the same `opt connect` the
+            inline terminal: one click runs the same `opt connect` the
             CLI ships, so they don't have to leave the browser. The
             manual picker stays one click away for anyone who wants
             something other than Claude CLI.
@@ -723,7 +727,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
                       `Provider ${providerId} connected.`,
                     );
                     pushSystemNote(
-                      `User ran inline 'opt connect' for ${providerId}. Probe ok. Now open the GitHub step — explain clearly what we need (repo owner/name + a PAT with repo + pull_requests scopes), why (so I can open PRs), and offer to 'detect my repo' using the detect_repo skill.`,
+                      `User ran inline 'opt connect' for ${providerId}. Probe ok. Now open the GitHub step: explain clearly what we need (repo owner/name + a PAT with repo + pull_requests scopes), why (so I can open PRs), and offer to 'detect my repo' using the detect_repo skill.`,
                     );
                     await runAssistantTurn(
                       [
@@ -836,7 +840,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
           <div ref={endRef} />
         </div>
 
-        {/* Composer — active once provider is connected */}
+        {/* Composer: active once provider is connected */}
         <div
           className="px-3.5 py-3 flex gap-2"
           style={{
@@ -846,6 +850,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         >
           <input
             type="text"
+            aria-label="Message Marinara"
             value={composerValue}
             onChange={(e) => setComposerValue(e.target.value)}
             onKeyDown={(e) => {
@@ -857,8 +862,8 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             placeholder={
               aiReady
                 ? state.currentStep === "done"
-                  ? "Tweak anything — e.g. 'change model to opus', 'switch autonomy to careful'"
-                  : "Type anything — e.g. 'detect my repo', 'I'll use Recommended', 'I'm Sam'"
+                  ? "Tweak anything, e.g. 'change model to opus', 'switch autonomy to careful'"
+                  : "Type anything, e.g. 'detect my repo', 'I'll use Recommended', 'I'm Sam'"
                 : "Pick a provider above first…"
             }
             disabled={!aiReady || busy}
@@ -870,7 +875,9 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             }}
           />
           <button
+            type="button"
             onClick={sendComposer}
+            aria-label="Send message"
             disabled={!aiReady || busy || !composerValue.trim()}
             className="w-10 h-10 rounded-full font-bold disabled:opacity-40"
             style={{
@@ -915,7 +922,7 @@ function ChatHeader({
   function startFresh() {
     if (
       !confirm(
-        "Clear this conversation and start a new one? Your config stays untouched — only the chat transcript is cleared.",
+        "Clear this conversation and start a new one? Your config stays untouched; only the chat transcript is cleared.",
       )
     )
       return;
@@ -983,7 +990,7 @@ function ChatHeader({
           <span className="opacity-60">· {stepLabels[state.currentStep]}</span>
         </div>
       </div>
-      {/* Start-fresh button — clears sessionStorage and reloads, so
+      {/* Start-fresh button: clears sessionStorage and reloads, so
           users who got themselves tangled mid-conversation can reset
           the transcript without losing their config. */}
       <button
@@ -1104,7 +1111,7 @@ function BotBubble({
             border: "2px solid var(--ink)",
             borderRadius: "14px 14px 14px 2px",
             color: "var(--ink)",
-            // Teacher-mode replies can be multi-line numbered lists —
+            // Teacher-mode replies can be multi-line numbered lists;
             // preserve whatever vertical layout the markdown renderer
             // emitted.
             wordBreak: "break-word",
@@ -1290,8 +1297,8 @@ function SidebarPanels({
         </div>
         <p className="m-0 text-[12.5px] leading-snug opacity-90">
           Once your AI is connected I load <strong>memory.md</strong> + 9
-          skill files as the system prompt. Any AI you pick — Claude, GPT,
-          Ollama — reads the same onboarding guide.{" "}
+          skill files as the system prompt. Any AI you pick, Claude, GPT,
+          or Ollama, reads the same onboarding guide.{" "}
           {bundleInfo.skillsVisible ? (
             <span style={{ color: "var(--sauce-soft)" }}>
               Bundle loaded ✓
@@ -1342,12 +1349,12 @@ function SidebarPanels({
  * as a blocking server action awaited on this chat page; if the user
  * clicked away mid-scan, the cooking animation died and the result
  * vanished into the ether. Now /scans is the canonical "watch your
- * scan" surface — the singleton on the server keeps state across
+ * scan" surface: the singleton on the server keeps state across
  * navigation, so users can leave + come back without losing progress.
  *
  * This component therefore has only two states:
- *   idle  — explainer card + "Run first scan" / "Skip to dashboard"
- *   error — only for the rare case the bg-launch action itself fails
+ *   idle  : explainer card + "Run first scan" / "Skip to dashboard"
+ *   error : only for the rare case the bg-launch action itself fails
  *           (network blip between client and Next server). The scan
  *           itself failing is handled on /scans.
  */
@@ -1363,7 +1370,7 @@ function FinalActions({
     setLaunching(true);
     try {
       await startStarterScanInBackgroundAction();
-      // Hard-redirect rather than router.push — we want a fresh
+      // Hard-redirect rather than router.push: we want a fresh
       // page that picks up the active-scan state from the server.
       window.location.href = "/scans";
     } catch (err) {
@@ -1388,7 +1395,7 @@ function FinalActions({
         Let&rsquo;s cook your first scan.
       </div>
       <div className="text-[12.5px] text-ink-soft mb-3 leading-snug">
-        I&rsquo;ll kick off the starter — 5 static playbooks, no network, no
+        I&rsquo;ll kick off the starter: 5 static playbooks, no network, no
         AI cost, takes seconds. We&rsquo;ll move you to{" "}
         <Link
           href="/scans"
@@ -1397,7 +1404,7 @@ function FinalActions({
         >
           /scans
         </Link>{" "}
-        so you can watch it cook (and wander off if you want — it keeps
+        so you can watch it cook (and wander off if you want, it keeps
         running).
       </div>
       <div className="flex flex-wrap gap-2">
@@ -1451,7 +1458,7 @@ function describeAction(
     case "set_repo":
       // Spell out PR-target vs scan-target explicitly in the action
       // confirmation so users can't confuse the two.
-      return `Set PR target repo to ${input.repo} (where fixes will land — not the scan target)`;
+      return `Set PR target repo to ${input.repo} (where fixes will land, not the scan target)`;
     case "clone_and_activate_project":
       return input.existing_local_path
         ? `Register existing clone at ${input.existing_local_path} as the active project (${input.slug})`
@@ -1484,7 +1491,7 @@ function providerNeedsKey(id: ProviderId): boolean {
 /**
  * Best-effort flattening of a React node to a plain string. Used so
  * scripted bubbles (which carry JSX rather than a text source) still
- * round-trip through sessionStorage — the string loses tags but keeps
+ * round-trip through sessionStorage: the string loses tags but keeps
  * the visible copy, which is better than showing nothing on restore.
  */
 function stringifyReactNode(node: React.ReactNode): string {
@@ -1519,7 +1526,7 @@ function detectSecret(
   text: string,
 ): { label: string; masked: string } | null {
   const compact = text.trim();
-  // Reject if there's whitespace — these are single tokens.
+  // Reject if there's whitespace; these are single tokens.
   if (/\s/.test(compact)) return null;
 
   if (/^github_pat_[A-Za-z0-9_]{20,}$/.test(compact)) {

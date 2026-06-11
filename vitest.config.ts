@@ -27,5 +27,34 @@ export default defineConfig({
       "**/.next/**",
       "**/.turbo/**",
     ],
+    coverage: {
+      provider: "v8",
+      reporter: ["text-summary", "html", "lcov"],
+      reportsDirectory: path.join(here, "coverage"),
+      // Floor thresholds: a ratchet that prevents regressions, set just
+      // under the current all-files numbers. They are low because the
+      // 16k-line Next web package and the CLI command layer are almost
+      // entirely untested today; line/statement coverage is dominated
+      // by that dead weight. Raise these as Phase 4 backfills tests
+      // (providers, git-adapters, web server-actions). The point today
+      // is that the gate exists and cannot silently regress to zero.
+      thresholds: {
+        statements: 7,
+        branches: 50,
+        functions: 30,
+        lines: 7,
+      },
+      exclude: [
+        "**/node_modules/**",
+        "**/dist/**",
+        "**/.next/**",
+        "**/.turbo/**",
+        "**/*.config.*",
+        "**/*.test.*",
+        "**/*.d.ts",
+        "scripts/**",
+        "playbooks/**",
+      ],
+    },
   },
 });

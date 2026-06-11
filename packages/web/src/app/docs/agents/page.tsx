@@ -175,7 +175,7 @@ opt remediate --all --severity medium
 # Specify an agent explicitly
 opt remediate --issue ISSUE-003 --agent alfredo`}</Code>
         <p className="text-[13px] text-ink-soft mt-3">
-          Agents run in parallel with a work-stealing queue — critical issues
+          Agents run in parallel with a work-stealing queue; critical issues
           are picked up first regardless of discovery order.
         </p>
       </Card>
@@ -238,7 +238,7 @@ opt approve --issue ISSUE-007
 opt verify --issue ISSUE-007`}</Code>
       </Card>
 
-      <Card title="Nonna — the quality gate">
+      <Card title="Nonna, the quality gate">
         <p className="text-[14px] text-ink-soft leading-relaxed">
           Before any PR is opened, Nonna (the head-chef review agent) reads the
           diff and checks for regressions, test coverage, and correctness. If

@@ -40,7 +40,7 @@ export type AgentId =
 
 /**
  * Every agent the loader can resolve a profile for. INCLUDES Nonna
- * (the head-chef reviewer), even though she's not a worker — she
+ * (the head-chef reviewer), even though she's not a worker. She
  * has a memory.md the user can inspect on /agents/nonna, and the
  * sidebar links there. The four worker agents come first by
  * convention so iteration order matches the kanban.
@@ -64,7 +64,7 @@ export interface AgentSkill {
   filename: string;
   /** Markdown body. */
   body: string;
-  /** Only custom skills have this set — always true for now since we
+  /** Only custom skills have this set, always true for now since we
    *  don't ship bundled skills yet. Kept as a field so we can extend
    *  cleanly later. */
   custom: boolean;
@@ -72,7 +72,7 @@ export interface AgentSkill {
 
 export interface AgentProfile {
   id: AgentId;
-  /** Memory source — "bundled" if we fell back to defaults, "project"
+  /** Memory source: "bundled" if we fell back to defaults, "project"
    *  if `.ohpentesting/agents/<id>/memory.md` was found and used. */
   memorySource: "bundled" | "project";
   memory: string;
@@ -83,7 +83,7 @@ export interface AgentProfile {
   playbooks: string[];
   /** Where the playbooks list came from. */
   playbooksSource: "bundled" | "project";
-  /** Per-project custom skills — user-authored markdown files under
+  /** Per-project custom skills: user-authored markdown files under
    *  .ohpentesting/agents/<id>/skills/. Empty array if none. */
   customSkills: AgentSkill[];
   /** Absolute path to the per-project agent dir (may not exist yet
@@ -98,11 +98,11 @@ function bundledAssetsRoot(): string {
   // Dev (tsx / vitest): <shared>/src/agents/loader.ts → ./assets
   // Build (tsup esm):   <shared>/dist/index.js         → ../src/agents/assets
   //                                                    or ./agents-assets
-  //   (the latter is mirrored by tsup onSuccess — see
+  //   (the latter is mirrored by tsup onSuccess, see
   //    packages/shared/tsup.config.ts. We check both so a forgotten
   //    `pnpm build` in a workspace dev flow falls back to source.)
   const candidates = [
-    // Source paths (canonical — work in dev or when src/ sits alongside dist/)
+    // Source paths (canonical, work in dev or when src/ sits alongside dist/)
     path.join(here, "assets"),
     path.join(here, "..", "src", "agents", "assets"),
     path.join(here, "..", "..", "src", "agents", "assets"),
@@ -143,7 +143,7 @@ export async function loadAgentProfile(
   const bundledDir = path.join(bundledAssetsRoot(), id);
   const projectDir = projectAgentDir(cwd, id);
 
-  // Memory — project override beats bundled.
+  // Memory: project override beats bundled.
   const projectMemoryPath = path.join(projectDir, "memory.md");
   const bundledMemoryPath = path.join(bundledDir, "memory.md");
   const projectMemory = await readFileIfExists(projectMemoryPath);
@@ -156,7 +156,7 @@ export async function loadAgentProfile(
   const memoryPath =
     projectMemory !== null ? projectMemoryPath : bundledMemoryPath;
 
-  // Playbooks list — project override beats bundled. We don't merge
+  // Playbooks list: project override beats bundled. We don't merge
   // because the user may want to narrow the scope; the revert action
   // drops the override.
   const projectPlaybooksRaw = await readFileIfExists(
@@ -175,7 +175,7 @@ export async function loadAgentProfile(
       playbooks = parsed.playbooks;
       playbooksSource = "project";
     } catch {
-      /* malformed — fall through to bundled */
+      /* malformed, fall through to bundled */
     }
   }
   if (playbooksSource === "bundled" && bundledPlaybooksRaw !== null) {
@@ -185,11 +185,11 @@ export async function loadAgentProfile(
       );
       playbooks = parsed.playbooks;
     } catch {
-      /* malformed — leave empty */
+      /* malformed, leave empty */
     }
   }
 
-  // Custom skills — everything under .ohpentesting/agents/<id>/skills/
+  // Custom skills: everything under .ohpentesting/agents/<id>/skills/
   // that ends in .md. We don't ship bundled skills today; this is pure
   // user-authored content.
   const customSkills: AgentSkill[] = [];
@@ -208,7 +208,7 @@ export async function loadAgentProfile(
       });
     }
   } catch {
-    /* no skills dir yet — fine */
+    /* no skills dir yet, fine */
   }
 
   return {
@@ -232,7 +232,7 @@ export async function loadAllAgentProfiles(
 
 /**
  * Write a project-local memory override. Creates the agent dir if
- * missing. No-op rejection of empty strings — revert should be a
+ * missing. No-op rejection of empty strings: revert should be a
  * separate action.
  */
 export async function writeAgentMemoryOverride(
@@ -249,7 +249,7 @@ export async function writeAgentMemoryOverride(
 }
 
 /**
- * Delete the project-local memory override — subsequent loads fall
+ * Delete the project-local memory override. Subsequent loads fall
  * back to the bundled memory.md.
  */
 export async function revertAgentMemory(
@@ -267,7 +267,7 @@ export async function revertAgentMemory(
 
 /**
  * Persist a playbooks.yml override with the given id list. Empty
- * array is valid — it means "this agent owns no playbooks". Revert
+ * array is valid: it means "this agent owns no playbooks". Revert
  * via revertAgentPlaybooks.
  */
 export async function writeAgentPlaybooksOverride(
@@ -301,7 +301,7 @@ export async function revertAgentPlaybooks(
 }
 
 /**
- * Write a custom skill file. Skill ids are filename-safe — callers
+ * Write a custom skill file. Skill ids are filename-safe: callers
  * should normalise before passing. No-op if the filename would
  * escape the skills dir (prevents ../etc traversal).
  */

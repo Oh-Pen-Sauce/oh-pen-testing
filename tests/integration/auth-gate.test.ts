@@ -22,7 +22,7 @@ function neverCalledProvider(): AIProvider {
     rateLimitStrategy: (): RateLimitStrategy => ({ class: "local" }),
     async complete(_: CompletionRequest): Promise<CompletionResult> {
       throw new Error(
-        "Provider should never be reached — scope gate must block first.",
+        "Provider should never be reached. Scope gate must block first.",
       );
     },
   };
@@ -50,7 +50,7 @@ describe("authorisation gate", () => {
       cwd,
       projectName: "authgate",
       languages: ["typescript"],
-      // no authorisationAcknowledged — defaults to false
+      // no authorisationAcknowledged, defaults to false
     });
     const config = await loadConfig(cwd);
     expect(config.scope.authorisation_acknowledged).toBe(false);

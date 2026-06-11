@@ -7,8 +7,8 @@ Do NOT confirm when:
 - The constraint is clearly a minimum visible UX length, not a security min.
 
 Severity:
-- `high` — production signup form with minLength < 6.
-- `medium` — minLength 6-7.
-- `low` — anywhere else.
+- `high`: production signup form with minLength < 6.
+- `medium`: minLength 6-7.
+- `low`: anywhere else.
 
 Reference: NIST SP 800-63B requires memorised secrets to be at least 8 chars.

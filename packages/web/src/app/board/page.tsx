@@ -15,7 +15,7 @@ export default async function BoardPage() {
   return (
     <div>
       <PageHeader
-        kicker="02 — La Lavagna"
+        kicker="02 – La Lavagna"
         title={<>Board</>}
         sub={`${issues.length} issue${
           issues.length === 1 ? "" : "s"

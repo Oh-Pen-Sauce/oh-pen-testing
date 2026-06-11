@@ -22,7 +22,7 @@ import { Btn } from "../../components/trattoria/button";
  *   - Remove (drop from registry; optionally also delete clone)
  *
  * Plus a single "Add project" form at the top. Add takes a slug
- * (owner/name) and optionally a local path — if the user already
+ * (owner/name) and optionally a local path: if the user already
  * has the repo checked out somewhere, we register that path
  * instead of cloning fresh.
  */
@@ -104,7 +104,7 @@ export function ProjectsClient({
       const res = await refreshProjectAction(project.id);
       if (res.ok) {
         showFlash("ok", res.detail);
-        // Refresh only touches `lastFetchedAt` — a reload updates
+        // Refresh only touches `lastFetchedAt`; a reload updates
         // the timestamp in the card.
         window.location.reload();
       } else {
@@ -237,7 +237,7 @@ export function ProjectsClient({
                 />
                 <Hint>
                   Leave blank to let me clone fresh. Fill in if you already
-                  have this project checked out and want to use that copy —
+                  have this project checked out and want to use that copy.
                   I&rsquo;ll register the path as-is without cloning anything.
                 </Hint>
               </div>

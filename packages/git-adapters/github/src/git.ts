@@ -31,7 +31,7 @@ export async function createBranch(
 
 /**
  * Stage and commit. If `files` is provided, ONLY those paths are
- * staged — critical for avoiding accidental inclusion of
+ * staged: critical for avoiding accidental inclusion of
  * Oh Pen Testing's own state directory (`.ohpentesting/`) in
  * remediation PRs. Without an explicit list, `git add .` would
  * pick up issue JSON files, scan logs, and the counter alongside
@@ -62,8 +62,8 @@ export async function commitAll(
 
 /**
  * Push a branch. By default uses `origin` (whatever credentials git
- * has configured locally — SSH key, credential helper, or none). If
- * `pushUrl` is passed, push to THAT URL instead — this is how the
+ * has configured locally: SSH key, credential helper, or none). If
+ * `pushUrl` is passed, push to THAT URL instead. This is how the
  * GitHub adapter injects the API token into the URL for HTTPS push
  * auth without depending on the user's local git credentials.
  *
@@ -100,7 +100,7 @@ export async function getCurrentBranch(repoPath: string): Promise<string> {
  * doesn't have a first-class worktree API yet, so we shell out via
  * `git.raw`.
  *
- * The worktree shares the parent's `.git` directory — refs are
+ * The worktree shares the parent's `.git` directory: refs are
  * common (every worktree sees every branch), but each worktree's
  * HEAD is independent. That's exactly what we want for parallel
  * agents.
@@ -141,7 +141,7 @@ export async function removeWorktree(
 /**
  * Force-checkout `branch`, then remove untracked files. The
  * filesystem ends up at exactly `branch`'s state, regardless of
- * what was there before — pending edits, leftover branches with
+ * what was there before: pending edits, leftover branches with
  * uncommitted state, untracked clutter from prior failed runs.
  *
  * Used as a pre-flight before each agent run so each remediation
@@ -160,7 +160,7 @@ export async function removeWorktree(
  *     the previous branch but not on main. If a buggy old build
  *     (or a manual `git add .`) ever staged .ohpentesting/ files
  *     into a branch, switching back to main would wipe them. The
- *     snapshot+restore protects against that — we copy
+ *     snapshot+restore protects against that: we copy
  *     .ohpentesting/ to memory before checkout, then write it
  *     back after, so even if checkout removes the tree from disk
  *     we've got a backup.
@@ -227,7 +227,7 @@ async function snapshotOhpenDir(
 /**
  * Write the snapshot back to disk. Creates parent dirs as needed.
  * Only writes files that AREN'T already present on disk with the
- * same byte length — minor optimisation to avoid touching files
+ * same byte length: minor optimisation to avoid touching files
  * that survived the checkout, which keeps mtime stable for any
  * tools watching them.
  */
@@ -240,11 +240,11 @@ async function restoreOhpenSnapshot(
     try {
       const existing = await fs.stat(full);
       if (existing.isFile() && existing.size === contents.length) {
-        // Same byte count — most likely identical, skip.
+        // Same byte count: most likely identical, skip.
         continue;
       }
     } catch {
-      /* file doesn't exist — proceed to write */
+      /* file doesn't exist: proceed to write */
     }
     try {
       await fs.mkdir(nodePath.dirname(full), { recursive: true });

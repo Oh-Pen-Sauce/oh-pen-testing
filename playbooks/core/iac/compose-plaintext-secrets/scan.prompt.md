@@ -5,9 +5,9 @@ whether the literal is a real secret (prod/staging API key, DB password,
 private key) rather than a placeholder for local development.
 
 Severity:
-- critical — a credential for a real service (AWS, Stripe, OpenAI, prod DB)
-- high — a credential for a shared staging / CI environment
-- low — an obvious local-dev placeholder like `password: devpassword`
+- critical: a credential for a real service (AWS, Stripe, OpenAI, prod DB)
+- high: a credential for a shared staging / CI environment
+- low: an obvious local-dev placeholder like `password: devpassword`
 
 Things that are NOT this finding:
 - `${SECRET_NAME}` interpolations (the real value lives elsewhere)

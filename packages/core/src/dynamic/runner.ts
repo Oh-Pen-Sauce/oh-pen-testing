@@ -131,7 +131,7 @@ export async function runDynamicScan(
       findings.push(...fs);
     } catch (err) {
       if (err instanceof ScopeViolation) throw err;
-      // Playbook crashed — log and continue
+      // Playbook crashed: log and continue
       // eslint-disable-next-line no-console
       console.error(`[dynamic] ${pb.id} failed:`, (err as Error).message);
     }

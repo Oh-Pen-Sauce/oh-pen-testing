@@ -1,4 +1,4 @@
-# Oh Pen Testing — outstanding tasks after v1.0.0
+# Oh Pen Testing: outstanding tasks after v1.0.0
 
 This file tracks the work that remains after the M7–M17 feature batch
 and the v1.0.0 cut. Everything in the PRD is implemented in-repo;
@@ -18,7 +18,7 @@ GitHub repo that homebrew fetches formulae from.
 
 1. Create a new public GitHub repo called `homebrew-tap` under the
    `oh-pen-sauce` org (the org must exist; otherwise under whoever
-   owns the Oh Pen Testing project — today that's `@samnash`).
+   owns the Oh Pen Testing project, today that's `@samnash`).
 2. Add a single formula file at `Formula/oh-pen-testing.rb`:
 
    ```ruby
@@ -50,12 +50,12 @@ GitHub repo that homebrew fetches formulae from.
 4. Tag the tap repo `v1.0.0` and the install command becomes
    `brew install oh-pen-sauce/tap/oh-pen-testing`.
 
-### npm publish — packages prepped, waiting on `npm login`
+### npm publish: packages prepped, waiting on `npm login`
 
 Every public workspace package is publish-ready:
 
 - `private: true` removed from the 11 publishable packages
-  (kept on `@oh-pen-testing/web` — it's a Next app, not a lib)
+  (kept on `@oh-pen-testing/web`, it's a Next app, not a lib)
 - `publishConfig: { access: "public" }` + MIT license + repo /
   homepage / bugs / engines fields on each
 - CLI tarball verified to include the `#!/usr/bin/env node` shebang
@@ -64,12 +64,12 @@ Every public workspace package is publish-ready:
 - Local smoke test passed: pack → install → `opt --version` → `opt
   connect` → config.yml written. End-to-end green.
 
-**Full publish runbook now lives in [`PUBLISHING.md`](./PUBLISHING.md)** — follow that top-to-bottom for every release. It covers:
+**Full publish runbook now lives in [`PUBLISHING.md`](./PUBLISHING.md)**: follow that top-to-bottom for every release. It covers:
 
 - one-time npm login / 2FA / scope-claiming
 - version bump via `pnpm -r`
 - packed-tarball smoke test before upload
-- the exact publish order (dependency graph matters — shared first,
+- the exact publish order (dependency graph matters: shared first,
   then leaf libs, then core, then CLI)
 - registry verification + GitHub release tag
 
@@ -98,7 +98,7 @@ Confirm these packages publish successfully (others are private):
 - `@oh-pen-testing/cli`
 - `@oh-pen-testing/playbooks-core`
 
-`@oh-pen-testing/web` is `private: true` — it ships inside the Docker
+`@oh-pen-testing/web` is `private: true`; it ships inside the Docker
 image, not via npm.
 
 ### Docker image
@@ -117,11 +117,55 @@ docker push ghcr.io/oh-pen-sauce/oh-pen-testing:latest
 Needs a GitHub PAT with `write:packages` set as `GHCR_PAT` in the
 local shell and `docker login ghcr.io -u <user> -p $GHCR_PAT` first.
 
+### Local-playbook trust boundary (follow-up, found 2026-06-11)
+
+The autonomy gate (`evaluateAutonomyGate` in `packages/core/src/agent/run-agent.ts`)
+keys off the matched playbook's `strategy`/`owasp_ref`/`cwe`, which is
+sound for BUNDLED playbooks but not for LOCAL ones. A local playbook
+lives in the scanned repo (`<cwd>/.ohpentesting/playbooks/local/`), so a
+hostile repo could ship a local playbook that performs auth/secrets work
+via its `remediate.prompt.md` while declaring benign `owasp_ref`/`cwe`
+metadata to dodge the approval triggers in `recommended` mode. Two fixes
+to consider together:
+
+1. Thread playbook PROVENANCE (bundled vs local) onto the issue at scan
+   time and gate any local-sourced issue for approval by default in
+   `recommended`/`careful`, regardless of declared metadata.
+2. Vet local-playbook regex patterns at load time (or run them under a
+   per-exec timeout / a backtracking-free engine like re2), since a local
+   playbook can also ship a ReDoS-prone pattern. The current per-line
+   width cap in `regex-scanner.ts` bounds the input, not the pattern.
+
+Until then, `<cwd>/.ohpentesting/playbooks/local/` is trusted input;
+document that in the local-playbooks guide.
+
+### Install size: Next standalone is a dead end for npm (investigated 2026-06-11)
+
+The wizard install is large because `@oh-pen-testing/web` ships the full
+`.next` build and pulls `next` + `react` + `react-dom` as runtime
+dependencies. The obvious fix, Next's `output: "standalone"` (a
+self-contained server with a trimmed, traced `node_modules`), was tried
+end to end and does NOT survive npm distribution:
+
+- The standalone server runs perfectly when launched directly from a
+  monorepo build (verified: `/setup` and static assets both 200).
+- But packing it (`pnpm pack` / `npm pack`) drops `next` from
+  `.next/standalone/node_modules`, so after `npm install` the server
+  throws `Cannot find module 'next'`. Package managers do not reliably
+  preserve a nested, traced `node_modules` inside a published tarball.
+
+Standalone is the right answer for Docker and server deploys, not for an
+npm-installed CLI. If the install size needs to come down, the realistic
+options are: a separate Docker/`npx`-served distribution, or splitting
+the wizard out of the npm install entirely. Do not re-attempt plain
+`output: standalone` for the published package without solving the
+nested-`node_modules` packing problem first.
+
 ---
 
 ## Infrastructure / hosting
 
-### `oh-pen-testing.dev` — marketing site
+### `oh-pen-testing.dev`: marketing site
 
 Not in this repo. Needs a separate small Next.js site that:
 - renders live stats from the telemetry endpoint (see below)
@@ -132,7 +176,7 @@ Not in this repo. Needs a separate small Next.js site that:
 
 `packages/shared/src/telemetry.ts` POSTs `scan_completed` events to a
 configurable endpoint (default: `https://telemetry.oh-pen-testing.dev/v1/events`).
-That endpoint doesn't exist yet — it needs:
+That endpoint doesn't exist yet. It needs:
 
 1. A tiny serverless function (Cloudflare Workers / Deno Deploy is fine).
 2. A KV/SQL store counting: `total_scans`, `total_lines_analysed`,
@@ -163,7 +207,7 @@ catalogue, CWE Top 25 coverage we didn't ship bundled.
 Ordered by user value, not effort.
 
 ### Manifest signing for registry playbooks
-Today the client verifies SHA-256 of individual files — good protection
+Today the client verifies SHA-256 of individual files: good protection
 against a CDN swap, but not against a malicious registry owner. Add
 optional ed25519 signatures at the `RegistryEntry` level and let users
 pin trusted signing keys in their config.
@@ -211,7 +255,7 @@ transitional user-scoped values:
 - `package.json` fields (homepage, repository) currently point to
   `github.com/samnash/oh-pen-testing`. Update to
   `github.com/oh-pen-sauce/oh-pen-testing` once the org move happens.
-- `action.yml` GitHub Action — same.
+- `action.yml` GitHub Action: same.
 - `README.md` badges and install snippets.
 
 Single pass via `grep -rl "samnash/oh-pen-testing" .` after the rename.

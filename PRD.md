@@ -1,9 +1,9 @@
-# Oh Pen Testing — Product Requirements Document
+# Oh Pen Testing: Product Requirements Document
 
 **Status:** v0.5 spec · draft 2 · 2026-04-21
 **Owner:** Sam (hello@fourfivesixle.com)
 **Parent agency:** Oh Pen Sauce
-**Licence:** MIT (pure OSS, donations only — no paid tier in v1.0)
+**Licence:** MIT (pure OSS, donations only, no paid tier in v1.0)
 **Motto:** *Your code. Your AI. Your terms.*
 **Audience:** Indie developers, founders, OSS maintainers, solo security-conscious engineers. **Not** enterprise security teams in v1.0 (RBAC + workspaces + hosted control plane is explicitly v2.0+ scope).
 
@@ -11,7 +11,7 @@
 
 ## 1. Vision
 
-A free, opensource, locally-run penetration testing suite that turns any developer's AI assistant into a security engineer. You install it against your repo, connect your AI (Claude, OpenAI, Ollama — your tokens, your machine), and it runs a full-spectrum pen test, files issues to a kanban board, and has agents that fix the issues and open PRs. No SaaS. No code leaves your machine. No vendor lock-in.
+A free, opensource, locally-run penetration testing suite that turns any developer's AI assistant into a security engineer. You install it against your repo, connect your AI (Claude, OpenAI, Ollama; your tokens, your machine), and it runs a full-spectrum pen test, files issues to a kanban board, and has agents that fix the issues and open PRs. No SaaS. No code leaves your machine. No vendor lock-in.
 
 ### What makes it different
 - **Local-first.** Never phones home, never uploads your code. Your AI credentials stay on your machine.
@@ -21,9 +21,9 @@ A free, opensource, locally-run penetration testing suite that turns any develop
 
 ### Non-goals (v0.5)
 - Continuous runtime protection (this is a scanning + remediation tool, not a WAF)
-- Compliance attestation (SOC2/ISO audit packages — a fan could build later)
-- Bug bounty platform — we scan your code, not other people's
-- Multi-repo "hub" dashboard — one install per repo, deliberately
+- Compliance attestation (SOC2/ISO audit packages; a fan could build later)
+- Bug bounty platform: we scan your code, not other people's
+- Multi-repo "hub" dashboard: one install per repo, deliberately
 
 ---
 
@@ -31,29 +31,29 @@ A free, opensource, locally-run penetration testing suite that turns any develop
 
 The non-negotiable rules that shape every design choice. If a decision violates one of these, the decision is wrong.
 
-1. **Authorised testing only — you own the authorisation.** Oh Pen Testing refuses to scan anything without an explicit acknowledgement from the operator that they have permission to test the target. There is no "dry run on someone else's repo" mode. The setup wizard requires a checkbox acknowledgement before saving config; the CLI requires a one-time `y/n` confirmation on first scan in any repo. The acknowledgement is recorded in `scope.authorisation_acknowledged` with the timestamp and (optionally) the operator's name. **We cannot enforce this technically across every edge case — but we can make "I didn't mean to" impossible to claim.**
+1. **Authorised testing only: you own the authorisation.** Oh Pen Testing refuses to scan anything without an explicit acknowledgement from the operator that they have permission to test the target. There is no "dry run on someone else's repo" mode. The setup wizard requires a checkbox acknowledgement before saving config; the CLI requires a one-time `y/n` confirmation on first scan in any repo. The acknowledgement is recorded in `scope.authorisation_acknowledged` with the timestamp and (optionally) the operator's name. **We cannot enforce this technically across every edge case, but we can make "I didn't mean to" impossible to claim.**
 2. **Local-first, never phones home.** No telemetry, no remote-state, no SaaS dependency. Your code, credentials, and AI session stay on your machine.
 3. **BYO AI.** The tool works with Claude API, Claude Code CLI (OAuth, free on Max), Ollama, and (eventually) any OpenAI-compatible endpoint. No bundled inference fees ever.
 4. **AI for reasoning, not unchecked power.** AI confirms findings, reasons about severity, and drafts patches. Deterministic code is what discovers candidate issues, enforces scope, orchestrates runs, and applies patches. The LLM never executes shell commands, never runs tests, never merges PRs.
 5. **Evidence first, interpretation second.** Every issue exposes the raw scanner hit (file, line, matched string) separately from the AI's analysis of it. The scanner output is machine-verifiable; the AI analysis is advisory. Users must be able to distinguish the two at a glance.
-6. **Human review for remediation.** Agents draft PRs; humans merge. The tool never pushes to `main` directly, never force-pushes, never skips CI. In Recommended autonomy mode the agent may auto-open a PR for non-critical issues — but opening a PR is not the same as merging one.
-7. **Single-user local tool in v1.0.** No RBAC, no multi-tenant workspaces, no hosted control plane. If and when enterprise demand is proven, add those in v2.0 as separate packages — do not let them warp v1.0.
+6. **Human review for remediation.** Agents draft PRs; humans merge. The tool never pushes to `main` directly, never force-pushes, never skips CI. In Recommended autonomy mode the agent may auto-open a PR for non-critical issues, but opening a PR is not the same as merging one.
+7. **Single-user local tool in v1.0.** No RBAC, no multi-tenant workspaces, no hosted control plane. If and when enterprise demand is proven, add those in v2.0 as separate packages; do not let them warp v1.0.
 8. **Personality is a feature.** Pasta-sauce agents (Marinara, Carbonara, Alfredo, Pesto), Italian cooking metaphors in install steps, and cheeky copy ("Buon appetito") are deliberate. Security tooling is usually joyless. Ours isn't. This is a hiring signal for contributors too.
 
 ---
 
 ## 3. Target users
 
-### P1 — the indie dev / founder
+### P1: the indie dev / founder
 Ships with a small team, uses Lovable/Cursor/Claude Code, wants security hygiene but can't afford a £15k consultancy engagement. Wants to run "the thing" monthly, get a PDF they can show investors or enterprise buyers.
 
-### P2 — the OSS maintainer
+### P2: the OSS maintainer
 Project gets adopted in security-sensitive contexts (fintech, health). Wants a reproducible scan they can run in CI and attach to releases.
 
-### P3 — the security-conscious engineer at a startup
+### P3: the security-conscious engineer at a startup
 Has to own security without being a dedicated AppSec engineer. Wants automation so they can audit quarterly without blocking other work.
 
-### P4 — the educator / learner
+### P4: the educator / learner
 Wants to understand how their code looks to an attacker. Playbooks double as a teaching tool.
 
 ---
@@ -68,23 +68,23 @@ Wants to understand how their code looks to an attacker. Playbooks double as a t
    - Connect GitHub (PAT scoped to this repo, walk-through generates the URL with exact scopes)
    - Pick autonomy mode (YOLO / Recommended / Careful)
    - Configure scope: time windows, per-target rate limits, allowed targets, risky test toggles
-   - **Authorisation acknowledgement** — required checkbox: *"I confirm I have authorisation to run security testing against every target I've configured here."* Cannot finish setup without it.
+   - **Authorisation acknowledgement**: required checkbox: *"I confirm I have authorisation to run security testing against every target I've configured here."* Cannot finish setup without it.
 4. **Scan.** `oh-pen-testing scan` runs the playbook suite.
    - **First scan in a new repo**: CLI prompts `"Are you authorised to test this codebase? [y/N]"` and requires `y` before proceeding. Persisted to `scope.authorisation_acknowledged` so subsequent scans skip the prompt.
    - Enforces time windows, rate limits, and target allowlist before each playbook fires.
    - Live progress in the web UI.
-5. **Triage.** Findings land on the kanban board as issue cards, ranked by CVSS severity. Each issue shows **raw scanner output** (file, line, literal match) side-by-side with **AI analysis** (reasoning, severity, impact) — never merged into one blob.
+5. **Triage.** Findings land on the kanban board as issue cards, ranked by CVSS severity. Each issue shows **raw scanner output** (file, line, literal match) side-by-side with **AI analysis** (reasoning, severity, impact), never merged into one blob.
 6. **Remediate.** Agents (Marinara, Carbonara, Alfredo, Pesto) pick up issues, propose fixes.
    - In Careful mode: every fix requires user approval before PR.
    - In Recommended mode: auto-approves low-risk fixes, blocks on auth/secrets/schema.
    - In YOLO mode: agents open PRs for everything except explicitly-guarded zones.
 7. **Review.** User gets PRs on GitHub with clear explanations ("Fixed SQL injection in `users.py:42` by parameterising the query. Why this was unsafe: [...]. How the fix works: [...].").
-8. **Verify.** When a PR merges (or the user clicks "fix applied"), Oh Pen Testing re-runs the playbooks that flagged the issue. If the rerun finds zero related hits, the issue moves to **`verified`** status — machine-attested "the thing is gone." If hits remain, the issue stays in `in_review` with a diff of what changed. CLI: `opt verify --issue ISSUE-001` forces a manual rerun.
+8. **Verify.** When a PR merges (or the user clicks "fix applied"), Oh Pen Testing re-runs the playbooks that flagged the issue. If the rerun finds zero related hits, the issue moves to **`verified`** status: machine-attested "the thing is gone." If hits remain, the issue stays in `in_review` with a diff of what changed. CLI: `opt verify --issue ISSUE-001` forces a manual rerun.
 9. **Report.** `oh-pen-testing report --format pdf` produces a signed, pen-test-style PDF showing issues found, issues fixed, issues verified, and residual risks. Includes executive summary + technical detail.
 
 ---
 
-## 5. Scope — v0.5 (the MVP we're building)
+## 5. Scope: v0.5 (the MVP we're building)
 
 ### 5.1 In-scope
 
@@ -101,7 +101,7 @@ Wants to understand how their code looks to an attacker. Playbooks double as a t
 | **Autonomy modes** | YOLO / Recommended (default) / Careful |
 | **Authorisation gate** | Required acknowledgement in setup wizard + first-scan CLI prompt; persisted to `scope.authorisation_acknowledged` |
 | **Scope policy** | `scope.allowed_targets` (domain/host/repo allowlist), `scope.time_windows` (enforce "only scan between X and Y"), `scope.rate_limits` (per-target `requests_per_minute`, `max_concurrent`). Enforced in `run-scan.ts` before each playbook fires. |
-| **Verification reruns** | First-class post-remediation step — automatic after a PR merges, manual via `opt verify --issue <ID>`. New issue status `verified` when the rerun finds zero related hits. |
+| **Verification reruns** | First-class post-remediation step: automatic after a PR merges, manual via `opt verify --issue <ID>`. New issue status `verified` when the rerun finds zero related hits. |
 | **Evidence/interpretation split** | `/issue/[id]` surfaces scanner output (raw regex/AST hit, monospace) separately from AI analysis (reasoning, severity rationale). Provenance block with playbook ID, AI model, timestamp. |
 | **Output formats** | Markdown report, JSON issue files, SARIF export, live web dashboard |
 | **Rate-limit strategy** | Detect Max-plan vs API-key at setup; chunk scans for Max; cost caps for API; hard-halt on 429 (no mid-scan checkpoint/resume in v1.0) |
@@ -211,8 +211,8 @@ Four capable general-purpose agents sharing one playbook library. Each agent run
 | **Alfredo** | 🧀 | Auth & access control (broken access, session management) |
 | **Pesto** | 🌿 | Dependencies & supply chain (SCA, vulnerable components, outdated libs) |
 
-Agents are not locked to their category — they can pull any ticket from the board. The naming is flavour; the work is generic. Two reasons:
-1. Users enjoy watching "Marinara fixing SQL injection" and "Pesto bumping a CVE'd dep" — it's legible and memorable.
+Agents are not locked to their category; they can pull any ticket from the board. The naming is flavour; the work is generic. Two reasons:
+1. Users enjoy watching "Marinara fixing SQL injection" and "Pesto bumping a CVE'd dep"; it's legible and memorable.
 2. If a category has no work, agents rebalance automatically.
 
 ### 6.5 Data model
@@ -245,7 +245,7 @@ agents:
     - schema_migrations
     - large_diff                    # > 200 lines
 scope:
-  # Authorisation gate — required before any scan runs. Set by the setup
+  # Authorisation gate: required before any scan runs. Set by the setup
   # wizard checkbox and/or the first-scan CLI prompt. No scan proceeds
   # without this being true.
   authorisation_acknowledged: true
@@ -283,7 +283,7 @@ reports:
 
 #### Issue (`.ohpentesting/issues/ISSUE-001.json`)
 
-The schema deliberately separates **raw scanner output** (`evidence.code_snippet`, `evidence.rule_id`) from **AI interpretation** (`evidence.analysis`, `evidence.ai_reasoning`). The web UI surfaces these in two distinct sections on `/issue/[id]` — never merged into one blob (see Principle 5). The `verification` block tracks the post-remediation rerun (Principle 6).
+The schema deliberately separates **raw scanner output** (`evidence.code_snippet`, `evidence.rule_id`) from **AI interpretation** (`evidence.analysis`, `evidence.ai_reasoning`). The web UI surfaces these in two distinct sections on `/issue/[id]`, never merged into one blob (see Principle 5). The `verification` block tracks the post-remediation rerun (Principle 6).
 
 Status values: `backlog` → `ready` → `in_progress` → `in_review` → `verified` | `wont_fix`. `verified` is reserved for issues that were remediated **and** a post-fix rerun confirmed the finding is gone.
 
@@ -366,8 +366,8 @@ playbooks/
         helpers/
           ast-match.ts      # deterministic AST walker for confirming hits
         tests/
-          positive/         # sample vuln code — must be flagged
-          negative/         # safe code — must NOT be flagged
+          positive/         # sample vuln code: must be flagged
+          negative/         # safe code: must NOT be flagged
 ```
 
 Playbook manifests:
@@ -410,9 +410,9 @@ v1.0 adds `GitLabAdapter`, `BitbucketAdapter`. Adapter interface is defined now 
 PR descriptions are templated:
 
 ```markdown
-## 🛡️ Oh Pen Testing fix — ISSUE-001
+## 🛡️ Oh Pen Testing fix: ISSUE-001
 
-**Category:** OWASP A03:2021 — Injection
+**Category:** OWASP A03:2021 – Injection
 **Severity:** Critical (CVSS 9.1)
 **Fixed by:** Marinara 🍅
 
@@ -452,28 +452,28 @@ Code we scan is **untrusted input**. A malicious comment like `// Ignore all pre
 
 2. **JSON schema output.** Scanners must return a typed JSON object (issues array). Any freeform text in the output is discarded. If a scanner returns "this file is clean" outside the JSON, we treat the run as failed, not passed.
 
-3. **Deterministic preflight.** AST matchers run before the AI. If the matcher finds nothing, the AI is never asked. If the matcher finds candidates, the AI's job is only to confirm or reject specific ones — not to decide what to look for.
+3. **Deterministic preflight.** AST matchers run before the AI. If the matcher finds nothing, the AI is never asked. If the matcher finds candidates, the AI's job is only to confirm or reject specific ones, not to decide what to look for.
 
 4. **Two-agent confirmation for critical findings.** Before opening a PR for a critical fix, a second agent (using a different provider if configured) independently verifies the fix is correct. Divergence → human review.
 
 5. **Sanitised PR descriptions.** AI-generated explanations are markdown-escaped; any HTML, backticks-in-backticks, or suspicious payload patterns are stripped.
 
-6. **Never execute scanned code.** v0.5 is static only — we read, we never run.
+6. **Never execute scanned code.** v0.5 is static only: we read, we never run.
 
 ### 6.9 Risky test toggles
 
 Some tests are valuable but potentially disruptive. All off by default; each has a tooltip.
 
 Examples:
-- **`test_reset_password_flow`** — attempts password-reset enumeration. Sends real emails. Warn: "Will email `noreply@...` addresses in your test user list. Toggle off if this would trigger support alerts."
-- **`attempt_privilege_escalation`** — tries known privilege escalation paths. Warn: "Will make state-mutating requests to your API. Only run against dev/staging."
-- **`test_file_upload_malicious`** — uploads EICAR test file + oversized payloads. Warn: "Requires write access. May leave artifacts in your storage."
+- **`test_reset_password_flow`**: attempts password-reset enumeration. Sends real emails. Warn: "Will email `noreply@...` addresses in your test user list. Toggle off if this would trigger support alerts."
+- **`attempt_privilege_escalation`**: tries known privilege escalation paths. Warn: "Will make state-mutating requests to your API. Only run against dev/staging."
+- **`test_file_upload_malicious`**: uploads EICAR test file + oversized payloads. Warn: "Requires write access. May leave artifacts in your storage."
 
 UI surface: a "Tests" page in the web app with category toggles, green/amber/red risk badges, and "more info" expanders.
 
 ### 6.10 Scope + policy enforcement
 
-The `scope` block in `config.yml` (see § 6.5) is enforced by the core engine **before** any playbook fires. This is not UI-level guidance — it's a hard gate.
+The `scope` block in `config.yml` (see § 6.5) is enforced by the core engine **before** any playbook fires. This is not UI-level guidance; it's a hard gate.
 
 1. **Authorisation gate.** `runScan` refuses to start if `scope.authorisation_acknowledged` is not `true`. The CLI prompts to acknowledge on first run in any repo; the web setup wizard has a required checkbox step. No scan, no report, no remediation runs without it.
 2. **Time-window enforcement.** If `scope.time_windows` is non-empty, the scanner checks the wall-clock (in the declared timezone) against every window before each playbook. Outside all windows → halt with `ScopeViolation` and a message like *"Outside configured scan window 22:00–06:00 Europe/London."* Cron schedules (`opt schedule --nightly`) are aligned with the first window by default.
@@ -490,13 +490,13 @@ Flow:
 1. Trigger: PR merged → GitHub webhook (v1.0) or CLI invocation `opt verify --issue ISSUE-001`. In M1, trigger is manual via the "Verify" button on `/issue/[id]` or the CLI.
 2. Runner reads the issue's `discovered_by` (playbook ID + rule ID), loads that playbook, and runs it against the file range in `issue.location`.
 3. Results are written to `issue.verification`:
-   - `last_run_scan_id` — the new SCAN-XXX id
-   - `hits_remaining` — count of playbook hits within the issue's line range after the fix
-   - `verified_at` — set when `hits_remaining === 0`
+   - `last_run_scan_id`: the new SCAN-XXX id
+   - `hits_remaining`: count of playbook hits within the issue's line range after the fix
+   - `verified_at`: set when `hits_remaining === 0`
 4. If `hits_remaining === 0`: issue status → `verified`; a badge appears on the kanban card.
 5. If `hits_remaining > 0`: issue status stays at `in_review`; a diff viewer surfaces what changed vs the original hit so the user can decide whether it's partial progress or a false negative.
 
-v1.0 adds a scheduled "weekly sweep" that reverifies all issues in `verified` status against current HEAD — catches regressions where a later commit reintroduces the vuln.
+v1.0 adds a scheduled "weekly sweep" that reverifies all issues in `verified` status against current HEAD. It catches regressions where a later commit reintroduces the vuln.
 
 ---
 
@@ -613,9 +613,9 @@ oh-pen-testing/
 
 ---
 
-## 9. Milestones — v0.5 roadmap
+## 9. Milestones: v0.5 roadmap
 
-### M0 — Skeleton (target: today, ~2 hours)
+### M0: Skeleton (target: today, ~2 hours)
 - Monorepo scaffold (pnpm + turborepo)
 - `oh-pen-testing init` command that creates `.ohpentesting/` in target repo
 - Config schema + loader
@@ -624,32 +624,32 @@ oh-pen-testing/
 - README, LICENCE, PRD committed
 - GitHub repo created, first release tagged `v0.0.1`
 
-### M1 — Provider abstraction (week 1)
+### M1: Provider abstraction (week 1)
 - `AIProvider` interface + 3 implementations: Claude API, Claude Code CLI spawn, Ollama
 - Rate-limit manager with auto-resume
-- Web app skeleton (port 7676) — setup wizard + empty board
+- Web app skeleton (port 7676): setup wizard + empty board
 
-### M2 — Scanner engine (week 2)
+### M2: Scanner engine (week 2)
 - Playbook runner with AST preflight
 - Playbook manifest loader + validation
 - AI confirmation step
 - Issue file writer
 - SARIF exporter
 
-### M3 — OWASP Top 10 coverage (week 3)
+### M3: OWASP Top 10 coverage (week 3)
 - 40 playbooks across all 10 OWASP categories (4 per category average)
 - Secrets scanning playbook
 - SCA playbook (npm audit + pip-audit)
 - Positive/negative test fixtures for each playbook
 
-### M4 — Agent pool + remediation (week 4)
+### M4: Agent pool + remediation (week 4)
 - 4 agents running in parallel with work-stealing queue
 - Remediation prompts per playbook
 - 3 autonomy modes
 - Approval UI in web app
 - PR orchestrator (GitHub adapter)
 
-### M5 — Polish & launch (week 5)
+### M5: Polish & launch (week 5)
 - Setup wizard UX pass
 - Docs site
 - Homebrew tap

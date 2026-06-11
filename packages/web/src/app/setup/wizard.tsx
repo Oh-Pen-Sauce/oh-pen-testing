@@ -172,7 +172,7 @@ function AuthorisationStep({
       </label>
       <div>
         <label className="block text-sm font-medium mb-1">
-          Your name or email (optional — recorded with the acknowledgement)
+          Your name or email (optional, recorded with the acknowledgement)
         </label>
         <input
           type="text"
@@ -362,7 +362,7 @@ function CredentialsStep({
         <div className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
           {provider === "claude-code-cli"
             ? "Uses your local `claude` CLI session. No API key needed."
-            : "Local provider — no credentials needed."}
+            : "Local provider: no credentials needed."}
         </div>
       ) : (
         <div className="space-y-2">
@@ -521,58 +521,81 @@ function AutonomyStep({
   onBack: () => void;
   onNext: () => void;
 }) {
+  // Full YOLO removes every safety gate, so it does not sit as a peer
+  // radio at the top of a security tool. Keep the safe modes primary and
+  // tuck Full YOLO behind a disclosure (opened automatically if it is
+  // already the saved choice, so the current selection stays visible).
+  const [showAdvanced, setShowAdvanced] = useState(autonomy === "full-yolo");
+
+  type AutonomyOption = { id: AutonomyMode; label: string; desc: string };
+  const PRIMARY: AutonomyOption[] = [
+    {
+      id: "recommended",
+      label: "Recommended (default)",
+      desc: "Auto-approves low-risk fixes; blocks on critical severity plus auth, secrets, schema, and large diffs.",
+    },
+    {
+      id: "careful",
+      label: "Careful",
+      desc: "Every fix requires your approval before a PR.",
+    },
+    {
+      id: "yolo",
+      label: "YOLO",
+      desc: "Agents open PRs freely. Still pauses on auth, secrets rotation, schema migrations, and large diffs.",
+    },
+  ];
+  const ADVANCED: AutonomyOption[] = [
+    {
+      id: "full-yolo",
+      label: "Full YOLO ⚠️",
+      desc: "Agents open PRs for EVERYTHING, including auth, secrets rotation, and schema migrations. No safety gate at all. Dev/test repos you do not mind the agent editing autonomously.",
+    },
+  ];
+
+  const renderOption = (opt: AutonomyOption) => (
+    <label
+      key={opt.id}
+      className={`block rounded border p-3 cursor-pointer ${
+        autonomy === opt.id
+          ? "border-blue-500 bg-blue-50"
+          : "border-slate-200 hover:border-slate-400"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        <input
+          type="radio"
+          name="autonomy"
+          value={opt.id}
+          checked={autonomy === opt.id}
+          onChange={() => setAutonomy(opt.id)}
+          className="mt-1"
+        />
+        <div>
+          <div className="font-medium">{opt.label}</div>
+          <div className="text-xs text-slate-500">{opt.desc}</div>
+        </div>
+      </div>
+    </label>
+  );
+
   return (
     <div className="space-y-5">
       <h2 className="font-semibold">Autonomy mode</h2>
-      <div className="space-y-2">
-        {(
-          [
-            {
-              id: "full-yolo" as const,
-              label: "Full YOLO ⚠️",
-              desc: "Agents open PRs for EVERYTHING including auth, secrets rotation, schema migrations. Dev/test repos only.",
-            },
-            {
-              id: "yolo" as const,
-              label: "YOLO",
-              desc: "Agents open PRs freely. Still pauses on auth, secrets rotation, schema migrations, large diffs.",
-            },
-            {
-              id: "recommended" as const,
-              label: "Recommended (default)",
-              desc: "Auto-approves low-risk fixes; blocks on critical severity + auth, secrets, schema, large diffs.",
-            },
-            {
-              id: "careful" as const,
-              label: "Careful",
-              desc: "Every fix requires your approval before PR.",
-            },
-          ]
-        ).map((opt) => (
-          <label
-            key={opt.id}
-            className={`block rounded border p-3 cursor-pointer ${
-              autonomy === opt.id
-                ? "border-blue-500 bg-blue-50"
-                : "border-slate-200 hover:border-slate-400"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name="autonomy"
-                value={opt.id}
-                checked={autonomy === opt.id}
-                onChange={() => setAutonomy(opt.id)}
-                className="mt-1"
-              />
-              <div>
-                <div className="font-medium">{opt.label}</div>
-                <div className="text-xs text-slate-500">{opt.desc}</div>
-              </div>
-            </div>
-          </label>
-        ))}
+      <div className="space-y-2">{PRIMARY.map(renderOption)}</div>
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((v) => !v)}
+          className="text-xs text-slate-500 underline"
+        >
+          {showAdvanced
+            ? "Hide advanced"
+            : "Show advanced (no-safety-gate mode)"}
+        </button>
+        {showAdvanced && (
+          <div className="space-y-2 mt-2">{ADVANCED.map(renderOption)}</div>
+        )}
       </div>
       <div className="flex justify-between">
         <button onClick={onBack} className="text-sm px-3 py-2 text-slate-600">

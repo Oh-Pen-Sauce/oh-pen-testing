@@ -19,4 +19,4 @@ Add a rate-limit middleware. Use the library the project already has (grep for `
 
 Defaults: 5 attempts / 15 minutes / IP for login; 3 / hour for password reset.
 
-Don't scaffold a whole auth system — if a limiter lib isn't installed, set `auto_fixable: false` and recommend adding the dependency.
+Don't scaffold a whole auth system. If a limiter lib isn't installed, set `auto_fixable: false` and recommend adding the dependency.

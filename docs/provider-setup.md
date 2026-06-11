@@ -61,26 +61,26 @@ Schema is already wired (`primary_provider: openai` / `openrouter`); actual prov
 | Provider | Default | When to change |
 |---|---|---|
 | `claude-api` | `claude-opus-4-7` | Switch to `claude-sonnet-4-6` if you're cost-conscious (~5x cheaper, ~same quality for scan-confirm tasks) |
-| `claude-code-cli` | `claude-sonnet-4-6` | The CLI does its own routing — this value is a display hint |
+| `claude-code-cli` | `claude-sonnet-4-6` | The CLI does its own routing; this value is a display hint |
 | `ollama` | `kimi-k2.6` | Try `qwen2.5-coder` or `llama3.3:70b` if you have the VRAM |
 
 ## Rate limits
 
-Oh Pen Testing halts a scan when the provider signals exhaustion — no surprise bills.
+Oh Pen Testing halts a scan when the provider signals exhaustion: no surprise bills.
 
 - **API-key providers** (Anthropic, OpenAI): token-accounting against `ai.rate_limit.budget_usd`. Soft warning at 50%, hard halt at 100%.
 - **Session-window providers** (Claude Max via Claude Code CLI): tracks the rolling 5-hour window; halts at 90% of your session cap.
 - **Local providers** (Ollama): no limits, ever.
 
-Halted scans write a partial scan file with `status: "failed"` and the usage snapshot — you can rerun once your window resets.
+Halted scans write a partial scan file with `status: "failed"` and the usage snapshot. You can rerun once your window resets.
 
-## Credentials — where they live
+## Credentials: where they live
 
 Every provider reads credentials in this order:
 
 1. Environment variable (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GITHUB_TOKEN`)
 2. OS keychain via `keytar` (macOS Keychain, Windows Credential Manager, libsecret on Linux)
-3. **Never from `config.yml`** — the pre-commit hook installed by `opt init` blocks committing `.ohpentesting/credentials*` files.
+3. **Never from `config.yml`**: the pre-commit hook installed by `opt init` blocks committing `.ohpentesting/credentials*` files.
 
 The setup wizard at `http://127.0.0.1:7676/setup` writes to keychain via a server action. The CLI reads the same store.
 

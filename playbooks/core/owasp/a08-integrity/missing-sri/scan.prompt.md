@@ -7,5 +7,5 @@ Do NOT confirm when:
 - The page is HTML/email-oriented and genuinely public (e.g. a marketing doc using an analytics script) AND the operator has accepted this risk in a visible comment.
 
 Severity:
-- `high` — the script executes in an auth'd session context (admin panel, user dashboard).
-- `medium` — script on a public page.
+- `high`: the script executes in an auth'd session context (admin panel, user dashboard).
+- `medium`: script on a public page.

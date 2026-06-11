@@ -5,9 +5,9 @@ cwe: [CWE-400]
 severity_default: medium
 languages: [generic]
 authors: [oh-pen-testing-core]
-description: "Flags Kubernetes workloads (Deployment, StatefulSet, DaemonSet) that define containers without resource limits or requests — a DoS / noisy-neighbour risk."
+description: "Flags Kubernetes workloads (Deployment, StatefulSet, DaemonSet) that define containers without resource limits or requests: a DoS / noisy-neighbour risk."
 impact: |
-  A container without CPU or memory limits can consume all resources on the node, starving neighbouring pods and causing cluster-wide availability failures. An attacker who exploits any vulnerability in the app (or simply sends a heavy request payload) can trigger runaway resource consumption that cascades across unrelated services. Privileged containers or those sharing the host network namespace compound the risk significantly — a compromised container with host-network access can sniff node-level traffic and reach cluster infrastructure directly.
+  A container without CPU or memory limits can consume all resources on the node, starving neighbouring pods and causing cluster-wide availability failures. An attacker who exploits any vulnerability in the app (or simply sends a heavy request payload) can trigger runaway resource consumption that cascades across unrelated services. Privileged containers or those sharing the host network namespace compound the risk significantly. A compromised container with host-network access can sniff node-level traffic and reach cluster infrastructure directly.
 risky: false
 requires_ai: true
 type: regex
@@ -23,7 +23,7 @@ rules:
     flags: g
     require_ai_confirm: true
   - id: k8s-host-network
-    description: "hostNetwork: true — container shares the node's network namespace."
+    description: "hostNetwork: true, container shares the node's network namespace."
     pattern: 'hostNetwork\s*:\s*true'
     flags: g
     require_ai_confirm: true

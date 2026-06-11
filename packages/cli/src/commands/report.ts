@@ -184,7 +184,7 @@ function buildMarkdownReport(
   if (scan) {
     lines.push(`- **Scan ID:** ${scan.id}`);
     lines.push(`- **Started:** ${scan.started_at}`);
-    lines.push(`- **Ended:** ${scan.ended_at ?? "—"}`);
+    lines.push(`- **Ended:** ${scan.ended_at ?? "–"}`);
     lines.push(`- **Provider:** ${scan.provider}`);
     lines.push(`- **Playbooks run:** ${scan.playbooks_run}`);
     lines.push(`- **Issues found:** ${scan.issues_found}`);

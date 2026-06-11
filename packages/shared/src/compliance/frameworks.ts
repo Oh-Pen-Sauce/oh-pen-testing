@@ -1,9 +1,9 @@
 /**
- * Compliance framework mapping — v1 scaffold.
+ * Compliance framework mapping: v1 scaffold.
  *
  * Each framework has a list of controls; each control points at the
  * playbook ids / CWEs / OWASP refs that give *evidence* for (or against)
- * that control. This is a scaffold — it's a starting point that teams
+ * that control. This is a scaffold: it's a starting point that teams
  * can extend for their own ISMS, not a certified mapping.
  */
 
@@ -32,7 +32,7 @@ export interface ComplianceFramework {
 /** SOC 2 Trust Services Criteria (Common Criteria subset). */
 const SOC2: ComplianceFramework = {
   id: "soc2",
-  name: "SOC 2 — Trust Services Criteria (v2017 / AICPA)",
+  name: "SOC 2 – Trust Services Criteria (v2017 / AICPA)",
   version: "2017",
   url: "https://www.aicpa-cima.com/resources/landing/soc-trust-services-criteria",
   controls: [
@@ -47,7 +47,7 @@ const SOC2: ComplianceFramework = {
     },
     {
       id: "CC6.6",
-      title: "Logical access security — data in transit",
+      title: "Logical access security: data in transit",
       summary: "Protect information during transmission.",
       playbookIds: ["wstg/clickjacking-no-frame-options", "dynamic/security-headers"],
       cwes: ["CWE-319"],
@@ -68,7 +68,7 @@ const SOC2: ComplianceFramework = {
       id: "CC7.1",
       title: "System monitoring",
       summary:
-        "Detection of security events — logging, monitoring, and alerting.",
+        "Detection of security events: logging, monitoring, and alerting.",
       playbookIds: ["owasp-top-10/a09-logging-failures"],
       owaspRefs: ["A09:2021"],
     },
@@ -81,7 +81,7 @@ const SOC2: ComplianceFramework = {
   ],
 };
 
-/** ISO/IEC 27001:2022 — subset of Annex A controls. */
+/** ISO/IEC 27001:2022, subset of Annex A controls. */
 const ISO27001: ComplianceFramework = {
   id: "iso27001",
   name: "ISO/IEC 27001 Annex A (2022)",
@@ -133,10 +133,10 @@ const ISO27001: ComplianceFramework = {
   ],
 };
 
-/** PCI-DSS v4.0 — subset of Requirement 6 (Develop & Maintain Secure Systems). */
+/** PCI-DSS v4.0, subset of Requirement 6 (Develop & Maintain Secure Systems). */
 const PCI_DSS: ComplianceFramework = {
   id: "pci-dss",
-  name: "PCI-DSS v4.0 — Requirement 6",
+  name: "PCI-DSS v4.0 – Requirement 6",
   version: "4.0",
   url: "https://www.pcisecuritystandards.org/document_library/",
   controls: [
@@ -179,10 +179,10 @@ const PCI_DSS: ComplianceFramework = {
   ],
 };
 
-/** HIPAA Security Rule — technical safeguards, 45 CFR § 164.312. */
+/** HIPAA Security Rule, technical safeguards, 45 CFR § 164.312. */
 const HIPAA: ComplianceFramework = {
   id: "hipaa",
-  name: "HIPAA Security Rule — Technical Safeguards (45 CFR § 164.312)",
+  name: "HIPAA Security Rule – Technical Safeguards (45 CFR § 164.312)",
   version: "2013",
   url: "https://www.hhs.gov/hipaa/for-professionals/security/laws-regulations/index.html",
   controls: [
@@ -219,7 +219,7 @@ const HIPAA: ComplianceFramework = {
   ],
 };
 
-/** OWASP ASVS v4.0.3 — Level 2 sample. */
+/** OWASP ASVS v4.0.3, Level 2 sample. */
 const OWASP_ASVS: ComplianceFramework = {
   id: "owasp-asvs",
   name: "OWASP Application Security Verification Standard v4.0.3",
@@ -228,7 +228,7 @@ const OWASP_ASVS: ComplianceFramework = {
   controls: [
     {
       id: "V2.1.1",
-      title: "Password strength — verify length ≥ 12",
+      title: "Password strength: verify length ≥ 12",
       summary:
         "Verify that passwords of at least 12 characters in length are required.",
       playbookIds: ["owasp-top-10/a07-identification-failures"],
@@ -247,7 +247,7 @@ const OWASP_ASVS: ComplianceFramework = {
     },
     {
       id: "V7.1.1",
-      title: "Log content — don't log secrets",
+      title: "Log content: don't log secrets",
       summary:
         "Verify that the application does not log credentials or payment details.",
       playbookIds: ["secrets/hardcoded-secrets-scanner"],

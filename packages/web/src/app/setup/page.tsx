@@ -22,9 +22,9 @@ export default async function SetupPage({
     return (
       <div>
         <PageHeader
-          kicker="07 — Il Benvenuto (form view)"
+          kicker="07 – Il Benvenuto (form view)"
           title={<>Setup wizard</>}
-          sub="Classic 6-step form — the chat with Marinara is also available."
+          sub="Classic 6-step form. The chat with Marinara is also available."
           actions={
             <BtnLink href="/setup" variant="ghost" icon="🍅">
               Back to Marinara
@@ -41,9 +41,9 @@ export default async function SetupPage({
   return (
     <div>
       <PageHeader
-        kicker="07 — Il Benvenuto"
+        kicker="07 – Il Benvenuto"
         title={<>Setup wizard</>}
-        sub="A little back-and-forth with Marinara. Re-run any time — your answers persist to config.yml."
+        sub="A little back-and-forth with Marinara. Re-run any time; your answers persist to config.yml."
         actions={
           <Link
             href="/setup?form=1"

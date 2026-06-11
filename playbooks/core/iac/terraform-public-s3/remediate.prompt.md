@@ -19,6 +19,6 @@ If the bucket policy uses `"Principal": "*"`, rewrite it to grant
 access only to the specific role, service principal, or OAC that
 legitimately needs it.
 
-Do not delete the bucket or change its name — just tighten the
+Do not delete the bucket or change its name. Just tighten the
 permissions. Preserve any `tags`, `versioning`, and `server_side_encryption`
 blocks untouched.

@@ -42,7 +42,7 @@ import { ProgressLog } from "./progress-log";
  *
  * The dismiss action calls clearActiveScanAction(); we then re-render
  * as idle. Until the user dismisses, the result panel persists across
- * navigation — which is the whole point.
+ * navigation. That's the whole point.
  */
 export function ActiveScanCard({
   starterComplete,
@@ -58,7 +58,7 @@ export function ActiveScanCard({
   const [actionPending, setActionPending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  // Auto-remediate is independent of the scan run — a YOLO user can
+  // Auto-remediate is independent of the scan run: a YOLO user can
   // kick it off after seeing scan results, and we want them to be
   // able to keep watching its progress without losing the scan
   // summary.
@@ -81,7 +81,7 @@ export function ActiveScanCard({
         const next = await getActiveScanAction();
         if (!cancelled) setActive(next);
       } catch {
-        /* network blip — keep last state */
+        /* network blip, keep last state */
       }
     };
     const handle = window.setInterval(tick, intervalMs);
@@ -95,14 +95,14 @@ export function ActiveScanCard({
    * Stop-cooking handler. Confirms with the user (a 10-minute scan
    * isn't easy to recreate), then fires the abort action. Server
    * flips status to "stopping" immediately; runners promote it to
-   * "cancelled" at the next checkpoint. We don't wait — the polling
+   * "cancelled" at the next checkpoint. We don't wait; the polling
    * loop will pick up the state change.
    */
   async function stopCooking() {
     if (!active) return;
     const phase = active.status === "remediating" ? "remediation" : "scan";
     const ok = confirm(
-      `Stop the ${phase}? Anything already done is kept (issues found, PRs opened) — only future work is skipped. The current AI call (if any) finishes first, so the actual halt may take a few seconds.`,
+      `Stop the ${phase}? Anything already done is kept (issues found, PRs opened); only future work is skipped. The current AI call (if any) finishes first, so the actual halt may take a few seconds.`,
     );
     if (!ok) return;
     setActionError(null);
@@ -215,7 +215,7 @@ export function ActiveScanCard({
   // YOLO/full-YOLO chain: scan finished, agent pool now opening PRs.
   // Show the scan summary inline so the user has context for what's
   // being remediated. "stopping" with a summary means the user
-  // pressed stop during remediation — same UI, different flag.
+  // pressed stop during remediation: same UI, different flag.
   if (
     (active?.status === "remediating" ||
       (active?.status === "stopping" && active.summary)) &&
@@ -333,7 +333,7 @@ function IdleStarterCard({
       <p className="text-[14px] text-ink-soft m-0 mb-4 leading-relaxed">
         We&rsquo;ll run <strong>{startersDetail.length} static playbooks</strong>{" "}
         against your source files. No network calls, no test emails, no uploads
-        — just grep-style pattern matching. It usually finishes in under a
+        , just grep-style pattern matching. It usually finishes in under a
         minute and costs zero AI tokens. Gives you a feel for what issues look
         like and how the board works before you turn on the full catalogue.
       </p>
@@ -408,7 +408,7 @@ function IdleStarterCard({
             fontFamily: "var(--font-mono)",
           }}
         >
-          Skip — I know what I&rsquo;m doing
+          Skip, I know what I&rsquo;m doing
         </button>
       </div>
 
@@ -502,7 +502,7 @@ function RunningCard({
   startedAt: number;
   startersDetail: Array<{ id: string; displayName: string; description: string }>;
   events: ActiveScanState["events"];
-  /** True after the user clicked stop — runners draining at next checkpoint. */
+  /** True after the user clicked stop; runners draining at next checkpoint. */
   stopping: boolean;
   onStop: () => void;
 }) {
@@ -515,7 +515,7 @@ function RunningCard({
   const startedAtRef = useRef(startedAt);
   startedAtRef.current = startedAt;
 
-  // Phase walker — for starter, walk through each playbook. For full
+  // Phase walker: for starter, walk through each playbook. For full
   // scans we don't have a fixed list to walk, just show "scanning".
   const phases =
     kind === "starter"
@@ -580,8 +580,8 @@ function RunningCard({
           </h2>
           <p className="text-[13.5px] text-ink-soft m-0 mb-4 leading-snug">
             {kind === "full"
-              ? "Every playbook relevant to your stack, with AI confirm on. Feel free to wander — board, settings, agents — this card will be waiting when the scan finishes."
-              : `Walking your source tree and checking the ${phases.length - 1} starter playbooks. Runs entirely on your machine — no AI calls, no network.`}
+              ? "Every playbook relevant to your stack, with AI confirm on. Feel free to wander (board, settings, agents); this card will be waiting when the scan finishes."
+              : `Walking your source tree and checking the ${phases.length - 1} starter playbooks. Runs entirely on your machine, no AI calls, no network.`}
           </p>
 
           {phases.length > 0 && (
@@ -655,18 +655,18 @@ function RunningCard({
                 fontFamily: "var(--font-mono)",
               }}
             >
-              ⏳ Taking longer than usual — large repos can. Hang tight.
+              ⏳ Taking longer than usual. Large repos can. Hang tight.
             </div>
           )}
         </div>
       </div>
-      {/* Live event log — expand to see playbooks running, candidates
+      {/* Live event log: expand to see playbooks running, candidates
           spotted, AI calls. Default open during a run so the user
           has something to watch instead of a static spinner. */}
       <div className="mt-4">
         <ProgressLog events={events} live defaultOpen />
       </div>
-      {/* Stop cooking — visible bottom-right of the running card. */}
+      {/* Stop cooking: visible bottom-right of the running card. */}
       <div className="mt-4 flex justify-end">
         <StopCookingButton
           stopping={stopping}
@@ -684,12 +684,12 @@ function RunningCard({
  * Phase 2 of the YOLO chain: scan finished, agent pool is now
  * walking every backlog/ready issue and opening PRs. This is its own
  * card so the user sees a clear visual handoff from "scanning" to
- * "remediating" — and so the elapsed timer resets to feel like real
+ * "remediating", and so the elapsed timer resets to feel like real
  * progress on the new phase.
  *
  * Server-side, this lives in the same active-scan promise as the
- * scan that triggered it. The user can navigate away and come back
- * — the polling re-syncs whatever state the singleton is in.
+ * scan that triggered it. The user can navigate away and come back.
+ * The polling re-syncs whatever state the singleton is in.
  */
 function RemediatingCard({
   summary,
@@ -699,7 +699,7 @@ function RemediatingCard({
   onStop,
 }: {
   summary: NonNullable<ActiveScanState["summary"]>;
-  /** When the scan started — used to show a fused elapsed timer. */
+  /** When the scan started; used to show a fused elapsed timer. */
   startedAt: number;
   events: ActiveScanState["events"];
   stopping: boolean;
@@ -752,12 +752,12 @@ function RemediatingCard({
           </h2>
           <p className="text-[13.5px] text-ink-soft m-0 mb-3 leading-snug">
             You&rsquo;re in <strong>{summary.autonomy}</strong> mode, so the
-            scan flowed straight into auto-remediation — agents are working
+            scan flowed straight into auto-remediation. Agents are working
             through every backlog/ready issue and opening a PR for each
             fix.
           </p>
           <p className="text-[12.5px] text-ink-soft m-0 leading-snug">
-            A minute per issue is normal. Feel free to wander —{" "}
+            A minute per issue is normal. Feel free to wander,{" "}
             <Link
               href="/board"
               className="underline"
@@ -787,14 +787,14 @@ function RemediatingCard({
         </span>
       </div>
 
-      {/* Live event log — agents picking up issues, AI calls coming
+      {/* Live event log: agents picking up issues, AI calls coming
           back, Nonna's verdicts, PRs landing. Open by default
           during remediation since it's the only signal of progress
           while individual issues are being patched. */}
       <div className="mt-4">
         <ProgressLog events={events} live defaultOpen />
       </div>
-      {/* Stop cooking — visible bottom-right of the remediation card. */}
+      {/* Stop cooking: visible bottom-right of the remediation card. */}
       <div className="mt-4 flex justify-end">
         <StopCookingButton
           stopping={stopping}
@@ -829,7 +829,7 @@ function DoneCard({
   /**
    * True when the run finished because the user clicked stop, not
    * because it ran to completion. The summary still reflects what
-   * was done before the stop — same fields, partial values.
+   * was done before the stop: same fields, partial values.
    */
   wasCancelled?: boolean;
   events: ActiveScanState["events"];
@@ -850,7 +850,7 @@ function DoneCard({
     prUrls: string[];
     /** Issues that needed approval (won't be PR'd until human says go). */
     gatedCount: number;
-    /** Issues that errored out — bad token, bad model output, etc. */
+    /** Issues that errored out: bad token, bad model output, etc. */
     failedCount: number;
     /** Per-issue failure detail so the user can see WHY it failed. */
     failures: Array<{ issueId: string; error: string }>;
@@ -906,7 +906,7 @@ function DoneCard({
           }}
         >
           You stopped the run before it finished. Anything below
-          reflects what was already done — issues found are on the
+          reflects what was already done: issues found are on the
           board, PRs already opened are on GitHub, and any unattempted
           work is left at backlog/ready for a future run.
         </div>
@@ -955,7 +955,7 @@ function DoneCard({
             <span
               title={
                 s.playbooksAvailable && s.playbooksAvailable > s.playbooksRun
-                  ? `${s.playbooksAvailable - s.playbooksRun} playbooks didn't apply to your stack — most often Python/Docker/Terraform/Kubernetes patterns on a JS-only project. The ${s.playbooksRun} that ran cover everything relevant.`
+                  ? `${s.playbooksAvailable - s.playbooksRun} playbooks didn't apply to your stack: most often Python/Docker/Terraform/Kubernetes patterns on a JS-only project. The ${s.playbooksRun} that ran cover everything relevant.`
                   : undefined
               }
             >
@@ -1006,7 +1006,7 @@ function DoneCard({
         )}
       </div>
 
-      {/* "Why are agents waiting?" banner — only shown for YOLO users
+      {/* "Why are agents waiting?" banner: only shown for YOLO users
           when remediation hasn't happened (which would be very unusual
           since YOLO auto-fires post-scan, but covers the edge case
           where auto-fire was skipped). */}
@@ -1031,7 +1031,7 @@ function DoneCard({
               🚀 You&rsquo;re in {s.autonomy} mode
             </div>
             <div className="text-[13px] text-ink">
-              Auto-remediation should have fired automatically — if it
+              Auto-remediation should have fired automatically. If it
               didn&rsquo;t, hit the button below to retry, or check the
               board for individual triage.
             </div>
@@ -1048,7 +1048,7 @@ function DoneCard({
         >
           <CookingMarinara size={44} />
           <div className="text-[13px] text-ink">
-            Agents are opening PRs — a minute per issue is normal. Keep this
+            Agents are opening PRs. A minute per issue is normal. Keep this
             tab open.
           </div>
         </div>
@@ -1110,7 +1110,7 @@ function DoneCard({
             </>
           )}
 
-          {/* Gated CTA — auto-remediation never opens PRs for issues
+          {/* Gated CTA: auto-remediation never opens PRs for issues
               that match approval triggers (auth changes, secrets,
               schema migrations, critical severity in recommended).
               Direct the user to the board where they can click
@@ -1129,7 +1129,7 @@ function DoneCard({
                 <strong>
                   {renderedRemediation.gatedCount} gated for approval
                 </strong>{" "}
-                — these matched an approval trigger (auth / secrets /
+                : these matched an approval trigger (auth / secrets /
                 schema / critical) and need your sign-off.
               </div>
               <Link
@@ -1167,7 +1167,7 @@ function DoneCard({
       )}
 
       <div className="flex items-center gap-3 flex-wrap">
-        {/* Auto-remediate manual trigger — visible when:
+        {/* Auto-remediate manual trigger, visible when:
             - User has issues, AND
             - YOLO didn't auto-fire (autoRemediation absent), AND
             - User hasn't already clicked it (renderedRemediation absent)
@@ -1185,9 +1185,9 @@ function DoneCard({
           </Btn>
         )}
 
-        {/* Run full scan — visible after a starter (escalation), and
+        {/* Run full scan: visible after a starter (escalation), and
             visible after a full scan completes (so users can re-run
-            without dismissing first — important after a "Spotless"
+            without dismissing first, important after a "Spotless"
             result, where the previous UI offered no obvious next
             step). The label adapts: "Run full scan" the first time,
             "🔁 Re-run full scan" the second. */}
@@ -1221,7 +1221,7 @@ function DoneCard({
         </button>
       </div>
 
-      {/* Progress log — closed by default on the done card since
+      {/* Progress log: closed by default on the done card since
           the user mostly wants the summary, but available for
           post-mortem ("which playbook found ISSUE-061?", "did
           Nonna review this?"). */}
@@ -1284,7 +1284,7 @@ function FailureBreakdown({
           {allSame && (
             <>
               {" "}
-              — all with the <em>same</em> error, which usually means a
+              , all with the <em>same</em> error, which usually means a
               systemic problem rather than per-issue bugs.
             </>
           )}
@@ -1332,7 +1332,7 @@ function FailureBreakdown({
                 className="cursor-pointer px-2.5 py-1.5"
                 style={{ fontWeight: 600 }}
               >
-                {ids.length}× — affects {ids.slice(0, 3).join(", ")}
+                {ids.length}×: affects {ids.slice(0, 3).join(", ")}
                 {ids.length > 3 && ` +${ids.length - 3} more`}
               </summary>
               <pre
@@ -1368,7 +1368,7 @@ function FailureBreakdown({
             >
               .ohpentesting/logs/{scanId}.jsonl
             </code>{" "}
-            — every agent action, AI call, and git step is recorded
+            holds every agent action, AI call, and git step recorded
             there. <code>cat</code> or <code>jq</code> it from a
             terminal to see the full trace.
           </div>
@@ -1380,7 +1380,7 @@ function FailureBreakdown({
 
 /**
  * Pattern-match common error strings against likely root causes so
- * the user gets a starting point. False negatives are fine — we
+ * the user gets a starting point. False negatives are fine: we
  * just don't show the hint, never something misleading.
  */
 function guessSystemicCause(err: string): string | null {
@@ -1390,7 +1390,7 @@ function guessSystemicCause(err: string): string | null {
     lower.includes("permission") ||
     lower.includes("authentication failed")
   ) {
-    return "Your GitHub token can't push to this repo. Most common causes: (a) the token is fine-grained and missing 'Contents: write', (b) the local clone is using HTTPS without auth — try regenerating the token with full 'repo' scope, or set up SSH for the clone.";
+    return "Your GitHub token can't push to this repo. Most common causes: (a) the token is fine-grained and missing 'Contents: write', (b) the local clone is using HTTPS without auth. Try regenerating the token with full 'repo' scope, or set up SSH for the clone.";
   }
   if (
     lower.includes("rate limit") ||
@@ -1403,10 +1403,10 @@ function guessSystemicCause(err: string): string | null {
     lower.includes("not a git repo") ||
     lower.includes("not a git repository")
   ) {
-    return "The scan target directory isn't a git repo, so the agent can't create a branch or commit. Check the scan-target path in the banner — if it's pointing at the wrong folder, relaunch from inside the project clone.";
+    return "The scan target directory isn't a git repo, so the agent can't create a branch or commit. Check the scan-target path in the banner; if it's pointing at the wrong folder, relaunch from inside the project clone.";
   }
   if (lower.includes("nothing to commit") || lower.includes("clean working")) {
-    return "The agent's patch was identical to the existing file — likely the LLM returned the file unchanged. This sometimes happens with very small or already-correct snippets. Try Recommended autonomy mode for individual review, or check the playbook prompt.";
+    return "The agent's patch was identical to the existing file, likely the LLM returned the file unchanged. This sometimes happens with very small or already-correct snippets. Try Recommended autonomy mode for individual review, or check the playbook prompt.";
   }
   if (
     lower.includes("branch already exists") ||
@@ -1420,7 +1420,7 @@ function guessSystemicCause(err: string): string | null {
     lower.includes("zod") ||
     lower.includes("schema")
   ) {
-    return "The AI provider returned a response the agent couldn't parse as JSON. Often a model misconfiguration — check that the provider supports structured JSON output, or switch to a stronger model.";
+    return "The AI provider returned a response the agent couldn't parse as JSON. Often a model misconfiguration: check that the provider supports structured JSON output, or switch to a stronger model.";
   }
   if (
     lower.includes("econnrefused") ||
@@ -1536,8 +1536,8 @@ function FailedCard({
  *     drain at the next checkpoint (an in-flight AI call has to
  *     finish, which can take 5-30s).
  *
- * The button visually echoes the kitchen metaphor — "stop cooking"
- * vs "still cooking" — so the action feels native to Marinara's
+ * The button visually echoes the kitchen metaphor ("stop cooking"
+ * vs "still cooking") so the action feels native to Marinara's
  * voice rather than a generic Cancel.
  */
 function StopCookingButton({
@@ -1547,7 +1547,7 @@ function StopCookingButton({
 }: {
   stopping: boolean;
   onStop: () => void;
-  /** "scan" or "remediation" — surfaces in the button title-tip. */
+  /** "scan" or "remediation": surfaces in the button title-tip. */
   phaseLabel: string;
 }) {
   return (
@@ -1590,7 +1590,7 @@ function StopCookingButton({
  * Tiny "stopped before any results" card. Appears when the user
  * cancels a scan so quickly that no scan summary was produced
  * (e.g. mid-file-walk). Just acknowledges the stop and offers a
- * dismiss — there's nothing to summarise.
+ * dismiss. There's nothing to summarise.
  */
 function StoppedEarlyCard({ onDismiss }: { onDismiss: () => void }) {
   return (
@@ -1613,7 +1613,7 @@ function StoppedEarlyCard({ onDismiss }: { onDismiss: () => void }) {
           Stopped before any results.
         </h3>
         <p className="text-[12.5px] text-ink-soft mt-1 m-0 leading-snug">
-          You hit stop very early — nothing was scanned long enough to
+          You hit stop very early. Nothing was scanned long enough to
           report. No issues created, no PRs opened. Run another scan
           when you&rsquo;re ready.
         </p>

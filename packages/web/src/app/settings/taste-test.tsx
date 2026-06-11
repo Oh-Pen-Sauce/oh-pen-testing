@@ -5,7 +5,7 @@ import { pingGitHubAction } from "./actions";
 import type { PreflightResult } from "@oh-pen-testing/git-github";
 
 /**
- * "Taste test" — a one-click pre-flight that runs the full GitHub
+ * "Taste test": a one-click pre-flight that runs the full GitHub
  * remediation pipeline (token check, repo access, push dry-run)
  * WITHOUT actually committing or opening a PR. Lets users catch
  * misconfiguration before they kick off a scan and watch 21
@@ -13,7 +13,7 @@ import type { PreflightResult } from "@oh-pen-testing/git-github";
  *
  * Each step renders as a green tick (✓) or red cross (✖) with the
  * actual error text underneath when something fails. Click "Run
- * taste test" again after fixing — same flow, no extra setup.
+ * taste test" again after fixing: same flow, no extra setup.
  */
 export function TasteTest() {
   const [result, setResult] = useState<PreflightResult | null>(null);
@@ -87,10 +87,10 @@ export function TasteTest() {
 
       <p className="text-[12.5px] text-ink-soft m-0 mb-3 leading-snug">
         Walks the full remediation pipeline without actually opening a
-        PR — checks the GitHub token, verifies you can read AND push to
+        PR. It checks the GitHub token, verifies you can read AND push to
         the configured repo, and dry-run-pushes a branch to confirm git
         auth works end-to-end. Run this <strong>before</strong> a real
-        scan if you&rsquo;ve never opened a PR with Oh Pen Testing — it
+        scan if you&rsquo;ve never opened a PR with Oh Pen Testing. It
         catches every misconfiguration we&rsquo;ve seen in 30 seconds
         instead of after a 10-minute scan + 21 failed remediations.
       </p>
@@ -116,7 +116,7 @@ export function TasteTest() {
                 className="ml-2 opacity-80"
                 style={{ textTransform: "none", letterSpacing: "0" }}
               >
-                — auth as {result.authenticatedAs}
+                – auth as {result.authenticatedAs}
               </span>
             )}
           </div>

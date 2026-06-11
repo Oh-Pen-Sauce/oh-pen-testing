@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import {
@@ -14,6 +15,7 @@ import { resetToCleanBranch } from "@oh-pen-testing/git-github";
 import { resolveAgent, type AgentIdentity } from "./agents.js";
 import { loadPlaybooks } from "../playbook-runner/loader.js";
 import { runReview } from "./run-review.js";
+import { resolvePathWithinRepo } from "../scope/enforce.js";
 
 export const RemediationResponseSchema = z.object({
   patched_file_contents: z.string(),
@@ -50,7 +52,7 @@ export class AgentApprovalRequired extends Error {
  *
  * - yolo: agent may patch anything not in an explicitly guarded zone.
  *   approval_triggers still apply (auth changes etc.) because YOLO was
- *   never meant to bypass those — it bypasses the extra gate on minor
+ *   never meant to bypass those; it bypasses the extra gate on minor
  *   fixes.
  * - recommended (default): agent patches low-risk issues; anything matching
  *   approval_triggers or severity=critical is gated.
@@ -70,20 +72,48 @@ export function evaluateAutonomyGate(
   }
 
   if (mode === "careful") {
-    return { allowed: false, reason: "careful mode — all fixes require approval" };
+    return { allowed: false, reason: "careful mode: all fixes require approval" };
   }
 
-  const strategy = issue.remediation?.strategy ?? "";
-  const lowered = (strategy + " " + issue.title).toLowerCase();
+  // Match the gate on the playbook id (remediation.strategy), the OWASP
+  // category, and the CWE list, never issue.title. Titles are display
+  // strings that could carry model-authored text; the structural fields
+  // come from the matched playbook's manifest.
+  //
+  // Trust caveat: this is fully sound only for BUNDLED playbooks. A LOCAL
+  // playbook (under <cwd>/.ohpentesting/playbooks/local) is authored
+  // inside the scanned repo, so a hostile repo could ship a local
+  // playbook that does auth/secrets work but declares benign owasp_ref/
+  // cwe metadata to dodge this gate. Gating local-playbook-sourced issues
+  // by provenance is a tracked follow-up (see NOTES.md); until then,
+  // treat `playbooks.local` as trusted input.
+  const strategy = (issue.remediation?.strategy ?? "").toLowerCase();
+  const owasp = (issue.owasp_category ?? "").toLowerCase();
+  const cwe = issue.cwe.join(" ").toLowerCase();
+  const signal = `${strategy} ${owasp} ${cwe}`;
+  const has = (...needles: string[]): boolean =>
+    needles.some((n) => signal.includes(n));
+  const owaspIn = (...cats: string[]): boolean =>
+    cats.some((c) => owasp.startsWith(c));
   const triggerReasons: string[] = [];
   for (const t of triggers) {
-    if (t === "auth_changes" && (lowered.includes("auth") || lowered.includes("access-control") || lowered.includes("session"))) {
+    if (
+      t === "auth_changes" &&
+      (has("auth", "access-control", "session", "login") ||
+        owaspIn("a01", "a07"))
+    ) {
       triggerReasons.push(`trigger: ${t}`);
     }
-    if (t === "secrets_rotation" && (lowered.includes("secret") || lowered.includes("password") || lowered.includes("credential"))) {
+    if (
+      t === "secrets_rotation" &&
+      (has("secret", "password", "credential") ||
+        cwe.includes("cwe-798") ||
+        cwe.includes("cwe-259") ||
+        cwe.includes("cwe-321"))
+    ) {
       triggerReasons.push(`trigger: ${t}`);
     }
-    if (t === "schema_migrations" && (lowered.includes("migration") || lowered.includes("schema") || lowered.includes("database"))) {
+    if (t === "schema_migrations" && has("migration", "schema", "database")) {
       triggerReasons.push(`trigger: ${t}`);
     }
     // large_diff is evaluated after we see the proposed patch; skipped here.
@@ -113,10 +143,10 @@ CRITICAL INSTRUCTIONS:
 
 Response schema:
 {
-  "patched_file_contents": "string — the entire new file, verbatim",
-  "explanation_of_fix": "string — 2-4 short sentences explaining why the fix is correct",
-  "env_var_name": "string — optional. The env var name, e.g. AWS_ACCESS_KEY_ID",
-  "env_example_addition": "string — optional. A line to append to .env.example, e.g. AWS_ACCESS_KEY_ID=your-key-here"
+  "patched_file_contents": "string: the entire new file, verbatim",
+  "explanation_of_fix": "string: 2-4 short sentences explaining why the fix is correct",
+  "env_var_name": "string, optional. The env var name, e.g. AWS_ACCESS_KEY_ID",
+  "env_example_addition": "string, optional. A line to append to .env.example, e.g. AWS_ACCESS_KEY_ID=your-key-here"
 }`;
 
 export interface RunAgentOptions {
@@ -135,7 +165,7 @@ export interface RunAgentOptions {
    * a human has explicitly approved this individual issue (e.g. via
    * the "Approve & open PR" button on the board). Without this, an
    * issue that was gated for approval would just be re-gated every
-   * time runAgent is called — there's no "approval persisted on the
+   * time runAgent is called. There's no "approval persisted on the
    * issue" mechanism otherwise. Use sparingly: this is the kill
    * switch on autonomy enforcement.
    */
@@ -175,13 +205,13 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     throw new Error("runAgent requires either `issueId` or `issue`");
   }
 
-  // Autonomy-mode gate — full implementation per PRD § 2 principle 6.
+  // Autonomy-mode gate: full implementation per PRD § 2 principle 6.
   // If the issue violates the current autonomy mode's rules, we leave the
   // issue in `backlog` (or a new `pending_approval` state) and return
   // without patching anything. Humans approve via the web /reviews page
   // or `opt approve --issue <ID>`.
   //
-  // bypassAutonomyGate skips this entirely — it's how the
+  // bypassAutonomyGate skips this entirely: it's how the
   // "Approve & open PR" button works. The caller is asserting that a
   // human just clicked the green button on this specific issue, so
   // the gate's "is this risky enough to need approval?" question has
@@ -222,7 +252,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   //
   // We force-checkout defaultBranch and clean untracked files +
   // directories. This is destructive of any in-progress work in
-  // the cwd — fine, because the cwd is a clone Oh Pen Testing
+  // the cwd. Fine, because the cwd is a clone Oh Pen Testing
   // manages (~/.ohpentesting/projects/<owner>/<repo>) and the
   // user shouldn't be making manual edits there. If they were,
   // those edits are leftover from a previous failed run anyway
@@ -252,7 +282,10 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   const playbook = playbooks.find((p) => p.manifest.id === playbookId);
   const remediatePrompt = playbook?.remediatePrompt;
 
-  const fileAbs = path.join(repoPath, issue.location.file);
+  // Resolve the target through the repo-containment guard before any
+  // read or write. Defends against a tampered issue record pointing at
+  // a path outside the repo (traversal or symlink escape).
+  const fileAbs = await resolvePathWithinRepo(repoPath, issue.location.file);
   const fileContents = await fs.readFile(fileAbs, "utf-8");
 
   let response = await requestRemediation({
@@ -296,7 +329,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
       });
     } else {
       // Rejected. Send the worker back with Nonna's feedback. This
-      // is a one-shot retry — we DON'T re-review the second attempt,
+      // is a one-shot retry; we DON'T re-review the second attempt,
       // it ships regardless.
       reviewVerdict = "rejected_then_retried";
       issue.comments.push({
@@ -333,13 +366,86 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     await writeIssue(options.cwd, issue);
   }
 
-  // Apply the patch (post-review, post-retry).
-  await fs.writeFile(fileAbs, response.patched_file_contents, "utf-8");
+  // Last-resort screen on a patch that ships only because of the
+  // one-shot retry policy. If the auto-shipped retry smuggles in an
+  // obvious code-execution primitive or balloons in size, hold it for
+  // a human instead of writing it out. Fail-closed.
+  if (reviewVerdict === "rejected_then_retried") {
+    const screen = screenRetriedPatch(
+      fileContents,
+      response.patched_file_contents,
+    );
+    if (!screen.safe) {
+      issue.status = "pending_approval" as Issue["status"];
+      issue.assignee = agent.id;
+      issue.comments.push({
+        author: "nonna",
+        text: `👵 Held for human review: ${screen.reason}. The retried patch was not shipped automatically; inspect it, then approve via the board or \`opt approve --issue ${issue.id}\`.`,
+        at: new Date().toISOString(),
+      });
+      await writeIssue(options.cwd, issue);
+      logger.warn("agent.retry_screen_blocked", {
+        agent: agent.id,
+        issue: issue.id,
+        reason: screen.reason,
+      });
+      throw new AgentApprovalRequired(issue.id, screen.reason, agent.id);
+    }
+  }
+
+  // large_diff autonomy trigger, evaluated now that the proposed patch
+  // exists (it cannot be judged before remediation, which is why the
+  // pre-flight gate skips it). A fix that rewrites a large fraction of
+  // the file is exactly what a user in recommended mode wants to eyeball
+  // before it becomes a PR. bypassAutonomyGate means a human already
+  // approved this specific issue.
+  if (
+    !options.bypassAutonomyGate &&
+    options.config.agents.approval_triggers.includes("large_diff")
+  ) {
+    const changed = changedLineCount(
+      fileContents,
+      response.patched_file_contents,
+    );
+    const limit = Math.max(
+      200,
+      (issue.remediation?.estimated_diff_size ?? 0) * 5,
+    );
+    if (changed > limit) {
+      issue.status = "pending_approval" as Issue["status"];
+      issue.assignee = agent.id;
+      issue.comments.push({
+        author: agent.id,
+        text: `Held for review: the proposed patch changes about ${changed} lines, over the large_diff limit of ${limit}. Approve via the board or \`opt approve --issue ${issue.id}\`.`,
+        at: new Date().toISOString(),
+      });
+      await writeIssue(options.cwd, issue);
+      logger.info("agent.gated_large_diff", {
+        agent: agent.id,
+        issue: issue.id,
+        changed,
+        limit,
+      });
+      throw new AgentApprovalRequired(
+        issue.id,
+        `large_diff: about ${changed} changed lines`,
+        agent.id,
+      );
+    }
+  }
+
+  // Apply the patch (post-review, post-retry). Re-resolve immediately
+  // before the write and write through an O_NOFOLLOW handle: this closes
+  // the window between the earlier resolve and now (the LLM round trip
+  // can take many seconds) in which a local process could swap the leaf
+  // for a symlink pointing outside the repo.
+  const writePath = await resolvePathWithinRepo(repoPath, issue.location.file);
+  await writeFileNoFollow(writePath, response.patched_file_contents);
   const filesChanged = [issue.location.file];
 
   // Append to .env.example if the agent asked for it
   if (response.env_var_name && response.env_example_addition) {
-    const envExamplePath = path.join(repoPath, ".env.example");
+    const envExamplePath = await resolvePathWithinRepo(repoPath, ".env.example");
     let existing = "";
     try {
       existing = await fs.readFile(envExamplePath, "utf-8");
@@ -348,10 +454,9 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     }
     if (!existing.includes(response.env_var_name)) {
       const sep = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
-      await fs.writeFile(
+      await writeFileNoFollow(
         envExamplePath,
         existing + sep + response.env_example_addition + "\n",
-        "utf-8",
       );
       filesChanged.push(".env.example");
     }
@@ -363,15 +468,15 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   // local state, re-runs the wizard, re-scans, hits the same issue
   // again). The remote still had the old branch from PR #N, the new
   // local branch was a fresh one with no fast-forward path, so
-  // `git push` failed with "[rejected] (fetch first)" — and we
+  // `git push` failed with "[rejected] (fetch first)", and we
   // can't force-push because that'd either clobber an open PR's
   // history or leave us unable to open a new PR (GitHub allows at
   // most one open PR per head branch).
   //
   // Suffix: short base36 timestamp. Compact (6 chars), strictly
   // monotonic, no overlap inside any reasonable lifetime. Branch
-  // names stay readable — `ohpen/issue-004-set-inner-html-lzqx3a`
-  // — and each run produces its own distinct branch + PR pair, so
+  // names stay readable (`ohpen/issue-004-set-inner-html-lzqx3a`),
+  // and each run produces its own distinct branch + PR pair, so
   // old runs stay browsable on GitHub without our remediations
   // overwriting them.
   const runSuffix = Date.now().toString(36).slice(-6);
@@ -379,7 +484,7 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
   const pr = await options.adapter.createRemediationPr({
     repoPath,
     branchName,
-    commitMessage: `${agent.emoji} ${agent.displayName}: fix ${issue.id} — ${issue.title}`,
+    commitMessage: `${agent.emoji} ${agent.displayName}: fix ${issue.id}: ${issue.title}`,
     prTitle: `${issue.id}: ${issue.title}`,
     prBody: {
       issue,
@@ -418,7 +523,7 @@ interface RequestRemediationInput {
   /**
    * Optional context from a prior attempt that Nonna rejected. When
    * present, the worker sees their previous patch, their previous
-   * explanation, and Nonna's feedback — this is the "do better"
+   * explanation, and Nonna's feedback: this is the "do better"
    * second pass before we ship regardless.
    */
   previousAttempt?: {
@@ -491,4 +596,81 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 40);
+}
+
+/**
+ * Rough count of how many lines changed between two file versions:
+ * added + removed, treating same-index identical lines as unchanged.
+ * A small targeted fix scores low; a near-total rewrite scores high.
+ * Good enough to drive the large_diff gate without a full diff algorithm.
+ */
+export function changedLineCount(before: string, after: string): number {
+  const a = before.split("\n");
+  const b = after.split("\n");
+  const n = Math.min(a.length, b.length);
+  let same = 0;
+  for (let i = 0; i < n; i++) {
+    if (a[i] === b[i]) same += 1;
+  }
+  return a.length + b.length - 2 * same;
+}
+
+/**
+ * Write a file refusing to follow a symlinked leaf. O_NOFOLLOW makes the
+ * open fail (ELOOP) if the final path component is a symlink, so a patch
+ * write cannot be redirected outside the repo by a symlink swapped in
+ * after the path was validated. O_NOFOLLOW is POSIX-only; on platforms
+ * without it the flag is 0 and we fall back to a normal create/truncate.
+ */
+async function writeFileNoFollow(p: string, data: string): Promise<void> {
+  const flags =
+    fsConstants.O_WRONLY |
+    fsConstants.O_CREAT |
+    fsConstants.O_TRUNC |
+    (fsConstants.O_NOFOLLOW ?? 0);
+  const handle = await fs.open(p, flags, 0o644);
+  try {
+    await handle.writeFile(data, "utf-8");
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Narrow static screen for a patch about to ship ONLY because of the
+ * one-shot retry policy (Nonna rejected the first attempt; the second
+ * ships regardless of her verdict). This is not a review; it is a
+ * backstop against the worst case of a poisoned worker plus a poisoned
+ * or fooled reviewer: a "fix" that smuggles in code execution or a
+ * payload that was not in the original file.
+ *
+ * Fail-closed: anything flagged routes the issue to pending_approval
+ * instead of shipping. Deliberately narrow (a newly-introduced eval /
+ * new Function / document.write, or a large size explosion) so it does
+ * not false-gate legitimate fixes. A genuine fix essentially never adds
+ * one of these; switching exec() to execFile(), say, does not.
+ */
+export function screenRetriedPatch(
+  original: string,
+  patched: string,
+): { safe: true } | { safe: false; reason: string } {
+  const patterns: { re: RegExp; label: string }[] = [
+    { re: /\beval\s*\(/g, label: "eval(" },
+    { re: /\bnew\s+Function\s*\(/g, label: "new Function(" },
+    { re: /\bdocument\s*\.\s*write\s*\(/g, label: "document.write(" },
+  ];
+  for (const p of patterns) {
+    const before = (original.match(p.re) ?? []).length;
+    const after = (patched.match(p.re) ?? []).length;
+    if (after > before) {
+      return { safe: false, reason: `retried patch introduces ${p.label}` };
+    }
+  }
+  if (patched.length > original.length * 3 + 2000) {
+    return {
+      safe: false,
+      reason: "retried patch is suspiciously larger than the original file",
+    };
+  }
+  return { safe: true };
 }

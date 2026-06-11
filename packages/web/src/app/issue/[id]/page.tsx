@@ -69,7 +69,7 @@ export default async function IssueDetailPage({
         <Tag>Status: {issue.status}</Tag>
       </div>
 
-      {/* Impact — "what bad thing happens if we don't fix this".
+      {/* Impact: "what bad thing happens if we don't fix this".
           Sourced from the playbook's `impact` field at scan time, so
           older issues won't have it. Omits cleanly when absent. */}
       {issue.vulnerability_impact && (
@@ -246,7 +246,7 @@ export default async function IssueDetailPage({
         </section>
       </div>
 
-      {/* Fix made — only meaningful once an agent has opened a PR.
+      {/* Fix made: only meaningful once an agent has opened a PR.
           Combines the AI-authored explanation with a prominent link
           out to the PR. */}
       {issue.linked_pr && (
@@ -265,7 +265,7 @@ export default async function IssueDetailPage({
                 color: "var(--basil-dark)",
               }}
             >
-              ✓ Fix made — PR open
+              ✓ Fix made, PR open
             </span>
             <a
               href={issue.linked_pr}
@@ -287,7 +287,7 @@ export default async function IssueDetailPage({
           ) : (
             <p className="text-[13px] text-ink-soft m-0 mb-3">
               An agent opened a PR for this issue. The fix narrative
-              wasn&rsquo;t captured (older issue, pre-narrative-tracking) — see
+              wasn&rsquo;t captured (older issue, pre-narrative-tracking). See
               the PR description for details.
             </p>
           )}
@@ -350,7 +350,7 @@ function canRemediateNow(
     return {
       allowed: false,
       reason:
-        "Careful mode blocks web-initiated remediation — run `opt approve --issue <id>` first, or switch to Recommended in settings.",
+        "Careful mode blocks web-initiated remediation. Run `opt approve --issue <id>` first, or switch to Recommended in settings.",
     };
   }
   if (severity === "critical" && autonomy === "recommended") {

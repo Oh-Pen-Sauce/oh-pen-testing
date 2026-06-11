@@ -16,7 +16,7 @@ export const SkillFrontmatterSchema = z.object({
   when_to_use: z.string().min(1),
   /**
    * A JSON-Schema-ish object describing the action's input. The loader
-   * does not enforce full JSON Schema — it just passes the object through
+   * does not enforce full JSON Schema; it just passes the object through
    * for the AI to honour and (separately) uses a derived Zod schema
    * during action dispatch.
    */
@@ -67,7 +67,7 @@ export type Turn = z.infer<typeof TurnSchema>;
 
 /**
  * Snapshot of setup state sent to the assistant each turn so it knows
- * what's already persisted and doesn't re-ask. Kept intentionally small —
+ * what's already persisted and doesn't re-ask. Kept intentionally small:
  * secrets never travel through here.
  */
 export const SetupStateSchema = z.object({

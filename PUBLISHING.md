@@ -1,6 +1,6 @@
 # Publishing Oh Pen Testing
 
-This is the release runbook — follow this top-to-bottom to cut a version and push it to npm so users can `npm install -g @oh-pen-testing/cli`.
+This is the release runbook. Follow this top-to-bottom to cut a version and push it to npm so users can `npm install -g @oh-pen-testing/cli`.
 
 Keep this file up to date when the publish process changes. (See the
 "Keeping install notes in sync" section at the bottom.)
@@ -18,7 +18,7 @@ npm login --scope=@oh-pen-testing --registry=https://registry.npmjs.org/
 ```
 
 **Then create the `oh-pen-testing` org on npm.** Personal scopes
-on npm must match your username exactly — since the scope is
+on npm must match your username exactly. Since the scope is
 `@oh-pen-testing` (with hyphens) and most usernames don't, you
 need an npm organization with that exact name. Free tier supports
 unlimited public packages.
@@ -26,7 +26,7 @@ unlimited public packages.
 Visit https://www.npmjs.com/org/create and:
 
 - **Org name:** `oh-pen-testing`
-- **Plan:** Unlimited public packages — Free
+- **Plan:** Unlimited public packages (Free)
 
 Verify:
 
@@ -49,8 +49,8 @@ oh-pen-testing → Members) before running publish.
 ### 2. Enable 2FA for publish (recommended)
 
 **Do this via the npm web UI, not the CLI.** npm deprecated CLI-based
-TOTP enrollment in 2025 — `npm profile enable-2fa auth-and-writes`
-returns `404 — Adding a new TOTP 2FA is no longer supported`.
+TOTP enrollment in 2025: `npm profile enable-2fa auth-and-writes`
+returns `404 - Adding a new TOTP 2FA is no longer supported`.
 
 Visit:
 
@@ -62,7 +62,7 @@ Two methods are offered there:
 
 - **Security key / passkey** (Touch ID, Yubikey, browser passkey).
   npm now pushes this as the default. Best UX going forward.
-- **Authenticator app (TOTP)** — still allowed via the web UI. Scan
+- **Authenticator app (TOTP)**: still allowed via the web UI. Scan
   the QR with Google Authenticator / 1Password / Authy. After
   enrollment, `npm publish` prompts for the 6-digit code from the
   authenticator on the CLI as before.
@@ -70,7 +70,7 @@ Two methods are offered there:
 Set the mode to **"Authentication and writes"** (the equivalent of
 the CLI's `auth-and-writes`).
 
-Worth it — a leaked npm token can publish malware to every package
+Worth it: a leaked npm token can publish malware to every package
 in your scope.
 
 ### 3. One-shot dry-run audit
@@ -83,9 +83,9 @@ Walks every workspace package and shows what would go in each
 tarball. Look for:
 
 - Nothing weird (no `.env*`, no `node_modules/`, no raw source
-  trees — only `dist/` content + `package.json`).
+  trees, only `dist/` content + `package.json`).
 - Every package you expect to publish is listed.
-- `@oh-pen-testing/web` IS listed — that's expected. `private: true`
+- `@oh-pen-testing/web` IS listed; that's expected. `private: true`
   blocks `npm publish`, not `npm pack`. To confirm web won't be
   published, run a real publish dry-run on it:
 
@@ -93,7 +93,7 @@ tarball. Look for:
   pnpm --filter @oh-pen-testing/web publish --dry-run --no-git-checks
   ```
 
-  You should see `ERR_PNPM_PRIVATE_PACKAGE_PUBLISH` — that's the
+  You should see `ERR_PNPM_PRIVATE_PACKAGE_PUBLISH`; that's the
   protection. The actual publish step (step 5) only targets each
   package explicitly by filter, so web is never reached anyway.
 
@@ -202,7 +202,7 @@ pnpm rewrites `workspace:*` → the real version at publish time, so
 dependents point at the just-published numbers correctly.
 
 `--no-git-checks` skips pnpm's "uncommitted changes / not on main"
-safety nets — remove that flag once you're doing clean-tag releases
+safety nets. Remove that flag once you're doing clean-tag releases
 from main only.
 
 ### 6. Verify the registry
@@ -236,14 +236,14 @@ gh release create "v$VERSION" \
 
 ## Troubleshooting
 
-**`403 Forbidden — You do not have permission to publish`**
+**`403 Forbidden - You do not have permission to publish`**
 Either the `@oh-pen-testing` scope isn't claimed by your account, or
 2FA auth isn't valid. Re-run `npm login` and try again.
 
 **`402 Payment Required`**
 Scoped packages default to private (which requires a paid npm org).
 Every package has `publishConfig: { "access": "public" }` in its
-package.json — if the error persists, check you didn't accidentally
+package.json. If the error persists, check you didn't accidentally
 remove that field in a recent edit.
 
 **`ERESOLVE` when users try `npm install`**
@@ -254,7 +254,7 @@ registry yet. Almost always means publish order got swapped in step
 **User reports `opt: command not found` after `npm install -g`**
 Check the tarball kept the `bin` field: `npm view @oh-pen-testing/cli bin`.
 Should print `opt` + `oh-pen-testing`. If not, the build didn't emit
-the shebang — check `packages/cli/tsup.config.ts` has
+the shebang. Check `packages/cli/tsup.config.ts` has
 `banner: { js: "#!/usr/bin/env node" }`.
 
 **User reports "playbooks not found"**

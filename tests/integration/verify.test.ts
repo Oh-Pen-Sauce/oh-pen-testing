@@ -82,7 +82,7 @@ describe("verification rerun", () => {
       issueId: issue.id,
       provider,
       playbookRoots: [BUNDLED_PLAYBOOKS],
-      skipAiConfirm: true, // regex-only — secret is literally gone
+      skipAiConfirm: true, // regex-only: secret is literally gone
     });
     expect(result.verified).toBe(true);
     expect(result.hitsRemaining).toBe(0);
@@ -104,7 +104,7 @@ describe("verification rerun", () => {
     });
     const issue = scan.issues[0]!;
 
-    // File unchanged — the "fix" never happened
+    // File unchanged: the "fix" never happened
     const result = await runVerify({
       cwd,
       config,

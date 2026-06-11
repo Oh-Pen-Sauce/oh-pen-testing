@@ -1,0 +1,36 @@
+id: owasp/a02-cryptographic-failures/insecure-cipher-mode
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A02:2021
+cwe: [CWE-327]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: "Detects broken or weak ciphers and modes: AES in ECB mode, DES, 3DES, and RC4."
+impact: |
+  ECB mode encrypts identical plaintext blocks to identical ciphertext blocks, so structure in the data (the outline of an image, repeated record fields, fixed headers) leaks straight through the ciphertext. DES has a 56-bit key that falls to brute force in hours on commodity hardware, 3DES is deprecated and vulnerable to Sweet32 birthday attacks on 64-bit blocks, and RC4 has well-known keystream biases that allow plaintext recovery. Any one of these undermines the confidentiality the encryption was supposed to provide.
+risky: false
+risk_profile: safe
+requires_ai: true
+type: regex
+rules:
+  - id: node-ecb-mode-string
+    description: Cipher spec string using ECB mode (aes-256-ecb, des-ecb, and similar).
+    pattern: '[''"`][a-z0-9]+(?:-[a-z0-9]+)*-ecb[''"`]'
+    flags: gi
+    require_ai_confirm: true
+  - id: node-weak-cipher-string
+    description: Broken legacy cipher name string (DES, 3DES, RC4, RC2) in any mode.
+    pattern: '[''"`](?:des|des-ede3?|3des|rc4(?:-hmac-md5)?|rc2)(?:-(?:cbc|cfb|cfb8|ofb|ctr|gcm))?[''"`]'
+    flags: gi
+    require_ai_confirm: true
+  - id: python-weak-cipher-algorithm
+    description: Python cryptography weak cipher class (TripleDES, DES, ARC4/RC4).
+    pattern: 'algorithms\.(?:TripleDES|DES3?|ARC4|RC4)\s*\('
+    flags: g
+    require_ai_confirm: true
+  - id: python-ecb-mode
+    description: Python cryptography ECB block mode.
+    pattern: 'modes\.ECB\s*\('
+    flags: g
+    require_ai_confirm: true

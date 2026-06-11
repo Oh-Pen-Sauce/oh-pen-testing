@@ -17,7 +17,7 @@ export function registerPlaybooks(program: Command): void {
   const cmd = program
     .command("playbooks")
     .description(
-      "Manage playbooks — list installed, browse registries, install remote ones.",
+      "Manage playbooks: list installed, browse registries, install remote ones.",
     );
 
   cmd
@@ -70,7 +70,7 @@ export function registerPlaybooks(program: Command): void {
             console.log(pc.dim(`    ${e.description}`));
             if (e.maintainer) {
               // eslint-disable-next-line no-console
-              console.log(pc.dim(`    — ${e.maintainer}`));
+              console.log(pc.dim(`    – ${e.maintainer}`));
             }
           }
         } catch (err) {

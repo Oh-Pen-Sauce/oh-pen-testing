@@ -18,7 +18,7 @@ export async function rejectAction(issueId: string): Promise<void> {
   issue.status = "wont_fix";
   issue.comments.push({
     author: "web-reviewer",
-    text: "Rejected for automated remediation — marking as won't fix.",
+    text: "Rejected for automated remediation. Marking as won't fix.",
     at: new Date().toISOString(),
   });
   await updateIssue(issue);

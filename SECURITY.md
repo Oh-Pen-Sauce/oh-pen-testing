@@ -2,7 +2,7 @@
 
 ## Reporting a vulnerability
 
-Oh Pen Testing is a security tool — we take vulnerabilities in it seriously.
+Oh Pen Testing is a security tool; we take vulnerabilities in it seriously.
 
 If you find a security issue, **please do not open a public GitHub issue.** Email the maintainers instead:
 
@@ -27,8 +27,8 @@ We aim to acknowledge receipt within 72 hours, provide a mitigation plan within 
 
 ## What's out-of-scope
 
-- Vulnerabilities in dependencies — please report those to the upstream project. (We'll still bump our pin if you let us know.)
-- Intentional behaviour that is risky by design — e.g. agents write files when you tell them to. Check the "risky tests" toggles.
+- Vulnerabilities in dependencies: please report those to the upstream project. (We'll still bump our pin if you let us know.)
+- Intentional behaviour that is risky by design, e.g. agents write files when you tell them to. Check the "risky tests" toggles.
 - Social-engineering / physical attacks against maintainers.
 
 ## Our own scanning

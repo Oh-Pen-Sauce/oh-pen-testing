@@ -9,6 +9,6 @@ Do NOT confirm when:
 - In a test fixture or local development cert setup where the target is localhost.
 
 Severity:
-- `critical` — `rejectUnauthorized: false` in a production API client.
-- `high` — TLSv1.0/1.1 in production config.
-- `medium` — TLSv1.0/1.1 in a legacy path without clear justification.
+- `critical`: `rejectUnauthorized: false` in a production API client.
+- `high`: TLSv1.0/1.1 in production config.
+- `medium`: TLSv1.0/1.1 in a legacy path without clear justification.

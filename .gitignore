@@ -31,6 +31,8 @@ pnpm-debug.log*
 # Test artifacts
 coverage/
 .vitest-cache/
+.stryker-tmp/
+reports/mutation/
 
 # OhPen scaffold artifacts in the tool's own dir (dogfood)
 .ohpentesting/logs/

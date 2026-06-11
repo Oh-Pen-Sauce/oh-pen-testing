@@ -2,7 +2,7 @@ import { simpleGit } from "simple-git";
 
 export interface GitLabAdapterOptions {
   token: string;
-  /** `group/subgroup/project` — GitLab path with namespace. */
+  /** `group/subgroup/project`: GitLab path with namespace. */
   repo: string;
   defaultBranch?: string;
   /** Self-hosted GitLab URL. Defaults to gitlab.com. */
@@ -84,7 +84,7 @@ export function createGitLabAdapter(options: GitLabAdapterOptions) {
     /**
      * Shape-compatible with the GitHubAdapter so callers can treat them
      * interchangeably. The PR orchestrator in core calls
-     * createRemediationPr — we alias here.
+     * createRemediationPr. We alias here.
      */
     async createRemediationPr(input: {
       repoPath: string;
@@ -127,7 +127,7 @@ interface PrBodyPayload {
 }
 
 function buildBody(p: PrBodyPayload): string {
-  return `## 🛡️ Oh Pen Testing fix — ${p.issue.id}
+  return `## 🛡️ Oh Pen Testing fix - ${p.issue.id}
 
 **Fixed by:** ${p.agentName} ${p.agentEmoji}
 

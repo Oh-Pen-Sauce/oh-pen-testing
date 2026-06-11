@@ -43,7 +43,7 @@ export async function buildPdfReport(
     size: "A4",
     margins: { top: 60, bottom: 60, left: 60, right: 60 },
     info: {
-      Title: `Oh Pen Testing Report — ${input.projectName}`,
+      Title: `Oh Pen Testing Report: ${input.projectName}`,
       Author: `Oh Pen Testing v${input.toolVersion}`,
       Subject: "Security assessment",
       Producer: "Oh Pen Testing",
@@ -206,8 +206,8 @@ function renderMethodology(doc: PDFDoc, input: BuildPdfReportInput): void {
   doc
     .list(
       [
-        "Deterministic pattern matching — regex rules per playbook run across all source files, producing candidate findings with exact line + column positions.",
-        "AI confirmation — each candidate is independently evaluated by the configured LLM with a constrained JSON-schema response. The AI assigns final severity and filters obvious false positives.",
+        "Deterministic pattern matching: regex rules per playbook run across all source files, producing candidate findings with exact line + column positions.",
+        "AI confirmation: each candidate is independently evaluated by the configured LLM with a constrained JSON-schema response. The AI assigns final severity and filters obvious false positives.",
       ],
       { bulletRadius: 2 },
     );
@@ -217,7 +217,7 @@ function renderMethodology(doc: PDFDoc, input: BuildPdfReportInput): void {
     .fontSize(11)
     .fillColor("#0F172A")
     .text(
-      "AI output is advisory. Every finding ships with the raw scanner output the AI was reasoning about — this is the authoritative artefact for reproduction.",
+      "AI output is advisory. Every finding ships with the raw scanner output the AI was reasoning about. This is the authoritative artefact for reproduction.",
       { align: "left" },
     );
   doc.moveDown(1);
@@ -227,11 +227,11 @@ function renderMethodology(doc: PDFDoc, input: BuildPdfReportInput): void {
   doc.fontSize(10).fillColor("#334155");
   doc.list(
     [
-      "OWASP Top 10 2021 — all ten categories",
-      "OWASP WSTG — core subset",
-      "CWE Top 25 — critical subset",
-      "Secrets detection — TruffleHog-compatible ruleset",
-      "SCA — npm audit, pip-audit, bundler-audit",
+      "OWASP Top 10 2021: all ten categories",
+      "OWASP WSTG: core subset",
+      "CWE Top 25: critical subset",
+      "Secrets detection: TruffleHog-compatible ruleset",
+      "SCA: npm audit, pip-audit, bundler-audit",
     ],
     { bulletRadius: 2 },
   );
@@ -246,7 +246,7 @@ function renderMethodology(doc: PDFDoc, input: BuildPdfReportInput): void {
     doc.text(`Playbooks skipped: ${input.scan.playbooks_skipped}`);
     doc.text(`AI calls: ${input.scan.ai_calls}`);
     doc.text(`Started: ${input.scan.started_at}`);
-    doc.text(`Ended: ${input.scan.ended_at ?? "—"}`);
+    doc.text(`Ended: ${input.scan.ended_at ?? "–"}`);
   }
 
   doc.addPage();
@@ -278,7 +278,7 @@ function renderFindings(doc: PDFDoc, input: BuildPdfReportInput): void {
     doc
       .fontSize(13)
       .fillColor("#0F172A")
-      .text(`${issue.id} — ${issue.title}`, { align: "left" });
+      .text(`${issue.id} – ${issue.title}`, { align: "left" });
     doc.moveDown(0.2);
 
     // Chip row: severity, OWASP, CWEs, status

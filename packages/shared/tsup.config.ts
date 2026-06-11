@@ -9,7 +9,7 @@ export default defineConfig({
   clean: true,
   sourcemap: true,
   target: "node22",
-  // pdfkit is only used at runtime by the CLI — keep it external so the
+  // pdfkit is only used at runtime by the CLI, so keep it external so the
   // web build (which never imports ./pdf-report) never has to trace it.
   external: ["pdfkit"],
   // The setup-assistant loader reads markdown assets at runtime. Tsup
@@ -18,7 +18,7 @@ export default defineConfig({
   // loader looks for `./assets` relative to the compiled entry first.
   async onSuccess() {
     // Mirror the setup-assistant bundle (memory.md + skills/*.md) into
-    // dist/assets/ — the setup loader walks candidate paths including
+    // dist/assets/. The setup loader walks candidate paths including
     // ./assets relative to the compiled entry.
     const setupSrc = path.resolve("src/setup-assistant/assets");
     const setupDest = path.resolve("dist/assets");

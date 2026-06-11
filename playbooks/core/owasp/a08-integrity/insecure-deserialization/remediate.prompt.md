@@ -7,6 +7,6 @@ Switch to a safe format / safe variant:
 - `eval(x)` → never. For arithmetic use `ast.literal_eval` (Python) or `Number(x)` + validation (JS). For config use JSON.
 - `unserialize(x)` (node-serialize) → drop the dependency. Use JSON + explicit schema validation.
 
-Never "sanitise" untrusted input to a serialisation format — the format itself is the vulnerability.
+Never "sanitise" untrusted input to a serialisation format. The format itself is the vulnerability.
 
 `env_var_name`: none.

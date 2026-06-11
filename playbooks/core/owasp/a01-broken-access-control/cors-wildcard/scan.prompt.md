@@ -13,7 +13,7 @@ Do NOT confirm when:
 - The wildcard is in a test mock or a docs example.
 
 Severity:
-- `critical` — wildcard + credentials + auth-reliant API.
-- `high` — wildcard on authenticated API, no credentials flag.
-- `medium` — reflected origin without validation on a non-auth API.
-- `low` — permissive CORS on a purely public read-only endpoint.
+- `critical`: wildcard + credentials + auth-reliant API.
+- `high`: wildcard on authenticated API, no credentials flag.
+- `medium`: reflected origin without validation on a non-auth API.
+- `low`: permissive CORS on a purely public read-only endpoint.

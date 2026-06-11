@@ -32,7 +32,7 @@ export function registerScan(program: Command): void {
     .option("-p, --provider <id>", "Override config.ai.primary_provider")
     .option(
       "--starter",
-      "Run only the starter set (5 safe regex-only playbooks). Fast first-time run — no network, no AI cost.",
+      "Run only the starter set (5 safe regex-only playbooks). Fast first-time run: no network, no AI cost.",
     )
     .option(
       "--only <ids>",
@@ -65,7 +65,7 @@ export function registerScan(program: Command): void {
         // eslint-disable-next-line no-console
         console.log(
           pc.yellow(
-            "\n⚠  Authorisation check — Oh Pen Testing only scans code you're authorised to test.",
+            "\n⚠  Authorisation check: Oh Pen Testing only scans code you're authorised to test.",
           ),
         );
         // eslint-disable-next-line no-console
@@ -116,14 +116,14 @@ export function registerScan(program: Command): void {
         // eslint-disable-next-line no-console
         console.log(
           pc.bold(
-            `▶ Starter scan — ${STARTER_PLAYBOOK_IDS.length} safe regex playbooks, no network, no AI cost.`,
+            `▶ Starter scan: ${STARTER_PLAYBOOK_IDS.length} safe regex playbooks, no network, no AI cost.`,
           ),
         );
       } else if (onlyPlaybookIds) {
         // eslint-disable-next-line no-console
         console.log(
           pc.bold(
-            `▶ Restricted scan — ${onlyPlaybookIds.length} playbook(s): ${onlyPlaybookIds.join(", ")}`,
+            `▶ Restricted scan, ${onlyPlaybookIds.length} playbook(s): ${onlyPlaybookIds.join(", ")}`,
           ),
         );
       } else {
@@ -140,7 +140,7 @@ export function registerScan(program: Command): void {
           provider,
           playbookRoots,
           onlyPlaybookIds,
-          // Starter scan never touches the AI — the 5 playbooks are all
+          // Starter scan never touches the AI; the 5 playbooks are all
           // regex-only and their findings are copy-obvious. Saves the
           // first-time user any API cost.
           skipAiConfirm: opts.starter ? true : undefined,
@@ -171,7 +171,7 @@ export function registerScan(program: Command): void {
           );
         }
 
-        // Opt-in telemetry — enabled only if user explicitly ran
+        // Opt-in telemetry: enabled only if user explicitly ran
         // `opt telemetry enable`. Fire-and-forget; errors never surface
         // to the user and never slow the scan by more than 2s.
         if (config.telemetry.enabled) {
@@ -197,7 +197,7 @@ export function registerScan(program: Command): void {
             });
             await sendTelemetry(payload, config.telemetry.endpoint);
           } catch {
-            // strict no-throw — telemetry never blocks
+            // strict no-throw; telemetry never blocks
           }
         }
       } catch (err) {

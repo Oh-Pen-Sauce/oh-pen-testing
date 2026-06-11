@@ -10,6 +10,6 @@ Do NOT confirm when:
 - The endpoint is behind a gateway (e.g. AWS API Gateway, Cloudflare) whose rate-limit is documented in nearby comments.
 
 Severity:
-- `critical` — login endpoint with no limiting and password auth.
-- `high` — password reset / signup / OTP verification endpoint.
-- `medium` — auth-adjacent endpoint (account lookup).
+- `critical`: login endpoint with no limiting and password auth.
+- `high`: password reset / signup / OTP verification endpoint.
+- `medium`: auth-adjacent endpoint (account lookup).

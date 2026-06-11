@@ -4,7 +4,7 @@ import type { ProviderId } from "./config/schema.js";
  * Known models per provider. Used to populate dropdowns in the web UI
  * and to constrain the `set_model` setup-assistant skill's input.
  *
- * This is a convenience list, not a hard gate — users can still point
+ * This is a convenience list, not a hard gate: users can still point
  * their config at any model string the provider accepts (especially
  * useful for Ollama where users pick whatever model they pulled).
  * The web dropdown offers a "custom…" escape hatch.
@@ -27,7 +27,7 @@ export const MODEL_CATALOG: Record<ProviderId, ModelChoice[]> = {
     {
       id: "claude-sonnet-4-6",
       label: "Claude Sonnet 4.6",
-      note: "Great balance — default for most scans",
+      note: "Great balance; default for most scans",
     },
     {
       id: "claude-haiku-4-5",
@@ -44,7 +44,7 @@ export const MODEL_CATALOG: Record<ProviderId, ModelChoice[]> = {
     {
       id: "claude-sonnet-4-6",
       label: "Claude Sonnet 4.6",
-      note: "Great balance — default for most scans",
+      note: "Great balance; default for most scans",
     },
     {
       id: "claude-haiku-4-5",
@@ -56,7 +56,7 @@ export const MODEL_CATALOG: Record<ProviderId, ModelChoice[]> = {
     {
       id: "claude-sonnet-4-6",
       label: "Claude Sonnet 4.6 (CLI default)",
-      note: "Rides your local claude session — no per-token cost",
+      note: "Rides your local claude session; no per-token cost",
     },
     {
       id: "claude-opus-4-7",
@@ -83,7 +83,7 @@ export const MODEL_CATALOG: Record<ProviderId, ModelChoice[]> = {
     {
       id: "o1",
       label: "o1",
-      note: "Reasoning model — slower, best for complex scans",
+      note: "Reasoning model; slower, best for complex scans",
     },
     {
       id: "o1-mini",
@@ -113,17 +113,17 @@ export const MODEL_CATALOG: Record<ProviderId, ModelChoice[]> = {
     {
       id: "kimi-k2.6",
       label: "Kimi K2.6 (default)",
-      note: "~6 GB RAM — good general-purpose local model",
+      note: "~6 GB RAM; good general-purpose local model",
     },
     {
       id: "llama3.1:8b",
       label: "Llama 3.1 8B",
-      note: "~4.7 GB RAM — solid fallback",
+      note: "~4.7 GB RAM; solid fallback",
     },
     {
       id: "deepseek-coder-v2:16b",
       label: "DeepSeek Coder v2 16B",
-      note: "~8.9 GB RAM — best-in-class for code if you have the memory",
+      note: "~8.9 GB RAM; best-in-class for code if you have the memory",
     },
     {
       id: "phi3.5:3.8b",
@@ -134,7 +134,7 @@ export const MODEL_CATALOG: Record<ProviderId, ModelChoice[]> = {
 };
 
 /**
- * List of all model ids across every provider — useful for schema
+ * List of all model ids across every provider, useful for schema
  * validation where the AI proposes a set_model action and we want to
  * accept any known model regardless of provider.
  */
@@ -147,7 +147,7 @@ export const ALL_KNOWN_MODEL_IDS: readonly string[] = Array.from(
 );
 
 /**
- * Get the default model for a provider — first entry in the catalog,
+ * Get the default model for a provider: first entry in the catalog,
  * or null if the provider isn't known.
  */
 export function defaultModelFor(providerId: ProviderId): string | null {

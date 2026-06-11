@@ -21,7 +21,7 @@ export interface AutoRemediateResult {
   prUrls: string[];
   /** Issues that were gated for approval (not PR'd yet). */
   gated: Array<{ issueId: string; reason: string }>;
-  /** Issues that failed for any reason — network, provider, conflict. */
+  /** Issues that failed for any reason: network, provider, conflict. */
   failed: Array<{ issueId: string; error: string }>;
   autonomy: string;
 }
@@ -32,12 +32,12 @@ export interface AutoRemediateResult {
  * completes, when the user is in YOLO / full-YOLO and wants the
  * agents to "just go".
  *
- * This is a blocking request-response — it returns once the pool
+ * This is a blocking request-response: it returns once the pool
  * drains OR any serious failure halts it. For large issue sets the
  * caller will see a long spinner; the UI shows the cooking
  * animation + a "running…" label so it doesn't look frozen.
  *
- * Autonomy-mode gating happens INSIDE the agent — so in
+ * Autonomy-mode gating happens INSIDE the agent, so in
  * "recommended" / "careful" modes the pool legitimately refuses
  * most issues (AgentApprovalRequired → bucketed to `gated`). The
  * UI should only surface this action when autonomy is permissive
@@ -128,7 +128,7 @@ export async function runAutoRemediateAction(
             : "") +
           (failedCount > 0 ? ` ${failedCount} failed.` : "")
         : gatedCount > 0
-          ? `All ${gatedCount} issue${gatedCount === 1 ? "" : "s"} need approval — your autonomy mode gated them. Check /reviews.`
+          ? `All ${gatedCount} issue${gatedCount === 1 ? "" : "s"} need approval: your autonomy mode gated them. Check /reviews.`
           : "No issues were eligible for auto-remediation.",
     prUrls,
     gated: result.gated.map((g) => ({

@@ -44,5 +44,5 @@
   "engines": {
     "node": ">=22"
   },
-  "description": "Claude Code CLI provider for Oh Pen Testing — rides your local `claude` session."
+  "description": "Claude Code CLI provider for Oh Pen Testing: rides your local `claude` session."
 }

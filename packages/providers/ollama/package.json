@@ -44,5 +44,5 @@
   "engines": {
     "node": ">=22"
   },
-  "description": "Ollama provider for Oh Pen Testing — fully-local inference via ollama.ai."
+  "description": "Ollama provider for Oh Pen Testing: fully-local inference via ollama.ai."
 }

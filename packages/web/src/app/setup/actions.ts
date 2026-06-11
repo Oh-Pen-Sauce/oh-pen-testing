@@ -41,7 +41,7 @@ export async function setProviderAction(provider: ProviderId, model?: string) {
 
 export async function probeProviderAction(
   provider: ProviderId,
-): Promise<{ ok: boolean; detail: string }> {
+): Promise<{ ok: boolean; detail: string; deferred?: boolean }> {
   if (provider === "claude-code-cli") {
     const res: ClaudeCliDetection = await detectClaudeCliInstalled();
     return {
@@ -60,8 +60,16 @@ export async function probeProviderAction(
         : `Ollama unreachable at ${DEFAULT_OLLAMA_BASE_URL}. Start it with \`ollama serve\`.`,
     };
   }
-  // API-key providers: no probe — just confirm ready
-  return { ok: true, detail: "Ready. You'll enter the API key in the next step." };
+  // API-key providers: there is nothing to probe yet. Report this as a
+  // deferred (not verified) state so the UI does not imply the key
+  // already works. The key is added in the next step and is actually
+  // validated when the first request runs.
+  return {
+    ok: true,
+    deferred: true,
+    detail:
+      "Provider selected. You'll add the API key in the next step; it is checked when the first scan runs.",
+  };
 }
 
 export async function saveApiKeyAction(
@@ -82,7 +90,7 @@ export async function saveApiKeyAction(
   if (!secret || secret.length < 10) {
     throw new Error("API key looks invalid (too short).");
   }
-  // setSecret walks the tiers — keychain first, local file fallback,
+  // setSecret walks the tiers: keychain first, local file fallback,
   // never forces the user to open a terminal and `export`.
   return await setSecret(account, secret);
 }

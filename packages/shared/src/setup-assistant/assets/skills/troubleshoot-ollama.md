@@ -3,7 +3,7 @@ id: troubleshoot_ollama
 name: Troubleshoot Ollama
 when_to_use: >
   `probe_provider` for ollama returned ok:false, or the user is setting
-  up Ollama for the first time. No action — reference content only.
+  up Ollama for the first time. No action, reference content only.
 input_schema:
   type: object
   additionalProperties: false
@@ -51,7 +51,7 @@ The server must be running before Oh Pen Testing can probe it.
 ollama serve
 ```
 
-Leave this terminal open — Ollama runs until you close it. In a
+Leave this terminal open. Ollama runs until you close it. In a
 *different* terminal, pull a model (next step).
 
 ### macOS + Linux (background, via Homebrew services)
@@ -86,13 +86,13 @@ Oh Pen Testing defaults to `kimi-k2.6`. Pull it once:
 ollama pull kimi-k2.6
 ```
 
-This downloads ~6 GB — takes a few minutes on fast internet. The
+This downloads ~6 GB, takes a few minutes on fast internet. The
 download is one-off; after that the model stays on disk.
 
 Alternatives if `kimi-k2.6` isn't available or too big:
 
-- `llama3.1:8b` — 4.7 GB, solid general model
-- `deepseek-coder-v2:16b` — 8.9 GB, best-in-class for code if you have
+- `llama3.1:8b`: 4.7 GB, solid general model
+- `deepseek-coder-v2:16b`: 8.9 GB, best-in-class for code if you have
   the RAM
 
 After pulling, update the model name in config:
@@ -133,7 +133,7 @@ Claude account) or an API-key provider with a team key.
 If the user's machine genuinely can't run Ollama (too little RAM,
 locked-down corporate laptop), pivot to a hosted provider:
 
-> *"Let's switch you to Claude CLI or Claude API — Ollama wants at
+> *"Let's switch you to Claude CLI or Claude API. Ollama wants at
 > least 8 GB free and a few GB of model on disk, and it sounds like
 > this machine isn't set up for that."*
 

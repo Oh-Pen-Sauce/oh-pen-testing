@@ -9,13 +9,13 @@ import { AlignRepoButton } from "./align-repo-button";
 const execAsync = promisify(exec);
 
 /**
- * Server component banner — sits under the sidebar's brand block and
+ * Server component banner: sits under the sidebar's brand block and
  * above every page's content, making the one thing everyone gets
  * wrong at first brutally obvious: **which directory is actually
  * being scanned**.
  *
  * Oh Pen Testing is a local tool. The `git.repo` setting in config
- * is only used for *opening PRs* — the scan target is whatever
+ * is only used for *opening PRs*; the scan target is whatever
  * directory the web server was launched from (OHPEN_CWD env var, or
  * process.cwd()). Multiple users have been surprised that connecting
  * their GitHub repo in the setup wizard doesn't magically clone and
@@ -29,11 +29,11 @@ const execAsync = promisify(exec);
  *     `packages/core/src/playbook-runner/` at root), flags a red
  *     warning explaining why findings look weird
  *   - If the cwd's folder name doesn't look related to the git.repo
- *     slug, shows an amber nudge ("This doesn't match your repo —
+ *     slug, shows an amber nudge ("This doesn't match your repo;
  *     make sure you launched from the right project")
  */
 export async function ScanTargetBanner() {
-  // This component is rendered in the root layout — anything it throws
+  // This component is rendered in the root layout; anything it throws
   // would 500 every page, including /setup, making the tool unopenable.
   // Wrap in try/catch and degrade to a minimal neutral banner on any
   // failure. Worst case: we lose the warning nuance; never worse than
@@ -72,7 +72,7 @@ async function renderBanner() {
   // placeholder "owner/name"), or they haven't acknowledged
   // authorisation. Before any of those are done, showing a red
   // "PR target doesn't match scan folder's origin" warning is
-  // nonsense — the user hasn't committed to a PR target yet. Show a
+  // nonsense. The user hasn't committed to a PR target yet. Show a
   // gentle "setup in progress" line instead, so the banner stays
   // informative without being alarmist.
   const setupIncomplete =
@@ -85,7 +85,7 @@ async function renderBanner() {
   const cwdTail = path.basename(cwd);
 
   // Look at the cwd's real git origin. This is what `git remote
-  // get-url origin` reports — parse it into owner/name so we can
+  // get-url origin` reports; parse it into owner/name so we can
   // compare directly against config.git.repo. A mismatch here is
   // worse than a folder-name mismatch (which is just a heuristic)
   // because it's authoritative: "the repo you're in is NOT the
@@ -108,7 +108,7 @@ async function renderBanner() {
     !cwdMatchesRepo(cwdTail, repoName);
 
   // Tier the banner colour by severity. Setup-incomplete is always
-  // neutral — we're not going to alarm the user about a mismatch
+  // neutral. We're not going to alarm the user about a mismatch
   // before they've had a chance to declare what they want.
   const level: "neutral" | "warn" | "danger" = setupIncomplete
     ? "neutral"
@@ -167,7 +167,7 @@ async function renderBanner() {
           className="text-[11.5px]"
           style={{ color: "var(--ink-soft)" }}
         >
-          setup in progress — scan target will lock in once you finish
+          setup in progress: scan target will lock in once you finish
           the wizard
         </span>
       )}
@@ -176,7 +176,7 @@ async function renderBanner() {
           className="text-[11.5px] font-semibold flex items-center gap-1.5"
           style={{ color: "var(--sauce-dark)" }}
         >
-          ⚠ This is the Oh Pen Testing source repo — findings will mostly
+          ⚠ This is the Oh Pen Testing source repo. Findings will mostly
           be its own deliberately-vulnerable test fixtures. To scan a real
           project, relaunch from that project&rsquo;s directory.
         </span>
@@ -239,7 +239,7 @@ async function detectCwdOrigin(cwd: string): Promise<string | null> {
 }
 
 /**
- * Cheap structural check — does `cwd` look like the Oh Pen Testing
+ * Cheap structural check: does `cwd` look like the Oh Pen Testing
  * source tree itself? The unambiguous tell is packages/core/src/
  * playbook-runner/manifest.ts + packages/shared/src/setup-assistant/.
  */
@@ -268,7 +268,7 @@ async function detectOhpenSource(cwd: string): Promise<boolean> {
 }
 
 /**
- * Loose match heuristic — does the directory name look related to
+ * Loose match heuristic: does the directory name look related to
  * the configured repo slug? Exact substring either direction, or a
  * kebab-case root match.
  */

@@ -16,7 +16,7 @@ export default async function TestsSettingsPage() {
   return (
     <div>
       <PageHeader
-        kicker="06 — La Cucina · Tests"
+        kicker="06 – La Cucina · Tests"
         title={<>Tests catalog</>}
         sub={
           <>

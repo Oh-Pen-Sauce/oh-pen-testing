@@ -1,4 +1,4 @@
-// Pasta agent roster — presentational metadata, mirrors packages/core's agents.
+// Pasta agent roster: presentational metadata, mirrors packages/core's agents.
 // Single source of truth for the avatar colour + emoji + tagline used across
 // the sidebar, playbook grid, reviews, and board cards.
 
@@ -9,7 +9,7 @@ export interface AgentMeta {
   tag: string;
   color: string; // hex, used as the tinted avatar bg
   /**
-   * Reviewer agents don't get pool buckets — they participate as
+   * Reviewer agents don't get pool buckets; they participate as
    * hooks inside runAgent. Used by the UI to render them in a
    * separate "head chef" group on /agents and on the sidebar
    * roster, so users understand why Nonna isn't picking up issues
@@ -56,7 +56,7 @@ export const AGENTS: AgentMeta[] = [
     name: "Nonna",
     emoji: "👵",
     tag: "head chef · patch review",
-    // Aubergine — distinct from the four worker palettes so she
+    // Aubergine: distinct from the four worker palettes so she
     // visually reads as "different role" not "fifth worker".
     color: "#6B3F7A",
     role: "reviewer",

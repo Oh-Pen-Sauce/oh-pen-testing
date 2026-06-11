@@ -1,4 +1,4 @@
-# Oh Pen Testing — dev stack.
+# Oh Pen Testing: dev stack.
 #
 # `docker compose up` boots the web UI (and, optionally, an Ollama
 # instance for offline runs). Mount your project at /workspace:
@@ -6,7 +6,7 @@
 #   cd /path/to/your/project
 #   OPT_WORKSPACE="$PWD" docker compose -f /path/to/oh-pen-testing/docker-compose.yml up
 #
-# Secrets go in `.env` next to this file — never inline here.
+# Secrets go in `.env` next to this file. Never inline here.
 
 services:
   opt-web:
@@ -18,7 +18,7 @@ services:
     ports:
       - "7676:7676"
     # OPT_WORKSPACE is the host path to the project you want to scan.
-    # Default to the current directory — override when launching.
+    # Default to the current directory; override when launching.
     volumes:
       - "${OPT_WORKSPACE:-.}:/workspace:rw"
     environment:

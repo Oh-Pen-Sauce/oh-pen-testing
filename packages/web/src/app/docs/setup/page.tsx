@@ -111,7 +111,7 @@ export default function SetupPage() {
       <Note>
         <strong>cd into the project you want to scan first.</strong> The scan
         target is the directory you launch{" "}
-        <code style={{ fontFamily: "var(--font-mono)" }}>opt</code> from — not
+        <code style={{ fontFamily: "var(--font-mono)" }}>opt</code> from, not
         something it clones remotely.
       </Note>
 
@@ -142,7 +142,7 @@ export default function SetupPage() {
           PATH and pre-selects it. Click <strong>▶ Run</strong> to confirm, or
           expand <em>Or pick a different provider</em> to choose Claude API,
           Ollama, or OpenRouter. API-key providers prompt you to paste your key
-          — it&rsquo;s stored in your OS keychain, never in the repo.
+          (it&rsquo;s stored in your OS keychain, never in the repo).
         </Step>
 
         <Step n={2} title="Wire GitHub">
@@ -157,7 +157,7 @@ export default function SetupPage() {
 
         <Step n={3} title="Choose autonomy mode">
           <div>
-            Three levels — pick the one that fits your workflow:
+            Three levels: pick the one that fits your workflow:
             <ul className="mt-2 space-y-1.5 list-none p-0">
               {[
                 {
@@ -193,7 +193,7 @@ export default function SetupPage() {
         </Step>
 
         <Step n={4} title="Acknowledge authorisation">
-          A hard gate — you must confirm in writing that you have authorisation
+          A hard gate: you must confirm in writing that you have authorisation
           to test the target codebase. Your name and timestamp are recorded in{" "}
           <code style={{ fontFamily: "var(--font-mono)" }}>
             .ohpentesting/config.yml
@@ -235,7 +235,7 @@ opt scan      # jump straight to scanning`}</Code>
         <p className="text-[13px] text-ink-soft mt-3">
           The directory is added to your{" "}
           <code style={{ fontFamily: "var(--font-mono)" }}>.gitignore</code>{" "}
-          automatically — state files never end up in the repo.
+          automatically. State files never end up in the repo.
         </p>
       </Card>
 

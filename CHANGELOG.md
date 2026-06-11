@@ -2,42 +2,76 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.0.2] — 2026-04-29
+## [1.0.3] - 2026-05-17
+
+Setup polish and in-app docs. Thanks to Joe (@Veridex-AI) for the fix-pack (PR #2).
+
+### Fixed
+- **`opt setup` first-run reliability.** Port-in-use is detected before bind, with a clear error and a remediation hint. The CLI now health-polls the wizard over HTTP (300ms interval, 30s cap) before opening the browser instead of sleeping, so the browser no longer opens to a blank page on slower machines.
+- **Init guard.** `opt scan`, `opt remediate`, and `opt verify` print a friendly "no `.ohpentesting/config.yml` found, run `opt setup`" message instead of a stack trace when run before setup.
+- **Hook-manager detection.** Setup no longer overwrites `.git/hooks/pre-commit` when husky or lefthook is present; it tells you how to wire `opt check` into your existing config instead.
+
+### Added
+- **`--port <n>` flag** on `opt setup` to override the default 7676.
+- **In-app `/docs` section** in the web wizard (install, setup, first scan, agents, reports).
+- **"Done" pill** on completed wizard steps.
+- **LICENSE file** at the repo root (the `package.json` already declared MIT).
+
+### Changed
+- README provider list corrected to what ships today (Claude API, Claude Code CLI, Ollama); OpenAI and OpenRouter noted as next.
+
+## [1.0.2] - 2026-04-29
 
 ### Fixed
 - **`opt setup` now works from a global npm install.** The `1.0.1` tarball didn't ship the web wizard and the command spawned `pnpm start`, so users hit `ENOENT: no such file or directory, stat '.../node_modules/web'` and `spawn pnpm ENOENT`. Three changes land together (the third caught during smoke-testing PR #1):
   - `@oh-pen-testing/web` is now a published package and a runtime dependency of `@oh-pen-testing/cli`. The wizard's `.next` build output ships in the tarball.
-  - `setup.ts` resolves the web package via Node module resolution (`createRequire` → `@oh-pen-testing/web/package.json`) and spawns `next start` directly using the `next` binary resolved from the web package — no `pnpm` required at runtime. A monorepo-dev fallback path is preserved.
-  - `next.config.ts` → `next.config.mjs`. The published web tarball ships only runtime deps (no `typescript`), and Next 15's TS-config loader was hot-installing `typescript` via pnpm at first `next start`. Plain ESM config skips that detour — the wizard boots immediately even on machines without pnpm. Type safety preserved via a JSDoc `@type {import("next").NextConfig}` annotation.
+  - `setup.ts` resolves the web package via Node module resolution (`createRequire` → `@oh-pen-testing/web/package.json`) and spawns `next start` directly using the `next` binary resolved from the web package, with no `pnpm` required at runtime. A monorepo-dev fallback path is preserved.
+  - `next.config.ts` → `next.config.mjs`. The published web tarball ships only runtime deps (no `typescript`), and Next 15's TS-config loader was hot-installing `typescript` via pnpm at first `next start`. Plain ESM config skips that detour: the wizard boots immediately even on machines without pnpm. Type safety preserved via a JSDoc `@type {import("next").NextConfig}` annotation.
 - **`CLI_VERSION` in `packages/cli/src/index.ts` now follows package.json.** Hardcoded constant got missed in the 1.0.1 bump, so `opt --version` printed `1.0.0` against an npm-installed `1.0.1`. Now both report `1.0.2`.
 
-## [0.6.0] — 2026-04-21
+## [1.0.1] - 2026-04-28
 
-M6 — PDF pen-test report (the v1.0 crown jewel, landed ahead of schedule).
+### Fixed
+- Packaging fixes ahead of the 1.0.2 setup-wizard repair. The 1.0.1 tarball did not ship the web wizard build; see 1.0.2 for the full story and resolution.
+
+## [1.0.0] - 2026-04-21
+
+PRD feature-complete. First public release.
 
 ### Added
-- **`buildPdfReport`** in `@oh-pen-testing/shared` — pdfkit-based (no Chromium dependency). Cover page, executive summary with severity bar chart, methodology with bundled-standards list, per-finding detail with scanner output + AI analysis split and chip row (severity, OWASP ref, CWE, status), residual-risks page, signature page.
-- **`opt report --format pdf`** — writes to `.ohpentesting/reports/oh-pen-testing-report.pdf` by default; `-o` overrides. Output is a valid PDF 1.3 document suitable for enterprise buyer due-diligence packets, investor rooms, SOC2 evidence folders.
-- PDF metadata includes title, author (`Oh Pen Testing v<version>`), subject, and producer — searchable in the reader.
+- Playbook catalogue across OWASP Top 10, a CWE Top 25 subset, IaC, secrets, and WSTG, every regex playbook gated by positive and negative fixtures in CI.
+- AI-confirmed scanning: deterministic regex discovery, then provider confirmation with evidence separated from AI analysis.
+- Pasta-named remediation agents (Marinara, Carbonara, Alfredo, Pesto) with a work-stealing queue and autonomy gating (Careful, Recommended, YOLO).
+- Reports in Markdown, JSON, SARIF 2.1.0, and PDF.
+- GitHub PR remediation and scheduled scans (launchd on macOS, crontab on Linux).
+
+## [0.6.0] - 2026-04-21
+
+M6: PDF pen-test report (the v1.0 crown jewel, landed ahead of schedule).
+
+### Added
+- **`buildPdfReport`** in `@oh-pen-testing/shared`: pdfkit-based (no Chromium dependency). Cover page, executive summary with severity bar chart, methodology with bundled-standards list, per-finding detail with scanner output + AI analysis split and chip row (severity, OWASP ref, CWE, status), residual-risks page, signature page.
+- **`opt report --format pdf`**: writes to `.ohpentesting/reports/oh-pen-testing-report.pdf` by default; `-o` overrides. Output is a valid PDF 1.3 document suitable for enterprise buyer due-diligence packets, investor rooms, SOC2 evidence folders.
+- PDF metadata includes title, author (`Oh Pen Testing v<version>`), subject, and producer, all searchable in the reader.
 
 ### Changed
 - `opt report --format <fmt>` now accepts `pdf` alongside `markdown | json | sarif`.
 
-## [0.5.0] — 2026-04-21
+## [0.5.0] - 2026-04-21
 
-M5 — launch polish. Docs, dogfood, release workflow, Homebrew formula reference.
+M5: launch polish. Docs, dogfood, release workflow, Homebrew formula reference.
 
 ### Added
-- **README.md** rewritten as a landing page — zero-config quickstart, OWASP coverage table, agent roster, autonomy modes, provider matrix, 7 non-negotiable principles, install matrix.
-- **docs/** — getting-started, playbook-authoring, architecture, provider-setup guides.
-- **CONTRIBUTING.md** — project layout + commit conventions + fixture-gate contract + dogfood step + security-sensitive-file list.
+- **README.md** rewritten as a landing page: zero-config quickstart, OWASP coverage table, agent roster, autonomy modes, provider matrix, 7 non-negotiable principles, install matrix.
+- **docs/**: getting-started, playbook-authoring, architecture, provider-setup guides.
+- **CONTRIBUTING.md**: project layout + commit conventions + fixture-gate contract + dogfood step + security-sensitive-file list.
 - **Homebrew formula** at `Formula/oh-pen-testing.rb` (reference; real tap lives at `oh-pen-sauce/homebrew-tap`).
-- **`.github/workflows/release.yml`** — triggers on `v*` tag push: typecheck + build + test → publishes `@oh-pen-testing/*` to npm (if `NPM_TOKEN` secret set) → creates GitHub Release with changelog-extracted notes.
-- **`scripts/dogfood.mjs`** + **`pnpm dogfood`** — runs the regex layer of our own playbooks against the repo. Allowlists fixtures, docs, tests. Currently clean across 122 files and 21 regex playbooks.
+- **`.github/workflows/release.yml`**: triggers on `v*` tag push: typecheck + build + test → publishes `@oh-pen-testing/*` to npm (if `NPM_TOKEN` secret set) → creates GitHub Release with changelog-extracted notes.
+- **`scripts/dogfood.mjs`** + **`pnpm dogfood`**: runs the regex layer of our own playbooks against the repo. Allowlists fixtures, docs, tests. Currently clean across 122 files and 21 regex playbooks.
 
-## [0.4.0] — 2026-04-21
+## [0.4.0] - 2026-04-21
 
-M4 — Agent pool + autonomy enforcement.
+M4: Agent pool + autonomy enforcement.
 
 ### Added
 - **4 named agents**: Marinara 🍅 (injection), Carbonara 🥓 (crypto), Alfredo 🧀 (auth), Pesto 🌿 (dependencies). Each with specialty-tuned system prompts.
@@ -51,15 +85,15 @@ M4 — Agent pool + autonomy enforcement.
 ### Tests
 99/99 passing (was 86). 13 new tests in agent-pool.test.ts.
 
-## [0.3.0] — 2026-04-21
+## [0.3.0] - 2026-04-21
 
-M3 — OWASP Top 10 coverage. 22 playbooks across all ten categories, each with positive/negative fixtures auto-exercised by the fixture-gate test harness.
+M3: OWASP Top 10 coverage. 22 playbooks across all ten categories, each with positive/negative fixtures auto-exercised by the fixture-gate test harness.
 
 ### Added
 
 **Framework**:
-- **SCA playbook type** — new `type: sca` in `PlaybookManifestSchema` with `sca_sources: [npm-audit | pip-audit | bundler-audit]`. Runtime shells out to the relevant auditors (skipping those whose manifest file is absent), normalises their output into standard Issue shape, skips AI confirmation (auditor verdicts are authoritative).
-- **Auto-discovery fixture-gate test harness** — `regex-scanner.test.ts` now walks every playbook under `playbooks/core/`, discovers `tests/positive/` and `tests/negative/` dirs, enforces the contract (positive MUST match, negative must NOT match) for every one. New playbooks get tested with zero test-file edits.
+- **SCA playbook type**: new `type: sca` in `PlaybookManifestSchema` with `sca_sources: [npm-audit | pip-audit | bundler-audit]`. Runtime shells out to the relevant auditors (skipping those whose manifest file is absent), normalises their output into standard Issue shape, skips AI confirmation (auditor verdicts are authoritative).
+- **Auto-discovery fixture-gate test harness**: `regex-scanner.test.ts` now walks every playbook under `playbooks/core/`, discovers `tests/positive/` and `tests/negative/` dirs, enforces the contract (positive MUST match, negative must NOT match) for every one. New playbooks get tested with zero test-file edits.
 
 **22 playbooks** (21 regex + 1 SCA):
 - **A01 Broken Access Control (2)**: missing-authorisation-check, cors-wildcard
@@ -76,15 +110,15 @@ M3 — OWASP Top 10 coverage. 22 playbooks across all ten categories, each with 
 Each playbook ships: `manifest.yml` with regex rules + metadata, `scan.prompt.md` for AI confirmation guidance, `remediate.prompt.md` for fix strategy, positive and negative test fixtures.
 
 ### Changed
-- Every OWASP finding now tags itself with the category (A01-A10), CWE IDs, and default severity — feeds directly into SARIF exports and the PDF report planned for v1.0.
+- Every OWASP finding now tags itself with the category (A01-A10), CWE IDs, and default severity; this feeds directly into SARIF exports and the PDF report planned for v1.0.
 
 ### Tests
 - 86/86 passing across 14 suites (was 46/13 in v0.2.0).
 - 40 new auto-generated fixture-gate tests across the 20 new regex playbooks.
 
-## [0.2.0] — 2026-04-21
+## [0.2.0] - 2026-04-21
 
-M2 — trust and verification. Joe's PRD review produced a short list of gaps; this release closes them.
+M2: trust and verification. Joe's PRD review produced a short list of gaps; this release closes them.
 
 ### Added
 - **Authorisation gate** (PRD Principle 1, § 6.10): new `scope:` block in `config.yml` with `authorisation_acknowledged`, `authorisation_acknowledged_at`, `authorisation_acknowledged_by`. Scans refuse to start without the ack. Setup wizard gains a required checkbox step; `opt scan` prompts on first run in any repo and persists the ack. New `ScopeViolation` error class with typed kinds.
@@ -101,17 +135,17 @@ M2 — trust and verification. Joe's PRD review produced a short list of gaps; t
 ### Tests
 - 46/46 tests across 13 suites (was 27/9 in v0.1.0): added auth-gate, scope-enforcement, verification-rerun, and SARIF-emission test suites.
 
-## [0.1.0] — 2026-04-21
+## [0.1.0] - 2026-04-21
 
-M1 — provider expansion, rate-limit management, and the first web UI.
+M1: provider expansion, rate-limit management, and the first web UI.
 
 ### Added
 - **Provider abstraction**: `AIProvider` extended with optional streaming (`completeStream`) and required `rateLimitStrategy()`. New provider registry / resolver in `@oh-pen-testing/core` so scanners and agents never hardwire a provider.
-- **New provider: `@oh-pen-testing/providers-claude-code-cli`** — spawns the user's local `claude` CLI as a subprocess (non-streaming + streaming). Max-plan users pay $0 extra. Includes `detectClaudeCliInstalled()` and `detectClaudeCliFlags()` helpers.
-- **New provider: `@oh-pen-testing/providers-ollama`** — hits a local Ollama server. Default model `kimi-k2.6`. Streaming via NDJSON on `/api/chat`. Includes `detectOllamaReachable()` for the setup wizard ping.
-- **New package: `@oh-pen-testing/rate-limit`** — budget-based token accounting for API providers (soft cap / hard cap), rolling-window tracker for Claude Max session windows, local-no-op strategy for Ollama.
+- **New provider: `@oh-pen-testing/providers-claude-code-cli`**: spawns the user's local `claude` CLI as a subprocess (non-streaming + streaming). Max-plan users pay $0 extra. Includes `detectClaudeCliInstalled()` and `detectClaudeCliFlags()` helpers.
+- **New provider: `@oh-pen-testing/providers-ollama`**: hits a local Ollama server. Default model `kimi-k2.6`. Streaming via NDJSON on `/api/chat`. Includes `detectOllamaReachable()` for the setup wizard ping.
+- **New package: `@oh-pen-testing/rate-limit`**: budget-based token accounting for API providers (soft cap / hard cap), rolling-window tracker for Claude Max session windows, local-no-op strategy for Ollama.
 - **Rate-limit halt in `runScan`**: scan stops with a typed `RateLimitHalt` error when the manager signals exhaustion or the provider throws `RateLimitError`.
-- **New package: `@oh-pen-testing/playbooks-core`** — exports an absolute `BUNDLED_PLAYBOOKS_DIR` path so consumers don't walk the filesystem. Fixes the fragile `../..` resolution before npm shipping.
+- **New package: `@oh-pen-testing/playbooks-core`**: exports an absolute `BUNDLED_PLAYBOOKS_DIR` path so consumers don't walk the filesystem. Fixes the fragile `../..` resolution before npm shipping.
 - **CLI: `oh-pen-testing setup`** now spawns the web UI at `http://127.0.0.1:7676/setup` and auto-opens the browser (opt-out with `--no-open`).
 - **CLI: `oh-pen-testing schedule --nightly`** installs a launchd plist on macOS or a crontab entry on Linux. Idempotent; `--remove` tears it down.
 - **CLI: `oh-pen-testing scan --provider <id>`** overrides `config.ai.primary_provider` for a single run.
@@ -128,12 +162,12 @@ M1 — provider expansion, rate-limit management, and the first web UI.
 - **New tests**: 12 more tests (27 total, 9 suites) covering rate-limit manager, Ollama provider, rate-limit scan halt, programmatic wizard effect.
 
 ### Changed
-- `ScanRun` schema's `checkpoint` field is still present but unused — checkpointed scan resume deferred to a later milestone per user decision KU6.
+- `ScanRun` schema's `checkpoint` field is still present but unused; checkpointed scan resume deferred to a later milestone per user decision KU6.
 
 ### Removed
 - `SECURITY.md` is unchanged; release workflow stub stays at M5.
 
-## [0.0.1] — 2026-04-20
+## [0.0.1] - 2026-04-20
 
 Initial skeleton release (M0). End-to-end proof of the loop: scan → issue → agent → PR.
 

@@ -2,13 +2,13 @@ import type { Issue } from "./models/issue.js";
 import type { ScanRun } from "./models/scan.js";
 
 /**
- * Share card — an SVG image summarising a scan result, suitable for
+ * Share card: an SVG image summarising a scan result, suitable for
  * Twitter/X / LinkedIn / Mastodon social preview, or for embedding
  * in a README badge.
  *
  * 1200×630 is the standard social-preview aspect ratio.
  *
- * No telemetry assumptions here — this runs purely locally and is
+ * No telemetry assumptions here: this runs purely locally and is
  * written to disk by `opt share`. The user decides whether to post it.
  */
 
@@ -120,7 +120,7 @@ export function buildShareCardText(input: ShareCardInput): string {
 🔎 ${total} issue${total === 1 ? "" : "s"} found${critical > 0 ? ` (${critical} critical)` : ""}
 ✅ ${verified} fixed and verified
 
-It's free, open source, and runs entirely on my machine with my own AI — no code leaves the laptop.
+It's free, open source, and runs entirely on my machine with my own AI. No code leaves the laptop.
 
 Try it yourself: ${website}
 #oss #appsec #devtools`;

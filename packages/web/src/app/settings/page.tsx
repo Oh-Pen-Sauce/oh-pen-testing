@@ -13,7 +13,7 @@ export default async function SettingsPage() {
   return (
     <div>
       <PageHeader
-        kicker="06 — La Cucina (backstage)"
+        kicker="06 – La Cucina (backstage)"
         title={<>Settings</>}
         sub={
           <>
@@ -36,7 +36,7 @@ export default async function SettingsPage() {
       {config ? (
         <>
           <SettingsForm initial={config} />
-          {/* Pre-flight check — verifies token + repo + push permission
+          {/* Pre-flight check: verifies token + repo + push permission
               without opening a real PR. Kept under the main form (not
               above) so the user only sees it once they've finished
               configuring; otherwise it'd just fail. */}
@@ -61,7 +61,7 @@ export default async function SettingsPage() {
           first.
         </div>
       )}
-      {/* Beta-only reset affordance — removed before v1.0 public release.
+      {/* Beta-only reset affordance, removed before v1.0 public release.
           Lets testers wipe state so they can re-run the whole setup flow
           without hand-editing config files or deleting directories. */}
       <ResetDangerZone />

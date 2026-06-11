@@ -18,11 +18,11 @@ import { ensureProvidersRegistered } from "../../../lib/providers-bootstrap";
 import path from "node:path";
 
 /**
- * Standard remediation — runs the autonomy gate. If the issue
+ * Standard remediation: runs the autonomy gate. If the issue
  * triggers approval (recommended+critical, careful, or any
  * approval_trigger match), the agent leaves it in pending_approval
  * and throws AgentApprovalRequired, which the UI surfaces as
- * "needs approval — click Approve & open PR".
+ * "needs approval: click Approve & open PR".
  */
 export async function remediateAction(
   issueId: string,
@@ -31,7 +31,7 @@ export async function remediateAction(
 }
 
 /**
- * One-click "Approve & open PR" — bypasses the autonomy gate
+ * One-click "Approve & open PR": bypasses the autonomy gate
  * because the human just clicked the green button. Use this when
  * the user is explicitly approving a `pending_approval` issue. Adds
  * an audit comment so the trail of "human approved this" is visible
@@ -50,7 +50,7 @@ export async function approveAndRemediateAction(
   // the approval marker.
   issue.comments.push({
     author: "web-reviewer",
-    text: "Approved for agent remediation via the web UI — autonomy gate bypassed for this run.",
+    text: "Approved for agent remediation via the web UI. Autonomy gate bypassed for this run.",
     at: new Date().toISOString(),
   });
   // If status was pending_approval, transition to ready first so
@@ -77,7 +77,7 @@ async function remediateInternal(
   // (which can attach a logger and run async) for those.
   if (issue.severity === "critical" && !bypassAutonomyGate) {
     throw new Error(
-      "Critical issues require approval — use the green 'Approve & open PR' button.",
+      "Critical issues require approval: use the green 'Approve & open PR' button.",
     );
   }
   const provider = await resolveProvider({ config });

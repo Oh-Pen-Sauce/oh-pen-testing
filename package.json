@@ -12,13 +12,16 @@
   "scripts": {
     "build": "turbo run build",
     "test": "turbo run build && vitest run",
-    "lint": "turbo run lint",
+    "coverage": "turbo run build && vitest run --coverage",
+    "lint": "eslint .",
     "typecheck": "turbo run typecheck",
     "dogfood": "turbo run build && node scripts/dogfood.mjs",
+    "mutation": "stryker run",
     "clean": "turbo run clean && rm -rf node_modules",
     "dev": "turbo run build --filter=!@oh-pen-testing/web && pnpm --filter @oh-pen-testing/web dev"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@oh-pen-testing/core": "workspace:*",
     "@oh-pen-testing/git-github": "workspace:*",
     "@oh-pen-testing/playbooks-core": "workspace:*",
@@ -27,8 +30,14 @@
     "@oh-pen-testing/providers-ollama": "workspace:*",
     "@oh-pen-testing/rate-limit": "workspace:*",
     "@oh-pen-testing/shared": "workspace:*",
+    "@stryker-mutator/core": "^8.7.1",
+    "@stryker-mutator/vitest-runner": "^8.7.1",
+    "@vitest/coverage-v8": "2.1.8",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^5.2.0",
     "turbo": "^2.3.3",
     "typescript": "^5.7.2",
+    "typescript-eslint": "^8.61.0",
     "vitest": "^2.1.8"
   }
 }

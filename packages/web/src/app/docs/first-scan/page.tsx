@@ -43,19 +43,19 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 
 const SEVERITIES = [
-  { level: "Critical", color: "var(--sev-critical-fg)", bg: "var(--sev-critical-bg)", desc: "Exploitable now — RCE, auth bypass, credential exposure." },
+  { level: "Critical", color: "var(--sev-critical-fg)", bg: "var(--sev-critical-bg)", desc: "Exploitable now: RCE, auth bypass, credential exposure." },
   { level: "High", color: "var(--sev-high-fg)", bg: "var(--sev-high-bg)", desc: "Significant risk, likely exploitable with moderate effort." },
   { level: "Medium", color: "var(--sev-medium-fg)", bg: "var(--sev-medium-bg)", desc: "Real weakness but requires specific conditions to exploit." },
   { level: "Low", color: "var(--sev-low-fg)", bg: "var(--sev-low-bg)", desc: "Defence-in-depth issues or informational findings." },
 ];
 
 const PLAYBOOKS = [
-  { id: "owasp-top-10", count: 22, desc: "Full OWASP Top 10 — injection, crypto, auth, SSRF, and more" },
+  { id: "owasp-top-10", count: 22, desc: "Full OWASP Top 10: injection, crypto, auth, SSRF, and more" },
   { id: "secrets", count: 1, desc: "Hardcoded API keys, tokens, and credentials" },
   { id: "sca", count: 1, desc: "Dependency audit (npm, pip, bundler)" },
-  { id: "wstg-core", count: 3, desc: "OWASP WSTG checks — JWT, clickjacking, CORS" },
-  { id: "cwe-top-25", count: 3, desc: "CWE Top 25 — path traversal, open redirect, unrestricted upload" },
-  { id: "iac", count: 5, desc: "Infrastructure as code — Dockerfile, Terraform, Kubernetes, Compose" },
+  { id: "wstg-core", count: 3, desc: "OWASP WSTG checks: JWT, clickjacking, CORS" },
+  { id: "cwe-top-25", count: 3, desc: "CWE Top 25: path traversal, open redirect, unrestricted upload" },
+  { id: "iac", count: 5, desc: "Infrastructure as code: Dockerfile, Terraform, Kubernetes, Compose" },
 ];
 
 export default function FirstScanPage() {
@@ -73,7 +73,7 @@ export default function FirstScanPage() {
       />
 
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <Card title="Starter scan — try this first">
+        <Card title="Starter scan, try this first">
           <p className="text-[14px] text-ink-soft mb-3 leading-relaxed">
             Five safe regex-only playbooks. No network calls, no AI cost, completes
             in seconds. A good smoke-test before committing to a full scan.
@@ -82,7 +82,7 @@ export default function FirstScanPage() {
         </Card>
         <Card title="Full scan">
           <p className="text-[14px] text-ink-soft mb-3 leading-relaxed">
-            Runs every enabled playbook catalogue — OWASP Top 10, secrets, SCA,
+            Runs every enabled playbook catalogue: OWASP Top 10, secrets, SCA,
             WSTG, CWE Top 25, and IaC. Uses your connected AI for context and
             confirmation.
           </p>

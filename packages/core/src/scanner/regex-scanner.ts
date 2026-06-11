@@ -17,10 +17,29 @@ export interface RegexScanInput {
   rules: RegexRule[];
   files: WalkedFile[];
   contextLines?: number;
+  /**
+   * Skip regex matching on any file that contains a line longer than
+   * this. Defaults to 5000 characters. Pathologically long lines
+   * (minified bundles, embedded data blobs) are the main catastrophic-
+   * backtracking (ReDoS) vector when matching untrusted source, and
+   * they are almost never hand-written code a user wants flagged. The
+   * 2MB per-file cap in the file-walker bounds total input size; this
+   * bounds per-line width so a hostile minified file in a scanned repo
+   * cannot pin a CPU on a single regex.exec.
+   *
+   * Caveat: this bounds the INPUT, not the PATTERN. A hostile local
+   * playbook (authored in the scanned repo) could still ship a
+   * backtracking-prone regex that starves the CPU on ordinary input.
+   * Bounding that needs a per-exec timeout or a backtracking-free engine
+   * (re2); tracked as a follow-up for untrusted local playbooks in
+   * NOTES.md. The bundled playbook patterns are vetted and benchmarked.
+   */
+  maxLineLength?: number;
 }
 
 export function runRegexScan(input: RegexScanInput): RegexCandidateHit[] {
   const contextLines = input.contextLines ?? 10;
+  const maxLineLength = input.maxLineLength ?? 5000;
   const hits: RegexCandidateHit[] = [];
 
   const compiledRules = input.rules.map((r) => ({
@@ -30,6 +49,12 @@ export function runRegexScan(input: RegexScanInput): RegexCandidateHit[] {
 
   for (const file of input.files) {
     const lines = file.content.split(/\r?\n/);
+    // ReDoS guard: skip files with a pathologically long line.
+    let longestLine = 0;
+    for (const l of lines) {
+      if (l.length > longestLine) longestLine = l.length;
+    }
+    if (longestLine > maxLineLength) continue;
     for (const { rule, regex } of compiledRules) {
       regex.lastIndex = 0;
       let match: RegExpExecArray | null;
