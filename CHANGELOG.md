@@ -2,6 +2,16 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Added
+- **Five new regex playbooks**, taking the catalogue from 36 to 41 and closing the remaining app-relevant gaps in the 2024 CWE Top 25 plus three high-value JavaScript and web additions. Each ships positive and negative test fixtures enforced by the CI fixture gate.
+  - `a01` csrf-protection-missing (CWE-352): session cookies with `sameSite: 'none'`/`false`, raw `Set-Cookie` headers with `SameSite=None`, and csurf/csrf middleware that excuses POST/PUT/PATCH/DELETE via `ignoreMethods`. Closes the CSRF gap in the CWE Top 25.
+  - `a07` missing-authentication (CWE-306, CWE-287): sensitive `/admin`, `/internal`, `/debug`, and destructive `/api/users` routes declared with no auth middleware before the handler. Closes the missing/improper-authentication gap in the CWE Top 25.
+  - `a03` nosql-injection (CWE-943): untrusted `req.body`/`req.query`/`req.params` flowing into a MongoDB/Mongoose filter, including the `{ "$ne": null }` login-bypass shape and `$where` built from user input.
+  - `a04` mass-assignment (CWE-915): an entire request body bound onto a model (`new Model(req.body)`, `Model.create(req.body)`, `Object.assign(entity, req.body)`, `{ ...req.body }`) without field allow-listing.
+  - `a05` insecure-cookie-attributes (CWE-1004, CWE-614, CWE-1275): cookies set with `httpOnly: false`, `secure: false`, or `SameSite=None`, and session-token `Set-Cookie` headers missing HttpOnly and Secure.
+
 ## [1.1.0] - 2026-06-11
 
 A security hardening pass for handing the tool to external testers, plus broader scanner coverage: 27 OWASP playbooks, a 14-detector secrets ruleset, polyglot SCA, a real AST code-injection check, and a tested dynamic (DAST) findings path. Install is quieter too, with the install-time deprecation warnings gone.

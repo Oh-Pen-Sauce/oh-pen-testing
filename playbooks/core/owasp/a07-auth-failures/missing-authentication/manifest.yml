@@ -1,0 +1,36 @@
+id: owasp/a07-auth-failures/missing-authentication
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A07:2021
+cwe: [CWE-306, CWE-287]
+severity_default: high
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: Detects sensitive Express/Koa admin, internal, or debug routes declared with no authentication middleware before the handler.
+impact: |
+  Exposes privileged functionality to anyone who can reach the URL. An attacker can call an unguarded /admin route to promote their own account, delete other users, or read a /debug endpoint that dumps environment variables and secrets. Because the route does its own job correctly, the gap is invisible in normal use and is usually found only by enumerating paths. Missing Authentication for Critical Function (CWE-306) and Improper Authentication (CWE-287) are both 2024 CWE Top 25 entries for exactly this reason: the fix is one line of middleware, but the omission hands over full administrative control.
+risky: false
+risk_profile: safe
+requires_ai: true
+type: regex
+rules:
+  - id: express-sensitive-route-inline-handler-no-auth
+    description: Sensitive admin/internal/debug route whose path is followed straight by an inline handler, with no auth middleware in between. The arrow branch tolerates a TypeScript return-type annotation between the params and the arrow.
+    pattern: '(?:app|router)\.(?:get|post|put|delete|patch|all)\(\s*["''`]/(?:admin|internal|debug)\b[^"''`]*["''`]\s*,\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*(?::\s*[^=]+?)?=>)'
+    flags: g
+    require_ai_confirm: true
+  - id: express-sensitive-route-bare-handler-no-auth
+    description: Sensitive admin/internal/debug route passed a single bare handler identifier as the last argument, with no auth middleware before it.
+    pattern: '(?:app|router)\.(?:get|post|put|delete|patch|all)\(\s*["''`]/(?:admin|internal|debug)\b[^"''`]*["''`]\s*,\s*[A-Za-z_$][\w$]*\s*\)'
+    flags: g
+    require_ai_confirm: true
+  - id: express-destructive-user-route-inline-handler-no-auth
+    description: Destructive (delete/put/patch) operation on an /api/users resource whose path is followed straight by an inline handler, with no auth middleware in between. Read-only GETs are intentionally excluded to stay precise.
+    pattern: '(?:app|router)\.(?:delete|put|patch)\(\s*["''`]/api/users\b[^"''`]*["''`]\s*,\s*(?:async\s*)?(?:function\b|\([^)]*\)\s*(?::\s*[^=]+?)?=>)'
+    flags: g
+    require_ai_confirm: true
+  - id: express-destructive-user-route-bare-handler-no-auth
+    description: Destructive (delete/put/patch) operation on an /api/users resource passed a single bare handler identifier as the last argument, with no auth middleware before it.
+    pattern: '(?:app|router)\.(?:delete|put|patch)\(\s*["''`]/api/users\b[^"''`]*["''`]\s*,\s*[A-Za-z_$][\w$]*\s*\)'
+    flags: g
+    require_ai_confirm: true

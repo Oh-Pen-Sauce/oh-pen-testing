@@ -67,7 +67,7 @@ export interface RunScanOptions {
    * record (status=cancelled), keeps any issues already created, and
    * throws ScanCancelled. The caller decides how to surface it. We
    * don't cancel mid-playbook (that would leave a partially-scanned
-   * playbook in an ambiguous state) but with 31 playbooks and ~1s
+   * playbook in an ambiguous state) but with ~40 playbooks and ~1s
    * each, between-playbook is responsive enough.
    */
   signal?: AbortSignal;

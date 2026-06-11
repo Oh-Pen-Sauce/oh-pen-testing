@@ -1,0 +1,46 @@
+id: owasp/a05-security-misconfiguration/insecure-cookie-attributes
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A05:2021
+cwe: [CWE-1004, CWE-614, CWE-1275]
+severity_default: medium
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: Detects cookies set with insecure attributes such as httpOnly false, secure false, or SameSite none without Secure.
+impact: |
+  A session cookie set without HttpOnly is readable by any injected JavaScript, so a single reflected or stored XSS turns into full session theft. A cookie set without Secure rides over plain HTTP, where a network attacker on the same Wi-Fi or an upstream proxy can read it in clear text and replay it. SameSite none without Secure, or a permissive SameSite, lets a malicious third-party site send the cookie on cross-origin requests, enabling CSRF and session fixation. None of these need server compromise: the attacker just needs the victim to load a page.
+risky: false
+risk_profile: "safe"
+requires_ai: true
+type: regex
+rules:
+  - id: express-res-cookie-httponly-false
+    description: res.cookie options object explicitly sets httpOnly to false. Tolerates a function call in the value argument (one level of nested parens).
+    pattern: 'res\.cookie\s*\((?:[^()]|\([^()]*\))*?\bhttpOnly\s*:\s*false'
+    flags: gs
+    require_ai_confirm: true
+  - id: express-res-cookie-secure-false
+    description: res.cookie options object explicitly sets secure to false. Tolerates a function call in the value argument (one level of nested parens).
+    pattern: 'res\.cookie\s*\((?:[^()]|\([^()]*\))*?\bsecure\s*:\s*false'
+    flags: gs
+    require_ai_confirm: true
+  - id: session-config-httponly-or-secure-false
+    description: express-session or cookie-session config sets httpOnly or secure to false inside a nested cookie options object.
+    pattern: '\bcookie\s*:\s*\{[^}]*\b(?:httpOnly|secure)\s*:\s*false'
+    flags: gs
+    require_ai_confirm: true
+  - id: cookie-session-toplevel-httponly-or-secure-false
+    description: cookie-session config sets httpOnly or secure to false at the top level of the cookieSession() call (no nested cookie object).
+    pattern: 'cookieSession\s*\(\{[^}]{0,400}?\b(?:httpOnly|secure)\s*:\s*false'
+    flags: gs
+    require_ai_confirm: true
+  - id: cookie-samesite-none-quoted
+    description: Cookie config uses SameSite none, which requires Secure and exposes the cookie cross-site.
+    pattern: '\bsameSite\s*:\s*[''"]none[''"]'
+    flags: gi
+    require_ai_confirm: true
+  - id: set-cookie-header-no-flags
+    description: Set-Cookie header string sets a session or token cookie without HttpOnly and Secure flags.
+    pattern: '[''"`]Set-Cookie[''"`]\s*,\s*[''"`](?:session|sid|sessionid|token|auth|jwt)=(?![^''"`]*(?:HttpOnly|Secure))[^''"`]*[''"`]'
+    flags: gi
+    require_ai_confirm: true

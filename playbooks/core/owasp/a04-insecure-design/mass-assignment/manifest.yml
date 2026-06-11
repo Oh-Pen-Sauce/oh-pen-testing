@@ -1,0 +1,41 @@
+id: owasp/a04-insecure-design/mass-assignment
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A04:2021
+cwe: [CWE-915]
+severity_default: high
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: Detects an entire untrusted request body bound onto a model or entity without field allow-listing.
+risky: false
+risk_profile: safe
+impact: |
+  Binding a whole request body onto a model lets an attacker set fields they were never meant to control. A self-signup form that maps req.body directly into User.create can be replayed with an added "role": "admin" or "isAdmin": true key, granting instant privilege escalation. The same flaw lets a user flip ownership columns, balance fields, verification flags, or foreign keys, because any column the ORM knows about is now writable from the wire. The fix is to pick the allowed fields explicitly rather than trusting the shape of the input.
+requires_ai: true
+type: regex
+rules:
+  - id: model-constructor-or-create-whole-body
+    description: Model constructor or create/update/findByIdAndUpdate call passed the whole request body.
+    pattern: '(?:new\s+\w+|\b\w+\s*\.\s*(?:create|update|insert|build|findByIdAndUpdate|findOneAndUpdate|findByIdAndDelete|updateOne|updateMany|create))\s*\(\s*(?:[^,()]*,\s*)?(?:req|request|ctx\.request)\s*\.\s*(?:body|query|params)\s*[,)]'
+    flags: gs
+    require_ai_confirm: true
+  - id: object-assign-entity-whole-body
+    description: Object.assign onto an existing entity using the whole request body as source.
+    pattern: 'Object\s*\.\s*assign\s*\(\s*[A-Za-z_$][\w$.]*\s*,\s*(?:req|request|ctx\.request)\s*\.\s*(?:body|query|params)\s*\)'
+    flags: gs
+    require_ai_confirm: true
+  - id: repository-save-whole-body
+    description: Repository or model save/insertInto called directly with the whole request body.
+    pattern: '\b\w+\s*\.\s*(?:save|insert|persist|merge)\s*\(\s*(?:req|request|ctx\.request)\s*\.\s*(?:body|query|params)\s*\)'
+    flags: gs
+    require_ai_confirm: true
+  - id: spread-whole-body-into-create-update
+    description: Whole request body spread into the data object of a create or update call.
+    pattern: '\.\s*(?:create|update|insert|updateOne|updateMany|findByIdAndUpdate|findOneAndUpdate)\s*\([^)]*\{\s*\.\.\.\s*(?:req|request|ctx\.request)\s*\.\s*(?:body|query|params)\b'
+    flags: gs
+    require_ai_confirm: true
+  - id: spread-whole-body-into-assign-or-save
+    description: Whole request body spread into Object.assign or a save/persist/merge/insert call.
+    pattern: '(?:Object\s*\.\s*assign\s*\(\s*[A-Za-z_$][\w$.]*\s*,|\b\w+\s*\.\s*(?:save|persist|merge|insert)\s*\()\s*\{\s*\.\.\.\s*(?:req|request|ctx\.request)\s*\.\s*(?:body|query|params)\b'
+    flags: gs
+    require_ai_confirm: true
