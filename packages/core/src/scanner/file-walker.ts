@@ -22,6 +22,7 @@ const DEFAULT_IGNORES = [
   "coverage",
   ".vitest-cache",
   ".pnpm-store",
+  ".stryker-tmp",
   // Playbook fixture directories: every playbook we ship has
   // intentionally-vulnerable code under tests/positive/ (to exercise
   // the regex rules) and intentionally-safe code under tests/negative/.

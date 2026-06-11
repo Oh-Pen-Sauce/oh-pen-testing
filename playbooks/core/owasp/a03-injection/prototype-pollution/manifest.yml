@@ -1,0 +1,31 @@
+id: owasp/a03-injection/prototype-pollution
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-1321]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects prototype pollution sinks, writing through __proto__ or constructor.prototype, or deep-merging untrusted request data into an existing object.
+risky: false
+risk_profile: safe
+impact: |
+  Lets an attacker mutate Object.prototype and have the added property appear on every object in the process. Depending on what downstream code reads, this escalates to denial of service, property-injection bypasses of access checks, or remote code execution when a polluted key reaches a template engine, a child_process option bag, or a deserialiser. The classic vector is a recursive merge of a JSON request body that contains a "__proto__" key, but direct writes to obj.__proto__ or constructor.prototype are just as dangerous.
+requires_ai: true
+type: regex
+rules:
+  - id: proto-key-write
+    description: Write through a __proto__ or constructor key reached by bracket or dot access.
+    pattern: '(?:\[\s*["''`]__proto__["''`]\s*\]|\.__proto__|\[\s*["''`]constructor["''`]\s*\]|\.constructor)\s*(?:\[[^\]]+\]|\.\w+)*\s*=(?!=)'
+    flags: g
+    require_ai_confirm: true
+  - id: constructor-prototype-write
+    description: Direct property or index write onto constructor.prototype.
+    pattern: '\bconstructor\s*\.\s*prototype\s*(?:\[[^\]]+\]|\.\w+)\s*=(?!=)'
+    flags: g
+    require_ai_confirm: true
+  - id: deep-merge-untrusted
+    description: Deep-merge or extend helper whose source argument is named like request or user input.
+    pattern: '(?:[.\b]|\b)(?:deep[_-]?merge|merge[_-]?deep|merge|mergeAll|extend|defaultsDeep)\s*\(\s*\w+\s*,\s*(?:req|request|ctx|context|input|body|payload|params|query|userInput|user_input|data)\b'
+    flags: g
+    require_ai_confirm: true

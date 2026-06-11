@@ -32,17 +32,17 @@ opt report  --format pdf      # consultancy-grade pen-test deliverable
 
 ## What ships
 
-### 22 OWASP Top 10 playbooks
+### 26 OWASP Top 10 playbooks
 
 | Cat | Coverage |
 |---|---|
 | A01 Broken Access Control | missing-authorisation-check, cors-wildcard |
-| A02 Cryptographic Failures | weak-hash-algorithm, weak-random-for-security, insecure-tls-version, hardcoded-secrets |
-| A03 Injection | sql-injection-raw, command-injection, xss-innerhtml, xxe-vulnerable-parser |
+| A02 Cryptographic Failures | weak-hash-algorithm, weak-random-for-security, insecure-tls-version, insecure-cipher-mode, weak-rsa-key-length, hardcoded-secrets |
+| A03 Injection | sql-injection-raw, command-injection, xss-innerhtml, xxe-vulnerable-parser, prototype-pollution |
 | A04 Insecure Design | no-rate-limit-on-auth |
 | A05 Security Misconfiguration | debug-mode-enabled, default-credentials, verbose-error-exposure |
 | A06 Vulnerable Components | sca (npm-audit + pip-audit + bundler-audit) |
-| A07 Auth Failures | weak-password-policy, insecure-password-storage |
+| A07 Auth Failures | weak-password-policy, insecure-password-storage, jwt-none-algorithm |
 | A08 Integrity | missing-sri, insecure-deserialization |
 | A09 Logging | sensitive-data-in-logs |
 | A10 SSRF | user-controlled-fetch, metadata-service-access |

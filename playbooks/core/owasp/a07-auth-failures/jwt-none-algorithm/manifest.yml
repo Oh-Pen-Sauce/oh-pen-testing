@@ -1,0 +1,25 @@
+id: owasp/a07-auth-failures/jwt-none-algorithm
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A07:2021
+cwe: [CWE-347]
+severity_default: high
+languages: [javascript, typescript, python]
+authors: [oh-pen-testing-core]
+description: Detects JWTs signed or verified with the "none" algorithm, which disables signature checks and lets anyone forge tokens.
+risky: false
+risk_profile: safe
+impact: Pure static scan, grep-equivalent over your source. Cannot execute code or mint tokens.
+requires_ai: true
+type: regex
+rules:
+  - id: jwt-algorithm-none-js
+    description: A JS/TS options object that sets algorithm (or algorithms) to the "none" string.
+    pattern: 'algorithms?\s*:\s*\[?\s*["''`]none["''`]'
+    flags: g
+    require_ai_confirm: true
+  - id: jwt-algorithm-none-py
+    description: A Python jwt.encode/decode call (or kwarg) that sets algorithm/algorithms to the "none" string.
+    pattern: 'algorithms?\s*=\s*\[?\s*["''`]none["''`]'
+    flags: g
+    require_ai_confirm: true

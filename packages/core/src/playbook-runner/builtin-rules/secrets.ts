@@ -49,6 +49,64 @@ export const BUILTIN_SECRETS_RULES: RegexRule[] = [
     require_ai_confirm: false,
   },
   {
+    id: "stripe-secret-key",
+    description: "Stripe live secret or restricted key (sk_live_/rk_live_).",
+    pattern: "\\b(?:sk|rk)_live_[A-Za-z0-9]{24,}\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "openai-api-key",
+    description:
+      "OpenAI API key (classic sk- with the T3BlbkFJ marker, or sk-proj-).",
+    pattern:
+      "\\bsk-(?:proj-[A-Za-z0-9_-]{40,}|[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20})\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "google-api-key",
+    description: "Google API key (AIza-prefixed).",
+    pattern: "\\bAIza[0-9A-Za-z_-]{35}\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "gcp-service-account",
+    description: "GCP service-account JSON key (type: service_account marker).",
+    pattern: "\"type\"\\s*:\\s*\"service_account\"",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "sendgrid-api-key",
+    description: "SendGrid API key (SG.<22>.<43>).",
+    pattern: "\\bSG\\.[A-Za-z0-9_-]{22}\\.[A-Za-z0-9_-]{43}\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "gitlab-pat",
+    description: "GitLab personal access token (glpat-).",
+    pattern: "\\bglpat-[A-Za-z0-9_-]{20}\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "npm-token",
+    description: "npm access token (npm_<36>).",
+    pattern: "\\bnpm_[A-Za-z0-9]{36}\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
+    id: "twilio-api-key",
+    description: "Twilio API Key SID (SK + 32 hex).",
+    pattern: "\\bSK[0-9a-fA-F]{32}\\b",
+    flags: "g",
+    require_ai_confirm: true,
+  },
+  {
     id: "generic-high-entropy-api-key",
     description:
       "Labelled assignment of a high-entropy string (api_key/secret/token).",
