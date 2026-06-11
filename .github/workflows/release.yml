@@ -73,7 +73,13 @@ jobs:
             found && /^## \[/ { exit }
             found
           ' CHANGELOG.md > release-notes.md
-          gh release create "v$TAG" \
-            --title "v$TAG" \
-            --notes-file release-notes.md \
-            --verify-tag
+          # Idempotent: update the release if it already exists (e.g. a
+          # re-run after wiring up NPM_TOKEN), otherwise create it.
+          if gh release view "v$TAG" >/dev/null 2>&1; then
+            gh release edit "v$TAG" --notes-file release-notes.md
+          else
+            gh release create "v$TAG" \
+              --title "v$TAG" \
+              --notes-file release-notes.md \
+              --verify-tag
+          fi
