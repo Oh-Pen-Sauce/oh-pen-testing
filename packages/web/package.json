@@ -1,7 +1,7 @@
 {
   "name": "@oh-pen-testing/web",
-  "version": "1.0.3",
-  "description": "Local setup wizard and dashboard for Oh Pen Testing. Shipped as a runtime dependency of @oh-pen-testing/cli: not intended to be installed directly.",
+  "version": "1.0.4",
+  "description": "Local setup wizard and dashboard for Oh Pen Testing. Shipped as a runtime dependency of @oh-pen-testing/cli, not intended to be installed directly.",
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
@@ -37,7 +37,7 @@
     "zod": "^3.23.8"
   },
   "optionalDependencies": {
-    "keytar": "^7.9.0"
+    "@napi-rs/keyring": "^1.3.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

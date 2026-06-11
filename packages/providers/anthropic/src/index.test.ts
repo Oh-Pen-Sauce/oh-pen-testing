@@ -11,13 +11,18 @@ let streamImpl: (args: unknown) => unknown;
 const capturedCreateArgs: unknown[] = [];
 
 class MockAPIError extends Error {
+  // The real Anthropic SDK exposes `headers` as a Web Headers object, and
+  // the provider reads it with `err.headers?.get("retry-after")`. Wrap the
+  // plain record so the mock matches that shape.
+  public readonly headers?: Headers;
   constructor(
     public readonly status: number,
     message: string,
-    public readonly headers?: Record<string, string>,
+    headers?: Record<string, string>,
   ) {
     super(message);
     this.name = "APIError";
+    this.headers = headers ? new Headers(headers) : undefined;
   }
 }
 

@@ -95,14 +95,19 @@ export interface AgentProfile {
 
 function bundledAssetsRoot(): string {
   const here = path.dirname(fileURLToPath(import.meta.url));
-  // Dev (tsx): <shared>/src/agents/loader.ts → <shared>/src/agents/assets
-  // Build (tsup): <shared>/dist/index.js → <shared>/dist/agents-assets
-  //   (mirrored by tsup onSuccess; see packages/shared/tsup.config.ts)
+  // Dev (tsx / vitest): <shared>/src/agents/loader.ts → ./assets
+  // Build (tsup esm):   <shared>/dist/index.js         → ../src/agents/assets
+  //                                                    or ./agents-assets
+  //   (the latter is mirrored by tsup onSuccess, see
+  //    packages/shared/tsup.config.ts. We check both so a forgotten
+  //    `pnpm build` in a workspace dev flow falls back to source.)
   const candidates = [
+    // Source paths (canonical, work in dev or when src/ sits alongside dist/)
     path.join(here, "assets"),
-    path.join(here, "..", "agents", "assets"),
+    path.join(here, "..", "src", "agents", "assets"),
     path.join(here, "..", "..", "src", "agents", "assets"),
-    path.join(here, "agents-assets"), // dist-bundled copy
+    // Dist-bundled copies (work after tsup onSuccess mirror)
+    path.join(here, "agents-assets"),
     path.join(here, "..", "agents-assets"),
   ];
   for (const c of candidates) {
@@ -170,7 +175,7 @@ export async function loadAgentProfile(
       playbooks = parsed.playbooks;
       playbooksSource = "project";
     } catch {
-      /* malformed: fall through to bundled */
+      /* malformed, fall through to bundled */
     }
   }
   if (playbooksSource === "bundled" && bundledPlaybooksRaw !== null) {
@@ -180,7 +185,7 @@ export async function loadAgentProfile(
       );
       playbooks = parsed.playbooks;
     } catch {
-      /* malformed: leave empty */
+      /* malformed, leave empty */
     }
   }
 
@@ -203,7 +208,7 @@ export async function loadAgentProfile(
       });
     }
   } catch {
-    /* no skills dir yet: fine */
+    /* no skills dir yet, fine */
   }
 
   return {
@@ -227,7 +232,7 @@ export async function loadAllAgentProfiles(
 
 /**
  * Write a project-local memory override. Creates the agent dir if
- * missing. No-op rejection of empty strings; revert should be a
+ * missing. No-op rejection of empty strings: revert should be a
  * separate action.
  */
 export async function writeAgentMemoryOverride(
@@ -244,7 +249,7 @@ export async function writeAgentMemoryOverride(
 }
 
 /**
- * Delete the project-local memory override; subsequent loads fall
+ * Delete the project-local memory override. Subsequent loads fall
  * back to the bundled memory.md.
  */
 export async function revertAgentMemory(
@@ -296,7 +301,7 @@ export async function revertAgentPlaybooks(
 }
 
 /**
- * Write a custom skill file. Skill ids are filename-safe; callers
+ * Write a custom skill file. Skill ids are filename-safe: callers
  * should normalise before passing. No-op if the filename would
  * escape the skills dir (prevents ../etc traversal).
  */

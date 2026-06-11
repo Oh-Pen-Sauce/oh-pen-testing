@@ -17,9 +17,10 @@ jobs:
         with:
           fetch-depth: 0   # full history so gh CLI can build release notes
 
+      # No `version:` here: package.json's `packageManager` is the single
+      # source of truth. Specifying both makes pnpm/action-setup@v4 fail
+      # with "Multiple versions of pnpm".
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
 
       - uses: actions/setup-node@v4
         with:
