@@ -1,4 +1,4 @@
-import { ScopeViolation, type Config } from "@oh-pen-testing/shared";
+import { ScopeViolation, type Config, type Issue } from "@oh-pen-testing/shared";
 import type {
   DynamicFinding,
   DynamicPlaybook,
@@ -7,6 +7,66 @@ import type {
   DynamicProbeResponse,
   DynamicTarget,
 } from "./types.js";
+
+/**
+ * Map a dynamic (runtime) finding to an Issue so it lands on the board
+ * alongside static findings and flows through the same review/verify
+ * path. Pure: the caller allocates `issueId` and passes `nowIso`.
+ *
+ * Dynamic findings are observed against a live target, so confidence is
+ * high, but they are never auto-fixable (there is no source patch the
+ * agent can write for a runtime behaviour) and always require approval.
+ */
+export function buildDynamicIssue(
+  finding: DynamicFinding,
+  scanId: string,
+  issueId: string,
+  nowIso: string,
+): Issue {
+  return {
+    id: issueId,
+    title: finding.title,
+    severity: finding.severity,
+    cwe: finding.cwe ?? [],
+    owasp_category: finding.owaspRef,
+    status: "backlog",
+    assignee: null,
+    discovered_at: nowIso,
+    discovered_by: `playbook:${finding.playbookId}/${finding.ruleId}`,
+    scan_id: scanId,
+    location: { file: finding.evidence.request.path, line_range: [1, 1] },
+    evidence: {
+      rule_id: finding.ruleId,
+      code_snippet: `${finding.evidence.request.method} ${finding.evidence.request.path}\nStatus: ${finding.evidence.response.status}`,
+      analysis: finding.evidence.analysis,
+      ai_reasoning: finding.evidence.analysis,
+      ai_model: "dynamic-http",
+      ai_confidence: "high",
+    },
+    remediation: {
+      strategy: finding.playbookId,
+      auto_fixable: false,
+      estimated_diff_size: 0,
+      requires_approval: true,
+    },
+    linked_pr: null,
+    verification: {
+      last_run_scan_id: null,
+      last_run_at: null,
+      hits_remaining: null,
+      verified_at: null,
+    },
+    blame: {
+      oldest_commit_sha: null,
+      oldest_commit_iso: null,
+      oldest_commit_author: null,
+      oldest_commit_summary: null,
+      age_days: null,
+      contributors: [],
+    },
+    comments: [],
+  };
+}
 
 /**
  * Run a set of dynamic playbooks against a target URL.
