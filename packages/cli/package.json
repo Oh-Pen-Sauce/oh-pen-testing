@@ -1,6 +1,6 @@
 {
   "name": "@oh-pen-testing/cli",
-  "version": "1.0.4",
+  "version": "1.1.0",
   "description": "Local opensource pen-testing suite. Your code. Your AI. Your terms. `opt` is the CLI entry point.",
   "keywords": [
     "security",
