@@ -639,6 +639,10 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         <ChatHeader busy={busy} state={state} />
 
         <div
+          role="log"
+          aria-live="polite"
+          aria-atomic="false"
+          aria-label="Conversation with Marinara"
           className="p-5 flex-1 overflow-y-auto"
           style={{
             maxHeight: 560,
@@ -846,6 +850,7 @@ export function SetupChat({ initial }: { initial: Config | null }) {
         >
           <input
             type="text"
+            aria-label="Message Marinara"
             value={composerValue}
             onChange={(e) => setComposerValue(e.target.value)}
             onKeyDown={(e) => {
@@ -870,7 +875,9 @@ export function SetupChat({ initial }: { initial: Config | null }) {
             }}
           />
           <button
+            type="button"
             onClick={sendComposer}
+            aria-label="Send message"
             disabled={!aiReady || busy || !composerValue.trim()}
             className="w-10 h-10 rounded-full font-bold disabled:opacity-40"
             style={{
