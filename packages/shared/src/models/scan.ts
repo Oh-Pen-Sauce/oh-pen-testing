@@ -8,6 +8,7 @@ export const ScanStatusSchema = z.enum([
   "completed",
   "failed",
   "checkpointed",
+  "cancelled",
 ]);
 export type ScanStatus = z.infer<typeof ScanStatusSchema>;
 

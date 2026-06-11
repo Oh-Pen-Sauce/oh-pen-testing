@@ -380,6 +380,7 @@ function ScanStatusBadge({ status }: { status: string }) {
     completed: { bg: "#EDEAE3", fg: "#525252", label: "DONE" },
     failed: { bg: "#FBE4E0", fg: "#8F1E10", label: "BURNT" },
     checkpointed: { bg: "#FBF4D9", fg: "#8C6A05", label: "PAUSED" },
+    cancelled: { bg: "#EDEAE3", fg: "#8C6A05", label: "CANCELLED" },
   };
   const c = map[status] ?? { bg: "#EDEAE3", fg: "#525252", label: status.toUpperCase() };
   return (

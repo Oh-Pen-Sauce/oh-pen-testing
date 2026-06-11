@@ -263,7 +263,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             relevant.length - relevant.indexOf(playbook),
         });
         scan.ended_at = new Date().toISOString();
-        scan.status = "checkpointed"; // closest existing status; UI surfaces "cancelled" separately
+        scan.status = "cancelled";
         await writeScan(cwd, scan);
         throw new ScanCancelled(scanId);
       }
@@ -349,6 +349,14 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
       }
 
       if (playbook.manifest.type !== "regex") {
+        // ast and prompt playbook types are declared in the manifest
+        // schema but have no runtime yet, so they are skipped rather
+        // than silently counted as run. Log it so a third-party
+        // playbook of an unsupported type is visible, not invisible.
+        logger.warn("playbook.unsupported_type", {
+          playbookId: playbook.manifest.id,
+          type: playbook.manifest.type,
+        });
         scan.playbooks_skipped += 1;
         continue;
       }
@@ -375,6 +383,11 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
         let severity: Severity = playbook.manifest.severity_default;
         let confirmed = true;
         let reasoning = "Rule matched (regex-only).";
+        // Confidence is how sure we are this is a true positive. The
+        // regex-only path (no AI confirm) is a pattern match with no
+        // semantic check, so it starts at medium and is overwritten by
+        // the model's own confidence when AI confirmation runs.
+        let confidence: "low" | "medium" | "high" = "medium";
 
         if (config.learning.enabled) {
           await recordLearningEvent(cwd, {
@@ -410,6 +423,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             });
             confirmed = verdict.confirmed;
             severity = verdict.severity;
+            confidence = verdict.confidence;
             reasoning = verdict.reasoning;
             // We don't see usage from confirm directly: approximate via provider call chain.
             // confirmCandidate will be extended to return usage in M2.
@@ -485,12 +499,7 @@ export async function runScan(options: RunScanOptions): Promise<RunScanResult> {
             analysis: reasoning,
             ai_reasoning: reasoning,
             ai_model: provider.id,
-            ai_confidence:
-              severity === "critical" || severity === "high"
-                ? "high"
-                : severity === "medium"
-                  ? "medium"
-                  : "low",
+            ai_confidence: confidence,
           },
           remediation: {
             strategy: playbook.manifest.id,
