@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { screenRetriedPatch } from "./run-agent.js";
+import { screenRetriedPatch, changedLineCount } from "./run-agent.js";
 
 describe("screenRetriedPatch", () => {
   it("passes a benign fix", () => {
@@ -36,9 +36,35 @@ describe("screenRetriedPatch", () => {
     expect(screenRetriedPatch(before, after)).toEqual({ safe: true });
   });
 
+  it("flags a SECOND introduced eval even if the original had one", () => {
+    const before = "const a = eval(x);\n";
+    const after = "const a = eval(x);\nconst b = eval(y);\n";
+    expect(screenRetriedPatch(before, after).safe).toBe(false);
+  });
+
   it("flags a suspicious size explosion", () => {
     const before = "export const x = 1;\n";
     const after = before + "y".repeat(5000);
     expect(screenRetriedPatch(before, after).safe).toBe(false);
+  });
+});
+
+describe("changedLineCount", () => {
+  it("is 0 for identical content", () => {
+    const s = "a\nb\nc\n";
+    expect(changedLineCount(s, s)).toBe(0);
+  });
+
+  it("counts a single changed line as a small number", () => {
+    const before = "a\nb\nc\n";
+    const after = "a\nB\nc\n";
+    // b -> B differs at one index: counted once on each side.
+    expect(changedLineCount(before, after)).toBe(2);
+  });
+
+  it("scores a near-total rewrite high", () => {
+    const before = Array.from({ length: 100 }, (_, i) => `line ${i}`).join("\n");
+    const after = Array.from({ length: 100 }, (_, i) => `LINE ${i}`).join("\n");
+    expect(changedLineCount(before, after)).toBe(200);
   });
 });

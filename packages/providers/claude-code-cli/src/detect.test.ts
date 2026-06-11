@@ -124,24 +124,18 @@ describe("detectClaudeCliInstalled", () => {
 });
 
 describe("detectClaudeCliFlags", () => {
-  it("returns the documented headless flags when --help advertises them", async () => {
-    execBehaviour.set("claude", { kind: "ok", stdout: "1.0.0" });
-    // findClaudeBin resolves `claude`, then --help is probed on the same bin.
-    // The same execBehaviour entry serves both calls, and its stdout includes
-    // the flag string the prober looks for.
+  // detectClaudeCliFlags currently returns a fixed flag set regardless of
+  // what `claude --help` advertises (the help text is not yet parsed to
+  // vary the output). One contract test pins that behaviour, so a future
+  // change that makes the flags depend on --help has to update it on
+  // purpose rather than slip through. Asserting the same flags for two
+  // different --help inputs would be tautological, so we do not.
+  it("returns the documented headless flags", async () => {
     execBehaviour.set("claude", {
       kind: "ok",
       stdout: "Usage: claude [options]\n  --output-format <fmt>\n",
     });
 
-    const flags = await detectClaudeCliFlags();
-
-    expect(flags.promptFlag).toBe("-p");
-    expect(flags.jsonFormat).toEqual(["--output-format", "json"]);
-    expect(flags.streamFormat).toEqual(["--output-format", "stream-json"]);
-  });
-
-  it("falls back to the documented flags when claude is not found", async () => {
     const flags = await detectClaudeCliFlags();
 
     expect(flags.promptFlag).toBe("-p");

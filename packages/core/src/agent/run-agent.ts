@@ -1,4 +1,5 @@
 import fs from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import {
@@ -74,13 +75,18 @@ export function evaluateAutonomyGate(
     return { allowed: false, reason: "careful mode: all fixes require approval" };
   }
 
-  // Match the gate on DETERMINISTIC, scanner-assigned fields only: the
-  // playbook id (remediation.strategy), the OWASP category, and the CWE
-  // list. Deliberately NOT issue.title. Titles are display strings that
-  // could one day carry model-authored text, and the autonomy gate must
-  // never be relaxable (or trippable) by content that originates in a
-  // scanned repo. These structural fields come from our own scan
-  // pipeline via the matched playbook, so they are safe to trust here.
+  // Match the gate on the playbook id (remediation.strategy), the OWASP
+  // category, and the CWE list, never issue.title. Titles are display
+  // strings that could carry model-authored text; the structural fields
+  // come from the matched playbook's manifest.
+  //
+  // Trust caveat: this is fully sound only for BUNDLED playbooks. A LOCAL
+  // playbook (under <cwd>/.ohpentesting/playbooks/local) is authored
+  // inside the scanned repo, so a hostile repo could ship a local
+  // playbook that does auth/secrets work but declares benign owasp_ref/
+  // cwe metadata to dodge this gate. Gating local-playbook-sourced issues
+  // by provenance is a tracked follow-up (see NOTES.md); until then,
+  // treat `playbooks.local` as trusted input.
   const strategy = (issue.remediation?.strategy ?? "").toLowerCase();
   const owasp = (issue.owasp_category ?? "").toLowerCase();
   const cwe = issue.cwe.join(" ").toLowerCase();
@@ -387,8 +393,54 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     }
   }
 
-  // Apply the patch (post-review, post-retry).
-  await fs.writeFile(fileAbs, response.patched_file_contents, "utf-8");
+  // large_diff autonomy trigger, evaluated now that the proposed patch
+  // exists (it cannot be judged before remediation, which is why the
+  // pre-flight gate skips it). A fix that rewrites a large fraction of
+  // the file is exactly what a user in recommended mode wants to eyeball
+  // before it becomes a PR. bypassAutonomyGate means a human already
+  // approved this specific issue.
+  if (
+    !options.bypassAutonomyGate &&
+    options.config.agents.approval_triggers.includes("large_diff")
+  ) {
+    const changed = changedLineCount(
+      fileContents,
+      response.patched_file_contents,
+    );
+    const limit = Math.max(
+      200,
+      (issue.remediation?.estimated_diff_size ?? 0) * 5,
+    );
+    if (changed > limit) {
+      issue.status = "pending_approval" as Issue["status"];
+      issue.assignee = agent.id;
+      issue.comments.push({
+        author: agent.id,
+        text: `Held for review: the proposed patch changes about ${changed} lines, over the large_diff limit of ${limit}. Approve via the board or \`opt approve --issue ${issue.id}\`.`,
+        at: new Date().toISOString(),
+      });
+      await writeIssue(options.cwd, issue);
+      logger.info("agent.gated_large_diff", {
+        agent: agent.id,
+        issue: issue.id,
+        changed,
+        limit,
+      });
+      throw new AgentApprovalRequired(
+        issue.id,
+        `large_diff: about ${changed} changed lines`,
+        agent.id,
+      );
+    }
+  }
+
+  // Apply the patch (post-review, post-retry). Re-resolve immediately
+  // before the write and write through an O_NOFOLLOW handle: this closes
+  // the window between the earlier resolve and now (the LLM round trip
+  // can take many seconds) in which a local process could swap the leaf
+  // for a symlink pointing outside the repo.
+  const writePath = await resolvePathWithinRepo(repoPath, issue.location.file);
+  await writeFileNoFollow(writePath, response.patched_file_contents);
   const filesChanged = [issue.location.file];
 
   // Append to .env.example if the agent asked for it
@@ -402,10 +454,9 @@ export async function runAgent(options: RunAgentOptions): Promise<RunAgentResult
     }
     if (!existing.includes(response.env_var_name)) {
       const sep = existing.length > 0 && !existing.endsWith("\n") ? "\n" : "";
-      await fs.writeFile(
+      await writeFileNoFollow(
         envExamplePath,
         existing + sep + response.env_example_addition + "\n",
-        "utf-8",
       );
       filesChanged.push(".env.example");
     }
@@ -545,6 +596,44 @@ function slugify(s: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "")
     .slice(0, 40);
+}
+
+/**
+ * Rough count of how many lines changed between two file versions:
+ * added + removed, treating same-index identical lines as unchanged.
+ * A small targeted fix scores low; a near-total rewrite scores high.
+ * Good enough to drive the large_diff gate without a full diff algorithm.
+ */
+export function changedLineCount(before: string, after: string): number {
+  const a = before.split("\n");
+  const b = after.split("\n");
+  const n = Math.min(a.length, b.length);
+  let same = 0;
+  for (let i = 0; i < n; i++) {
+    if (a[i] === b[i]) same += 1;
+  }
+  return a.length + b.length - 2 * same;
+}
+
+/**
+ * Write a file refusing to follow a symlinked leaf. O_NOFOLLOW makes the
+ * open fail (ELOOP) if the final path component is a symlink, so a patch
+ * write cannot be redirected outside the repo by a symlink swapped in
+ * after the path was validated. O_NOFOLLOW is POSIX-only; on platforms
+ * without it the flag is 0 and we fall back to a normal create/truncate.
+ */
+async function writeFileNoFollow(p: string, data: string): Promise<void> {
+  const flags =
+    fsConstants.O_WRONLY |
+    fsConstants.O_CREAT |
+    fsConstants.O_TRUNC |
+    (fsConstants.O_NOFOLLOW ?? 0);
+  const handle = await fs.open(p, flags, 0o644);
+  try {
+    await handle.writeFile(data, "utf-8");
+  } finally {
+    await handle.close();
+  }
 }
 
 /**

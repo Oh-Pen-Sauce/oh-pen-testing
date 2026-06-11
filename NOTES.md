@@ -117,6 +117,28 @@ docker push ghcr.io/oh-pen-sauce/oh-pen-testing:latest
 Needs a GitHub PAT with `write:packages` set as `GHCR_PAT` in the
 local shell and `docker login ghcr.io -u <user> -p $GHCR_PAT` first.
 
+### Local-playbook trust boundary (follow-up, found 2026-06-11)
+
+The autonomy gate (`evaluateAutonomyGate` in `packages/core/src/agent/run-agent.ts`)
+keys off the matched playbook's `strategy`/`owasp_ref`/`cwe`, which is
+sound for BUNDLED playbooks but not for LOCAL ones. A local playbook
+lives in the scanned repo (`<cwd>/.ohpentesting/playbooks/local/`), so a
+hostile repo could ship a local playbook that performs auth/secrets work
+via its `remediate.prompt.md` while declaring benign `owasp_ref`/`cwe`
+metadata to dodge the approval triggers in `recommended` mode. Two fixes
+to consider together:
+
+1. Thread playbook PROVENANCE (bundled vs local) onto the issue at scan
+   time and gate any local-sourced issue for approval by default in
+   `recommended`/`careful`, regardless of declared metadata.
+2. Vet local-playbook regex patterns at load time (or run them under a
+   per-exec timeout / a backtracking-free engine like re2), since a local
+   playbook can also ship a ReDoS-prone pattern. The current per-line
+   width cap in `regex-scanner.ts` bounds the input, not the pattern.
+
+Until then, `<cwd>/.ohpentesting/playbooks/local/` is trusted input;
+document that in the local-playbooks guide.
+
 ### Install size: Next standalone is a dead end for npm (investigated 2026-06-11)
 
 The wizard install is large because `@oh-pen-testing/web` ships the full

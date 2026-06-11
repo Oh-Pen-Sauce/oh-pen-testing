@@ -29,8 +29,8 @@ export const BUILTIN_SECRETS_RULES: RegexRule[] = [
   },
   {
     id: "github-pat",
-    description: "GitHub Personal Access Token (ghp_/gho_/ghu_/ghs_/ghr_).",
-    pattern: "\\bgh[pous]_[A-Za-z0-9]{36,}\\b",
+    description: "GitHub token (ghp_/gho_/ghu_/ghs_/ghr_).",
+    pattern: "\\bgh[prous]_[A-Za-z0-9]{36,}\\b",
     flags: "g",
     require_ai_confirm: true,
   },
@@ -44,7 +44,7 @@ export const BUILTIN_SECRETS_RULES: RegexRule[] = [
   {
     id: "private-key-header",
     description: "PEM private key header.",
-    pattern: "-----BEGIN (RSA |EC |OPENSSH |DSA )?PRIVATE KEY-----",
+    pattern: "-----BEGIN (RSA |EC |OPENSSH |DSA |ENCRYPTED )?PRIVATE KEY-----",
     flags: "g",
     require_ai_confirm: false,
   },
@@ -58,9 +58,9 @@ export const BUILTIN_SECRETS_RULES: RegexRule[] = [
   {
     id: "openai-api-key",
     description:
-      "OpenAI API key (classic sk- with the T3BlbkFJ marker, or sk-proj-).",
+      "OpenAI API key (classic sk- with the T3BlbkFJ marker, or sk-proj-/sk-svcacct-/sk-admin-).",
     pattern:
-      "\\bsk-(?:proj-[A-Za-z0-9_-]{40,}|[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20})\\b",
+      "\\bsk-(?:(?:proj|svcacct|admin)-[A-Za-z0-9_-]{40,}|[A-Za-z0-9]{20}T3BlbkFJ[A-Za-z0-9]{20})\\b",
     flags: "g",
     require_ai_confirm: true,
   },

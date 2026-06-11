@@ -26,6 +26,6 @@ rules:
     require_ai_confirm: true
   - id: deep-merge-untrusted
     description: Deep-merge or extend helper whose source argument is named like request or user input.
-    pattern: '(?:[.\b]|\b)(?:deep[_-]?merge|merge[_-]?deep|merge|mergeAll|extend|defaultsDeep)\s*\(\s*\w+\s*,\s*(?:req|request|ctx|context|input|body|payload|params|query|userInput|user_input|data)\b'
+    pattern: '(?:\.|\b)(?:deep[_-]?merge|merge[_-]?deep|merge|mergeAll|mergeWith|assign|assignIn|extend|defaultsDeep)\s*\(\s*\w+\s*,\s*(?:req|request|ctx|context|input|body|payload|params|query|userInput|user_input|data)\b'
     flags: g
     require_ai_confirm: true

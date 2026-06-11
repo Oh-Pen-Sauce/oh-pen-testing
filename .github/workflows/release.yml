@@ -44,8 +44,10 @@ jobs:
 
       - name: Publish CLI to npm
         # Only runs if NPM_TOKEN is set; skipped silently otherwise so
-        # contributors can tag without publishing.
-        if: ${{ env.NPM_TOKEN != '' }}
+        # contributors can tag without publishing. Gate on `secrets`
+        # directly: step-level env is not reliably visible to a step's
+        # own `if:` expression.
+        if: ${{ secrets.NPM_TOKEN != '' }}
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -57,10 +59,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Extract the changelog section for this tag (the block under the
-          # matching `## [X.Y.Z]` header, up to the next `## [`).
+          # matching `## [X.Y.Z]` header, up to the next `## [`). Match the
+          # header LITERALLY with index(): the version contains `.` and the
+          # heading has `[ ]`, both of which are regex metacharacters, so a
+          # `$0 ~ t` regex match would treat `[1.0.3]` as a character class.
           TAG="${GITHUB_REF#refs/tags/v}"
-          awk -v t="## [$TAG]" '
-            $0 ~ t        { found=1; next }
+          awk -v tag="$TAG" '
+            index($0, "## [" tag "]") == 1 { found=1; next }
             found && /^## \[/ { exit }
             found
           ' CHANGELOG.md > release-notes.md

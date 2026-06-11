@@ -26,6 +26,13 @@ export interface RegexScanInput {
    * 2MB per-file cap in the file-walker bounds total input size; this
    * bounds per-line width so a hostile minified file in a scanned repo
    * cannot pin a CPU on a single regex.exec.
+   *
+   * Caveat: this bounds the INPUT, not the PATTERN. A hostile local
+   * playbook (authored in the scanned repo) could still ship a
+   * backtracking-prone regex that starves the CPU on ordinary input.
+   * Bounding that needs a per-exec timeout or a backtracking-free engine
+   * (re2); tracked as a follow-up for untrusted local playbooks in
+   * NOTES.md. The bundled playbook patterns are vetted and benchmarked.
    */
   maxLineLength?: number;
 }

@@ -136,6 +136,14 @@ describe("resolvePathWithinRepo", () => {
     ).rejects.toThrowError(ScopeViolation);
   });
 
+  it("refuses an absolute path outside the repo", async () => {
+    // path.resolve(root, "/etc/passwd") returns "/etc/passwd", which the
+    // lexical containment check must reject.
+    await expect(
+      resolvePathWithinRepo(repo, "/etc/passwd"),
+    ).rejects.toThrowError(ScopeViolation);
+  });
+
   it("refuses a symlink that points outside the repo", async () => {
     // Plant a target outside the repo, then a symlink inside the repo
     // that points at it. The lexical path looks in-repo; only realpath

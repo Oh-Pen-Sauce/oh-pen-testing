@@ -14,12 +14,12 @@ requires_ai: true
 type: regex
 rules:
   - id: jwt-algorithm-none-js
-    description: A JS/TS options object that sets algorithm (or algorithms) to the "none" string.
-    pattern: 'algorithms?\s*:\s*\[?\s*["''`]none["''`]'
-    flags: g
+    description: A JS/TS options object that sets algorithm (or algorithms) to the "none" string, including when "none" appears alongside real algorithms in a list.
+    pattern: 'algorithms?\s*:\s*\[?[^\]\n]*?["''`]none["''`]'
+    flags: gi
     require_ai_confirm: true
   - id: jwt-algorithm-none-py
-    description: A Python jwt.encode/decode call (or kwarg) that sets algorithm/algorithms to the "none" string.
-    pattern: 'algorithms?\s*=\s*\[?\s*["''`]none["''`]'
-    flags: g
+    description: A Python jwt.encode/decode call (or kwarg) that sets algorithm/algorithms to the "none" string, including in a list with real algorithms.
+    pattern: 'algorithms?\s*=\s*\[?[^\]\n]*?["''`]none["''`]'
+    flags: gi
     require_ai_confirm: true

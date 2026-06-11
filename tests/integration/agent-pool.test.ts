@@ -78,7 +78,9 @@ describe("agent-pool: agent roster", () => {
 });
 
 describe("agent-pool: autonomy gate", () => {
-  async function baseConfig(autonomy: "yolo" | "recommended" | "careful") {
+  async function baseConfig(
+    autonomy: "yolo" | "full-yolo" | "recommended" | "careful",
+  ) {
     const cwd = await fs.mkdtemp(path.join(os.tmpdir(), "ohpen-autonomy-"));
     await scaffold({
       cwd,
@@ -191,6 +193,24 @@ describe("agent-pool: autonomy gate", () => {
     const gate = evaluateAutonomyGate(config, issue);
     expect(gate.allowed).toBe(false);
     if (!gate.allowed) expect(gate.reason).toContain("secrets_rotation");
+  });
+
+  it("full-yolo bypasses every gate, including triggers and critical severity", async () => {
+    const { config } = await baseConfig("full-yolo");
+    const issue = makeIssue({
+      severity: "critical",
+      title: "Rotate leaked auth secret",
+      owasp_category: "A07:2021",
+      cwe: ["CWE-798"],
+      remediation: {
+        strategy: "owasp/a01-broken-access-control/missing-authorisation-check",
+        auto_fixable: true,
+      },
+    });
+    // This issue trips auth_changes, secrets_rotation, AND critical
+    // severity; full-yolo is the only mode that lets it through.
+    const gate = evaluateAutonomyGate(config, issue);
+    expect(gate.allowed).toBe(true);
   });
 });
 
