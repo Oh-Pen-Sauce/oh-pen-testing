@@ -85,17 +85,10 @@ tarball. Look for:
 - Nothing weird (no `.env*`, no `node_modules/`, no raw source
   trees, only `dist/` content + `package.json`).
 - Every package you expect to publish is listed.
-- `@oh-pen-testing/web` IS listed; that's expected. `private: true`
-  blocks `npm publish`, not `npm pack`. To confirm web won't be
-  published, run a real publish dry-run on it:
-
-  ```bash
-  pnpm --filter @oh-pen-testing/web publish --dry-run --no-git-checks
-  ```
-
-  You should see `ERR_PNPM_PRIVATE_PACKAGE_PUBLISH`; that's the
-  protection. The actual publish step (step 5) only targets each
-  package explicitly by filter, so web is never reached anyway.
+- `@oh-pen-testing/web` IS listed and IS published. The CLI serves the
+  setup wizard from it, so `npm install -g @oh-pen-testing/cli` must be
+  able to resolve `@oh-pen-testing/web` at the matching version. Its
+  tarball is large (the built Next.js app); that is expected.
 
 ---
 
@@ -108,18 +101,20 @@ All published packages ship together at the same version. Use
 
 ```bash
 # patch (1.0.0 → 1.0.1)
-pnpm -r --filter "!@oh-pen-testing/web" exec npm version patch --no-git-tag-version
+pnpm -r exec npm version patch --no-git-tag-version
 
 # minor (1.0.1 → 1.1.0)
-pnpm -r --filter "!@oh-pen-testing/web" exec npm version minor --no-git-tag-version
+pnpm -r exec npm version minor --no-git-tag-version
 
 # major (1.1.0 → 2.0.0)
-pnpm -r --filter "!@oh-pen-testing/web" exec npm version major --no-git-tag-version
+pnpm -r exec npm version major --no-git-tag-version
 ```
 
-The `!@oh-pen-testing/web` filter excludes the Next.js app (private).
-
-Also update `CLI_VERSION` in `packages/cli/src/index.ts` to match.
+Every workspace package, including `@oh-pen-testing/web`, bumps together.
+The CLI depends on `web` at the same version, so it must not be left
+behind. `pnpm -r` does not touch the root `package.json`, so bump it
+separately (`npm version <x> --no-git-tag-version` at the repo root), and
+update `CLI_VERSION` in `packages/cli/src/index.ts` to match.
 
 ### 2. Clean + build everything
 
@@ -194,7 +189,10 @@ pnpm --filter @oh-pen-testing/playbooks-core publish --no-git-checks
 # 3. Depends on all providers + git + shared + playbooks
 pnpm --filter @oh-pen-testing/core publish --no-git-checks
 
-# 4. Depends on everything above
+# 4. The web wizard: depends on core/shared, and the CLI depends on it
+pnpm --filter @oh-pen-testing/web publish --no-git-checks
+
+# 5. Depends on everything above (including web)
 pnpm --filter @oh-pen-testing/cli publish --no-git-checks
 ```
 
@@ -209,7 +207,7 @@ from main only.
 
 ```bash
 npm view @oh-pen-testing/cli version
-# → 1.0.1  (or whatever you just cut)
+# → 1.1.0  (or whatever you just cut)
 
 # And that the tarball actually works as a fresh install:
 npx @oh-pen-testing/cli@latest --version
@@ -259,9 +257,11 @@ the shebang. Check `packages/cli/tsup.config.ts` has
 
 **User reports "playbooks not found"**
 `@oh-pen-testing/playbooks-core`'s `files` array in package.json must
-include every top-level playbook directory (`secrets`, `owasp`, `sca`,
-`wstg`, `cwe-top-25`, `iac`, `asvs`). Missing dir = missing playbooks
-after install. Fix in the package.json, re-pack, re-test step 4.
+include every shipped top-level playbook directory (`secrets`, `owasp`,
+`wstg`, `cwe-top-25`, `iac`). There is no top-level `sca/` dir (SCA ships
+under `owasp/a06-vulnerable-components/sca/`), and `asvs/` is excluded on
+purpose (stub, nothing to ship). A missing shipped dir means missing
+playbooks after install. Fix in the package.json, re-pack, re-test step 4.
 
 ---
 

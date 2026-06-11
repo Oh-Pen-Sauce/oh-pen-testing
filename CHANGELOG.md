@@ -2,6 +2,53 @@
 
 All notable changes to Oh Pen Testing are documented here. Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.1.0] - 2026-06-11
+
+A security hardening pass for handing the tool to external testers, plus broader scanner coverage: 27 OWASP playbooks, a 14-detector secrets ruleset, polyglot SCA, a real AST code-injection check, and a tested dynamic (DAST) findings path. Install is quieter too, with the install-time deprecation warnings gone.
+
+### Added
+- **Five new OWASP playbooks**, taking the catalogue from 22 to 27:
+  - `a07` JWT none-algorithm (CWE-347): JWTs signed or verified with `alg: none`, including the algorithm-confusion case where `none` is not first in the list, and uppercase `NONE`.
+  - `a02` insecure cipher mode (CWE-327): AES-ECB, DES/3DES, RC4.
+  - `a02` weak RSA key length (CWE-326): RSA modulus under 2048 bits.
+  - `a03` prototype pollution (CWE-1321): `__proto__` writes and untrusted merge/assign.
+  - `a03` code-injection-eval (CWE-95): the first AST-backed check (see below).
+- **AST playbook runtime** (`type=ast`). Previously declared in the schema but skipped at runtime, it now runs a Babel-backed scanner. The first built-in check flags `eval()` and `new Function()` called with a non-literal argument, a precision regex cannot reach: it tells `eval` of a string literal apart from `eval` of user input by inspecting the argument node.
+- **osv-scanner as a polyglot SCA source.** SCA previously covered only npm, pip, and bundler. With osv-scanner on PATH, scans now also cover Go, Rust, Java/Maven, PHP/Composer, and more from a single tool. It runs only when a recognised dependency manifest is present and skips silently (recorded as a skipped source) when the binary is absent.
+- **Eight more secrets detectors**, expanding the built-in ruleset from 6 to 14: Stripe, OpenAI, Google API key, GCP service account, SendGrid, GitLab PAT, npm token, and Twilio. Each is precise and tuned to be low false-positive.
+- **A distinct AI-confidence axis on findings.** The confirm step now reports how sure it is a finding is a true positive, independent of how severe it is, rather than deriving confidence from severity.
+- **`cancelled` scan status.** Cancelling a scan now finalises the record as a real `cancelled` status, with a CANCELLED badge in the web board, instead of being overloaded onto `checkpointed`.
+- **Richer `opt info`**: shows the scan target, whether config is present, the configured provider/model/autonomy, and whether credentials exist (location only, never the value).
+- **Node 22+ runtime check** in the CLI, with `info`/`help`/`version` exempt so users on older Node can still diagnose, plus a "run `opt setup`" hint when invoked with no subcommand.
+- **Stryker mutation-testing scaffold** (`pnpm mutation`), scoped to the safety-critical scope and rate-limit modules. Run on demand, not in CI.
+- **A real CI gate**: ESLint flat config (`pnpm lint`), vitest v8 coverage with floor thresholds (`pnpm coverage`), a green dogfood step, an advisory `pnpm audit`, a frozen lockfile, an Ubuntu + macOS test matrix, and npm `--provenance` publishing with OIDC attestation.
+
+### Changed
+- **Default keychain backend switched from keytar to `@napi-rs/keyring`.** keytar is unmaintained; the replacement ships a compat shim with the same API, so credential storage in the OS keychain is unchanged for users. As part of this, keychain access is now an optional dependency that CLI-only installs actually receive, so they get the OS keychain tier instead of silently falling back to the file store.
+- **The autonomy gate now keys off deterministic fields only** (playbook id, OWASP category, CWE code), never the issue title. Titles are the one field a scanned repo could influence, so they can no longer relax or trip the gate. The gate also now reads OWASP categories and CWE codes, so real auth and secrets findings still gate.
+- **Web wizard UX**: the Autonomy step now leads with the Recommended option; "Full YOLO" (no safety gate) moved behind a "Show advanced" disclosure that auto-opens only if it is already your saved choice. The chat message list is now an accessible live log, and the composer input and send button have proper labels.
+- API-key providers no longer report a misleading "Ready" before the key is used; they report a deferred state, with the key validated on first use.
+- README, CHANGELOG, and docs corrected for accuracy: supported providers restated to what actually ships (Claude API, Claude Code CLI, Ollama, with OpenAI/OpenRouter next), coverage claims fixed, and version hints unstuck from old numbers.
+- House-style pass across the repo: every em-dash replaced with the punctuation it was standing in for, spanning docs, CLI output, web copy, comments, and playbook prompts. Behaviour-preserving, strings and comments only.
+
+### Fixed
+- **No more install-time deprecation warnings.** A fresh `npx @oh-pen-testing/cli@latest setup` previously printed three npm deprecation warnings (`node-domexception`, `jpeg-exif`, `prebuild-install`) from transitive deps. Bumping `@anthropic-ai/sdk`, `pdfkit`, and the keychain library off the offending versions clears all three.
+- **`next dev` crash with "agent assets not found"** when `dist/agents-assets/` was missing (for example after a fresh clone with no build). The agents loader now falls back to source correctly, so a forgotten build no longer takes down the dev flow.
+- **Scanner-accuracy fixes** from an adversarial review of the hardening branch:
+  - JWT none-algorithm now matches `none` anywhere in an algorithms list and is case-insensitive.
+  - Prototype-pollution deep-merge detection (a stray literal backspace in the pattern meant it was not matching; now also catches `Object.assign` / `assign` / `mergeWith`).
+  - Secrets detectors widened for real-world variants: GitHub `ghr_` tokens, OpenAI `sk-svcacct-`/`sk-admin-` keys, and `ENCRYPTED PRIVATE KEY` blocks.
+- Unsupported playbook types now log a visible warning when skipped, so a third-party playbook of an unsupported type is no longer silently counted as skipped.
+- The release workflow's changelog extraction matched the version heading as a regex, where `[1.0.3]` is a character class, producing wrong or empty release notes. It now matches the heading literally. The npm publish gate was also fixed to read its token correctly.
+- Backfilled the missing 1.0.0, 1.0.1, and 1.0.3 CHANGELOG entries (the release workflow ships empty notes for any tag without a matching section).
+- Docker `opt` shim repaired: it pointed at a non-existent path, so `opt` did not resolve inside the container; the web UI now also binds to `0.0.0.0` so it is reachable from the host.
+
+### Security
+- **Path-containment guard on every agent file read and write.** Each path is resolved through a two-layer check (lexical `..` plus realpath for symlinks), so a tampered finding's recorded file location can never read or write outside the repo. A TOCTOU window between the early path check and the post-LLM write is closed by re-resolving the target and writing through an `O_NOFOLLOW` handle.
+- **The one-shot retry patch is now screened** for a newly introduced `eval` / `new Function` / `document.write` or a size explosion, and held for human approval if flagged. Fail-closed and deliberately narrow to avoid blocking real fixes.
+- **The `large_diff` approval trigger is now actually evaluated.** It shipped in the defaults but was never wired up; a patch changing more than `max(200, estimated * 5)` lines is now held for approval.
+- **ReDoS guard in the regex scanner.** Files with a pathologically long line (default 5000 chars) are skipped, closing the main catastrophic-backtracking vector when scanning untrusted repos. URL scope matching also re-checks the parsed protocol is http or https.
+- **The dynamic (DAST) finding-to-issue path is now extracted and tested.** The scope gates that protect a live target (refuse without authorisation, refuse an out-of-scope target, block a probe that tries to escape the allowed origin) previously had no test coverage; they now do, and dynamic findings can carry CWE/OWASP classification. Dynamic findings remain high-confidence but never auto-fixable and always require approval.
 ## [1.0.3] - 2026-05-17
 
 Setup polish and in-app docs. Thanks to Joe (@Veridex-AI) for the fix-pack (PR #2).

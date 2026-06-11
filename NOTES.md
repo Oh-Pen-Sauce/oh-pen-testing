@@ -59,8 +59,9 @@ Every public workspace package is publish-ready:
 - `publishConfig: { access: "public" }` + MIT license + repo /
   homepage / bugs / engines fields on each
 - CLI tarball verified to include the `#!/usr/bin/env node` shebang
-- `@oh-pen-testing/playbooks-core` `files` includes every playbook
-  dir (secrets, owasp, sca, wstg, cwe-top-25, iac, asvs)
+- `@oh-pen-testing/playbooks-core` `files` includes every shipped
+  playbook dir (secrets, owasp, wstg, cwe-top-25, iac). SCA ships inside
+  owasp/a06; asvs/ is a stub and excluded.
 - Local smoke test passed: pack → install → `opt --version` → `opt
   connect` → config.yml written. End-to-end green.
 

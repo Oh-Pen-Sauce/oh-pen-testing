@@ -17,7 +17,7 @@ lives in commit log + [NOTES.md](./NOTES.md).
 - `packages/rate-limit/`: cost/session budget manager
 - `packages/providers/{anthropic,claude-code-cli,ollama}/`: AI backends
 - `packages/git-adapters/{github,gitlab,bitbucket}/`: PR plumbing
-- `playbooks/core/`: bundled rules under `{secrets,owasp,sca,wstg,cwe-top-25,iac,asvs}/`
+- `playbooks/core/`: bundled rules under `{secrets,owasp,wstg,cwe-top-25,iac}/` (SCA ships inside `owasp/a06-vulnerable-components/`; `asvs/` exists as a stub but is excluded from the published `files`)
   Each playbook: `manifest.yml` + `scan.prompt.md` + `remediate.prompt.md` + `tests/{positive,negative}/*`
 
 ## Golden rules
@@ -87,7 +87,7 @@ including dependency-order publish.
 ### Publish state: LIVE on npm
 
 All 12 workspace packages publish to npm under the `@oh-pen-testing/*`
-scope. Latest release: **v1.0.3** (2026-05-17). Publishing is active.
+scope. Latest release: **v1.1.0** (2026-06-11). Publishing is active.
 
 To cut a release: bump versions with `pnpm -r`, update `CLI_VERSION` in
 `packages/cli/src/index.ts`, add a `CHANGELOG.md` section, tag `vX.Y.Z`,
