@@ -1,6 +1,6 @@
 {
   "name": "@oh-pen-testing/shared",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -28,13 +28,13 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "pdfkit": "^0.15.2",
+    "pdfkit": "^0.18.0",
     "proper-lockfile": "^4.1.2",
     "yaml": "^2.6.1",
     "zod": "^3.23.8"
   },
   "optionalDependencies": {
-    "keytar": "^7.9.0"
+    "@napi-rs/keyring": "^1.3.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",

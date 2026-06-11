@@ -89,7 +89,7 @@ export function createAnthropicProvider(
         };
       } catch (err) {
         if (err instanceof Anthropic.RateLimitError) {
-          const retryAfter = err.headers?.["retry-after"];
+          const retryAfter = err.headers?.get("retry-after");
           throw new RateLimitError(
             `Anthropic rate limit: ${err.message}`,
             retryAfter ? Number(retryAfter) : undefined,
@@ -132,7 +132,7 @@ export function createAnthropicProvider(
         };
       } catch (err) {
         if (err instanceof Anthropic.RateLimitError) {
-          const retryAfter = err.headers?.["retry-after"];
+          const retryAfter = err.headers?.get("retry-after");
           throw new RateLimitError(
             `Anthropic rate limit: ${err.message}`,
             retryAfter ? Number(retryAfter) : undefined,
