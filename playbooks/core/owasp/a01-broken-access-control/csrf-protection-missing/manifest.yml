@@ -1,0 +1,36 @@
+id: owasp/a01-broken-access-control/csrf-protection-missing
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A01:2021
+cwe: [CWE-352]
+severity_default: high
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: Detects session-cookie and CSRF-middleware configurations that leave state-changing requests open to cross-site request forgery.
+risky: false
+risk_profile: safe
+impact: |
+  Lets an attacker forge authenticated state-changing requests from a victim's browser. A user who is logged in and visits a malicious page can have their password changed, funds transferred, or account settings altered without their knowledge, because the browser attaches the session cookie automatically. Disabling SameSite or excusing POST/PUT/DELETE from CSRF checks removes the last line of defence against this. The damage is scoped to whatever the authenticated user is allowed to do, which on an admin session is the whole application.
+requires_ai: true
+type: regex
+rules:
+  - id: session-cookie-samesite-none
+    description: Session or cookie config sets sameSite to 'none', which lets the cookie ride along on cross-site requests. The negative lookahead skips TypeScript type-union declarations where 'none' is one allowed value rather than an assignment.
+    pattern: 'sameSite\s*:\s*["'']none["''](?!\s*\|)'
+    flags: gi
+    require_ai_confirm: true
+  - id: session-cookie-samesite-false
+    description: Session or cookie config sets sameSite to false, disabling the browser's cross-site cookie protection. The negative lookahead skips type-union declarations.
+    pattern: 'sameSite\s*:\s*false(?!\s*\|)'
+    flags: gi
+    require_ai_confirm: true
+  - id: session-cookie-samesite-none-header
+    description: A Set-Cookie header string sets the SameSite=None attribute, delivering the cookie cross-site. Catches the raw res.setHeader / cookie.serialize form the object-literal rules miss.
+    pattern: 'SameSite\s*=\s*None\b'
+    flags: gi
+    require_ai_confirm: true
+  - id: csrf-ignoremethods-state-changing
+    description: csurf/csrf middleware excuses a state-changing verb (POST/PUT/PATCH/DELETE) via ignoreMethods.
+    pattern: 'ignoreMethods\s*:\s*\[[^\]]*["''](?:POST|PUT|PATCH|DELETE)["'']'
+    flags: gi
+    require_ai_confirm: true

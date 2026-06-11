@@ -1,0 +1,36 @@
+id: owasp/a03-injection/nosql-injection
+version: 1.0.0
+category: owasp-top-10
+owasp_ref: A03:2021
+cwe: [CWE-943]
+severity_default: critical
+languages: [javascript, typescript]
+authors: [oh-pen-testing-core]
+description: Detects untrusted request input flowing into a MongoDB/Mongoose query in a way that allows operator injection.
+impact: |
+  Lets an attacker smuggle MongoDB query operators (such as $ne, $gt, $regex, or $where) inside an HTTP parameter, because the raw request object is used as the filter. A login check of the form {user, pass} becomes a bypass when the client sends {"$ne": null}, returning the first matching account without a valid password. A $where clause built from user input runs attacker-supplied JavaScript inside the database process, which can be escalated to blind data exfiltration or denial of service.
+risky: false
+risk_profile: safe
+requires_ai: true
+type: regex
+rules:
+  - id: query-arg-raw-req
+    description: A find/findOne/update/replace/delete/count/aggregate call whose filter argument is the raw req.body/req.query/req.params object.
+    pattern: '\.(?:find|findOne|findOneAndUpdate|findOneAndDelete|findOneAndReplace|updateOne|updateMany|update|replaceOne|deleteOne|deleteMany|delete|remove|count|countDocuments|aggregate)\s*\(\s*req\.(?:body|query|params)\s*[,)]'
+    flags: g
+    require_ai_confirm: true
+  - id: filter-object-raw-req-value
+    description: A query filter object literal whose field value is a raw req.body/req.query/req.params property, allowing operator injection.
+    pattern: '\.(?:find|findOne|findOneAndUpdate|findOneAndDelete|findOneAndReplace|updateOne|updateMany|update|replaceOne|deleteOne|deleteMany|delete|remove|count|countDocuments|aggregate)\s*\(\s*\{[^{}]*:\s*req\.(?:body|query|params)\.[A-Za-z_$][\w$]*\s*[,}]'
+    flags: gs
+    require_ai_confirm: true
+  - id: filter-object-raw-req-object
+    description: A query filter object literal whose field value is the bare req.body/req.query/req.params object (no property access or cast), so the whole request object becomes a sub-filter and any $-operator in it injects.
+    pattern: '\.(?:find|findOne|findOneAndUpdate|findOneAndDelete|findOneAndReplace|updateOne|updateMany|update|replaceOne|deleteOne|deleteMany|delete|remove|count|countDocuments|aggregate)\s*\(\s*\{[^{}]*:\s*req\.(?:body|query|params)\s*[,}]'
+    flags: gs
+    require_ai_confirm: true
+  - id: where-clause-user-input
+    description: A $where filter built from interpolated or concatenated user input.
+    pattern: '[''"]?\$where[''"]?\s*:\s*(?:`[^`]*\$\{[^}]*req\.(?:body|query|params)|[''"][^''"]*[''"]\s*\+\s*req\.(?:body|query|params)|req\.(?:body|query|params))'
+    flags: gs
+    require_ai_confirm: true
