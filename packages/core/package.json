@@ -20,6 +20,8 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@babel/parser": "^7.29.7",
+    "@babel/traverse": "^7.29.7",
     "@oh-pen-testing/git-github": "workspace:*",
     "@oh-pen-testing/playbooks-core": "workspace:*",
     "@oh-pen-testing/providers-anthropic": "workspace:*",
@@ -32,6 +34,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@babel/types": "^7.29.7",
+    "@types/babel__traverse": "^7.28.0",
     "@types/node": "^22.10.0",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2",
